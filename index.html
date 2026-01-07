@@ -349,7 +349,10 @@ async function loadBackendData() {
                                         👤 ${currentCashier || shiftInfo.cashier}
                                     </span>
                                     <span class="badge-modern bg-white bg-opacity-20 text-white border border-white border-opacity-30">
-                                        🕐 ${shiftInfo.loginTime ? new Date(shiftInfo.loginTime).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : ''}
+                                        🕐 ${shiftInfo.openedAt 
+    ? new Date(shiftInfo.openedAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) 
+    : '--:--'}
+
                                     </span>
                                 </div>
                                 <button onclick="closeShift()" class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
@@ -1120,11 +1123,12 @@ async function loadBackendData() {
     // ✅ Update state setelah backend sukses
     currentCashier = cashierName;
     shiftData[currentShift] = {
-      status: 'open',
-      startCash: startCash,
-      endCash: 0,
-      cashier: cashierName
-    };
+  status: 'open',
+  startCash: startCash,
+  endCash: 0,
+  cashier: cashierName,
+  openedAt: new Date().toISOString() // ⬅️ WAKTU LOGIN
+};
 
     showNotification('✅ Shift berhasil dimulai', 'success');
     renderCurrentView();
@@ -1594,6 +1598,7 @@ async function loadBackendData() {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
