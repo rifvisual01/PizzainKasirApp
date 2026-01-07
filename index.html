@@ -1,0 +1,1532 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir Shift</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+<script>
+  const API_BASE = "https://script.google.com/macros/s/AKfycbyMrKtQT_hzr7wSodOurIJpsuwmfSCUJsyCMXxo4YAFSRh8RRGXQZdc-4VNqF9xuPH1Kw/exec";
+</script>
+
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .gradient-primary {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .card-modern {
+            box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .input-modern {
+            border: 2px solid #e5e7eb;
+            font-weight: 700;
+        }
+        
+        .input-modern:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+            outline: none;
+        }
+        
+        .badge-modern {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .collapsible-content.open {
+            max-height: 5000px;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-slide-in {
+            animation: slideIn 0.4s ease-out forwards;
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gradient-to-br from-red-50 via-white to-red-50 overflow-auto">
+  <div id="app" class="min-h-full"></div>
+  <script>
+        const defaultConfig = {
+            app_title: "Kasir Shift",
+            shift1_label: "Shift 1",
+            shift2_label: "Shift 2",
+            admin_label: "Laporan Admin"
+        };
+
+        const CASHIERS = [
+            { name: "Kasir A", pin: "1111" },
+            { name: "Kasir B", pin: "2222" },
+            { name: "Kasir C", pin: "3333" }
+        ];
+        
+        const ADMIN_PIN = "0000";
+        const CATEGORIES = ["Bahan Baku", "Operasional", "Staff"];
+
+        let currentView = 'home';
+        let currentShift = null;
+        let currentCashier = null;
+        let expenses = [];
+        let shiftData = {
+            shift1: { status: 'available', startCash: 0, endCash: 0, cashier: null },
+            shift2: { status: 'available', startCash: 0, endCash: 0, cashier: null }
+        };
+        let selectedPeriodStart = null;
+        let selectedPeriodEnd = null;
+        let searchQuery = '';
+        let pendingAdminExpenses = [];
+        let chartInstance = null;
+        let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
+
+        function formatRupiah(value) {
+            if (!value) return '';
+            const number = value.toString().replace(/[^0-9]/g, '');
+            return number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+
+        function parseRupiah(value) {
+            return parseInt(value.replace(/\./g, '')) || 0;
+        }
+        
+async function init() {
+  const fd = new FormData();
+  fd.append('action', 'getData');
+
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      expenses = json.data.expenses || [];
+      shiftData = json.data.shiftData || shiftData;
+    }
+  } catch (err) {
+    console.error('INIT getData error', err);
+  }
+
+  renderCurrentView();
+}
+
+        function renderCurrentView() {
+            const app = document.getElementById('app');
+            
+            if (currentView === 'home') {
+                app.innerHTML = renderHomeScreen();
+            } else if (currentView === 'shift1' || currentView === 'shift2') {
+                app.innerHTML = renderShiftScreen();
+            } else if (currentView === 'admin') {
+                app.innerHTML = renderAdminScreen();
+                
+                setTimeout(() => {
+                    const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
+                    const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
+                    const isMultiDay = startDate !== endDate;
+                    
+                    if (isMultiDay) {
+                        createChart();
+                    }
+                }, 100);
+            }
+        }
+
+        function renderHomeScreen() {
+            const config = window.elementSdk?.config || defaultConfig;
+            const appTitle = config.app_title || defaultConfig.app_title;
+            const shift1Label = config.shift1_label || defaultConfig.shift1_label;
+            const shift2Label = config.shift2_label || defaultConfig.shift2_label;
+            const adminLabel = config.admin_label || defaultConfig.admin_label;
+            
+            const shift1Expenses = expenses.filter(e => e.shift === 'shift1');
+            const shift2Expenses = expenses.filter(e => e.shift === 'shift2');
+            const shift1Count = shift1Expenses.length;
+            const shift2Count = shift2Expenses.length;
+            
+            const shift1Status = shiftData.shift1.status;
+            const shift2Status = shiftData.shift2.status;
+            
+            const shift1Closed = shift1Status === 'closed';
+            const shift2Closed = shift2Status === 'closed';
+            
+            return `
+                <div class="min-h-full flex items-center justify-center p-6">
+                    <div class="w-full max-w-4xl animate-slide-in">
+                        <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                            <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
+                            <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
+                            <div class="relative">
+                                <div class="flex items-center justify-center gap-4 mb-4">
+                                    <svg class="w-12 h-12 text-white flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div class="text-center">
+                                        <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
+                                            ${appTitle}
+                                        </h1>
+                                        <div class="inline-flex items-center gap-2 bg-yellow-500 px-3 py-1 rounded-full mt-2">
+                                            <span class="text-xs font-black text-gray-900">MODE DEMO</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-center gap-3 flex-wrap">
+                                    <div class="inline-flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-30">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                        <p class="text-base text-white font-bold">Pizzain Indonesia</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
+                                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                        <span>Sistem Aktif</span>
+                                    </div>
+                                    <div class="text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
+                                        ${new Date().toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <button onclick="selectShift('shift1')" class="glass-effect card-modern rounded-3xl p-8 text-left group hover:shadow-2xl transition-all">
+                                <div class="flex items-start justify-between mb-6">
+                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                        </svg>
+                                    </div>
+                                    ${shift1Closed ? `
+                                        <span class="badge-modern bg-gray-200 text-gray-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                            Ditutup
+                                        </span>
+                                    ` : `
+                                        <span class="badge-modern bg-green-100 text-green-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            ${shift1Status === 'open' ? 'Aktif' : 'Tersedia'}
+                                        </span>
+                                    `}
+                                </div>
+                                <h3 class="text-3xl font-black text-gray-800 mb-2">${shift1Label}</h3>
+                                <p class="text-base text-gray-500 mb-6 font-medium">Pagi sampai Siang</p>
+                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">Transaksi</span>
+                                    <span class="text-2xl font-black text-red-600">${shift1Count}</span>
+                                </div>
+                            </button>
+                            
+                            <button onclick="selectShift('shift2')" class="glass-effect card-modern rounded-3xl p-8 text-left group">
+                                <div class="flex items-start justify-between mb-6">
+                                    <div class="w-16 h-16 gradient-secondary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                                        </svg>
+                                    </div>
+                                    ${shift2Closed ? `
+                                        <span class="badge-modern bg-gray-200 text-gray-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                            Ditutup
+                                        </span>
+                                    ` : `
+                                        <span class="badge-modern bg-green-100 text-green-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            ${shift2Status === 'open' ? 'Aktif' : 'Tersedia'}
+                                        </span>
+                                    `}
+                                </div>
+                                <h3 class="text-3xl font-black text-gray-800 mb-2">${shift2Label}</h3>
+                                <p class="text-base text-gray-500 mb-6 font-medium">Siang sampai Malam</p>
+                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">Transaksi</span>
+                                    <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
+                                </div>
+                            </button>
+                            
+                            <button onclick="showAdminPinDialog()" class="glass-effect card-modern rounded-3xl p-8 text-left group">
+                                <div class="flex items-start justify-between mb-6">
+                                    <div class="w-16 h-16 bg-gradient-to-br from-red-50 to-amber-50 border-2 border-red-200 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg class="w-9 h-9 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                        </svg>
+                                    </div>
+                                    <span class="badge-modern bg-blue-100 text-blue-700">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                                        </svg>
+                                        PIN
+                                    </span>
+                                </div>
+                                <h3 class="text-3xl font-black text-gray-800 mb-2">${adminLabel}</h3>
+                                <p class="text-base text-gray-500 mb-6 font-medium">Laporan & Statistik</p>
+                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">Akses</span>
+                                    <span class="text-base font-black text-red-600">Admin</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderShiftScreen() {
+            const config = window.elementSdk?.config || defaultConfig;
+            const shiftLabel = currentShift === 'shift1' ? (config.shift1_label || defaultConfig.shift1_label) : (config.shift2_label || defaultConfig.shift2_label);
+            const shiftInfo = shiftData[currentShift];
+            
+            if (shiftInfo.status === 'available') {
+                return renderShiftLogin();
+            }
+            
+            const shiftExpenses = expenses.filter(e => e.shift === currentShift);
+            const totalExpense = shiftExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const prevShiftExpenses = currentShift === 'shift2' ? expenses.filter(e => e.shift === 'shift1') : [];
+            
+            return `
+                <div class="min-h-full p-6">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="gradient-primary card-modern rounded-3xl p-6 mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center gap-4">
+                                    <h2 class="text-3xl font-black text-white">${shiftLabel}</h2>
+                                    <span class="badge-modern bg-white bg-opacity-20 text-white border border-white border-opacity-30">
+                                        👤 ${currentCashier || shiftInfo.cashier}
+                                    </span>
+                                    <span class="badge-modern bg-white bg-opacity-20 text-white border border-white border-opacity-30">
+                                        🕐 ${shiftInfo.loginTime ? new Date(shiftInfo.loginTime).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) : ''}
+                                    </span>
+                                </div>
+                                <button onclick="closeShift()" class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
+                                    Tutup Shift
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-red-700 rounded-xl p-6 text-white text-center">
+                                    <p class="text-sm md:text-base font-bold mb-2">💰 Kas Awal</p>
+                                    <p class="text-2xl md:text-3xl lg:text-4xl font-black">Rp ${shiftInfo.startCash.toLocaleString('id-ID')}</p>
+                                </div>
+                                <div class="bg-red-700 rounded-xl p-6 text-white text-center">
+                                    <p class="text-sm md:text-base font-bold mb-2">📊 Pengeluaran</p>
+                                    <p class="text-2xl md:text-3xl lg:text-4xl font-black">Rp ${totalExpense.toLocaleString('id-ID')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">➕ Tambah Pengeluaran</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Nama Pengeluaran</label>
+                                    <input type="text" id="expenseName" placeholder="Cth: Pembelian bahan" class="input-modern w-full rounded-xl px-4 py-3">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Nominal</label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
+                                        <input type="text" id="expenseAmount" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Kategori</label>
+                                    <select id="expenseCategory" class="input-modern w-full rounded-xl px-4 py-3">
+                                        <option value="">Pilih kategori</option>
+                                        ${CATEGORIES.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="addExpense()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                                ➕ Tambah Pengeluaran
+                            </button>
+                        </div>
+                        
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📋 Riwayat Pengeluaran ${shiftLabel}</h3>
+                            ${shiftExpenses.length === 0 ? `
+                                <div class="text-center py-12">
+                                    <p class="text-lg font-semibold text-gray-400">Belum ada pengeluaran</p>
+                                </div>
+                            ` : `
+                                <div class="space-y-3">
+                                    ${shiftExpenses.map(exp => `
+                                        <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
+                                            <div class="flex items-center justify-between gap-4">
+                                                <div class="flex items-center gap-3 flex-1">
+                                                    <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                    <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
+                                                    <p class="font-bold text-lg text-gray-800">${exp.expense_name}</p>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <p class="text-xl font-black text-red-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                    <button onclick="deleteExpense('${exp.id}')" class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">
+                                                        <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+                        
+                        ${prevShiftExpenses.length > 0 ? `
+                        <div class="glass-effect card-modern rounded-3xl p-8">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">👁️ Riwayat Shift 1 (Hanya Lihat)</h3>
+                            <div class="space-y-3">
+                                ${prevShiftExpenses.map(exp => `
+                                    <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                        <div class="flex items-center justify-between gap-4">
+                                            <div class="flex items-center gap-3 flex-1">
+                                                <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
+                                                <p class="font-bold text-lg text-gray-800">${exp.expense_name}</p>
+                                            </div>
+                                            <p class="text-xl font-black text-red-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderShiftLogin() {
+            const config = window.elementSdk?.config || defaultConfig;
+            const shiftLabel = currentShift === 'shift1' ? (config.shift1_label || defaultConfig.shift1_label) : (config.shift2_label || defaultConfig.shift2_label);
+            
+            return `
+                <div class="min-h-full flex items-center justify-center p-6">
+                    <div class="w-full max-w-lg glass-effect card-modern rounded-3xl p-8 animate-slide-in">
+                        <button onclick="backToHome()" class="mb-6 text-base font-bold flex items-center gap-2 text-red-600 hover:text-red-700">
+                            ← Kembali
+                        </button>
+                        
+                        <div class="text-center mb-8">
+                            <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <h2 class="text-3xl font-black text-gray-800 mb-2">Masuk ${shiftLabel}</h2>
+                            <p class="text-gray-500 font-medium">Silakan login untuk memulai shift</p>
+                        </div>
+                        
+                        <div class="space-y-5">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Kasir</label>
+                                <select id="cashierSelect" class="input-modern w-full rounded-xl px-4 py-3">
+                                    <option value="">Pilih Kasir</option>
+                                    ${CASHIERS.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">PIN</label>
+                                <input type="password" id="cashierPin" placeholder="Masukkan PIN 4 digit" class="input-modern w-full rounded-xl px-4 py-3">
+                            </div>
+                            
+                            ${currentShift === 'shift2' && shiftData.shift1.endCash > 0 ? `
+                            <div class="gradient-primary rounded-2xl p-5 text-white">
+                                <p class="text-sm font-bold opacity-90 mb-1">Kas Akhir Shift 1</p>
+                                <p class="text-3xl font-black mb-3">Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</p>
+                                <button onclick="useShift1EndCash()" class="w-full bg-white text-red-600 py-3 rounded-xl font-bold hover:bg-gray-50">
+                                    Gunakan Kas Akhir Shift 1
+                                </button>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Atau Masukkan Kas Awal Manual</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
+                                    <input type="text" id="startCash" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
+                                </div>
+                            </div>
+                            ` : `
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Kas Awal</label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
+                                    <input type="text" id="startCash" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
+                                </div>
+                            </div>
+                            `}
+                            
+                            <button onclick="loginShift()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                                Mulai Shift
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminScreen() {
+            const config = window.elementSdk?.config || defaultConfig;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const startDate = selectedPeriodStart || today;
+            const endDate = selectedPeriodEnd || today;
+            
+            const filteredExpenses = expenses.filter(exp => {
+                const expDate = new Date(exp.timestamp).toISOString().split('T')[0];
+                const matchesPeriod = expDate >= startDate && expDate <= endDate;
+                const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesPeriod && matchesSearch;
+            });
+            
+            const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
+            const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
+            const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
+            
+            const totalShift1 = shift1Expenses.reduce((sum, e) => sum + e.amount, 0);
+            const totalShift2 = shift2Expenses.reduce((sum, e) => sum + e.amount, 0);
+            const totalAdmin = adminExpenses.reduce((sum, e) => sum + e.amount, 0);
+            const grandTotal = totalShift1 + totalShift2 + totalAdmin;
+            
+            const isMultiDay = startDate !== endDate;
+            
+            // Group by date
+            const expensesByDate = {};
+            filteredExpenses.forEach(exp => {
+                const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
+                if (!expensesByDate[dateKey]) expensesByDate[dateKey] = [];
+                expensesByDate[dateKey].push(exp);
+            });
+            const sortedDates = Object.keys(expensesByDate).sort((a, b) => new Date(b) - new Date(a));
+            
+            // Group by category
+            const categoryTotals = CATEGORIES.map(cat => {
+                const total = filteredExpenses.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
+                return { category: cat, total };
+            });
+            
+            return `
+                <div class="min-h-full p-6">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-4xl font-black text-gray-800 mb-2">📊 ${config.admin_label || defaultConfig.admin_label}</h2>
+                                    <p class="text-lg text-gray-600 font-semibold">Ringkasan & Laporan Pengeluaran</p>
+                                </div>
+                                <button onclick="logoutAdmin()" class="gradient-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
+                                    Logout & Save
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">➕ Tambah Pengeluaran Admin</h3>
+                            <div class="grid grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Nama Pengeluaran</label>
+                                    <input type="text" id="adminExpenseName" placeholder="Cth: Pembayaran listrik" class="input-modern w-full rounded-xl px-4 py-3">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Nominal</label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
+                                        <input type="text" id="adminExpenseAmount" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Kategori</label>
+                                    <select id="adminExpenseCategory" class="input-modern w-full rounded-xl px-4 py-3">
+                                        <option value="">Pilih Kategori</option>
+                                        ${CATEGORIES.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <button onclick="addPendingAdminExpense()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                                ➕ Tambah ke Daftar
+                            </button>
+                            
+                            ${pendingAdminExpenses.length > 0 ? `
+                            <div class="mt-6">
+                                <h4 class="text-lg font-black text-gray-700 mb-3">📝 Pengeluaran Belum Disimpan</h4>
+                                <div class="space-y-2">
+                                    ${pendingAdminExpenses.map((exp, index) => `
+                                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 flex items-center justify-between">
+                                            <div>
+                                                <span class="badge-modern bg-yellow-100 text-yellow-700 text-xs mb-1">${exp.category}</span>
+                                                <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                            </div>
+                                            <div class="flex items-center gap-3">
+                                                <p class="text-xl font-black text-yellow-700">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                <button onclick="removePendingExpense(${index})" class="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg">✕</button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">🔍 Filter Laporan</h3>
+                            <div class="grid grid-cols-3 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Dari Tanggal</label>
+                                    <input type="date" id="startDate" value="${startDate}" class="input-modern w-full rounded-xl px-4 py-3">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Sampai Tanggal</label>
+                                    <input type="date" id="endDate" value="${endDate}" class="input-modern w-full rounded-xl px-4 py-3">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Cari Pengeluaran</label>
+                                    <input type="text" id="searchInput" value="${searchQuery}" placeholder="Ketik nama pengeluaran..." class="input-modern w-full rounded-xl px-4 py-3">
+                                </div>
+                            </div>
+                            <button onclick="applyFilters()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                                Terapkan Filter
+                            </button>
+                        </div>
+                        
+                        ${!isMultiDay ? `
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="gradient-primary rounded-2xl p-6 text-white">
+                                <p class="text-sm opacity-90 mb-2 font-bold">��� Total Shift 1</p>
+                                <p class="text-3xl font-black">Rp ${totalShift1.toLocaleString('id-ID')}</p>
+                            </div>
+                            <div class="gradient-primary rounded-2xl p-6 text-white">
+                                <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 2</p>
+                                <p class="text-3xl font-black">Rp ${totalShift2.toLocaleString('id-ID')}</p>
+                            </div>
+                            <div class="gradient-primary rounded-2xl p-6 text-white">
+                                <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Admin</p>
+                                <p class="text-3xl font-black">Rp ${totalAdmin.toLocaleString('id-ID')}</p>
+                            </div>
+                        </div>
+                        ` : `
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran per Hari</h3>
+                            <div class="mb-6 flex gap-3 flex-wrap">
+                                <button onclick="toggleChartData('Bahan Baku')" id="chart-toggle-Bahan Baku" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white">
+                                    🥘 Bahan Baku
+                                </button>
+                                <button onclick="toggleChartData('Operasional')" id="chart-toggle-Operasional" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white">
+                                    ⚙️ Operasional
+                                </button>
+                                <button onclick="toggleChartData('Staff')" id="chart-toggle-Staff" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                    👥 Staff
+                                </button>
+                            </div>
+                            <div class="relative bg-white rounded-2xl p-6 shadow-inner" style="height: 450px;">
+                                <canvas id="expenseChart"></canvas>
+                            </div>
+                        </div>
+                        `}
+                        
+                        ${isMultiDay ? `
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📅 Pengeluaran per Hari</h3>
+                            <div class="space-y-3">
+                                ${sortedDates.map(dateKey => {
+                                    const dateExpenses = expensesByDate[dateKey];
+                                    const dateTotal = dateExpenses.reduce((sum, e) => sum + e.amount, 0);
+                                    
+                                    // Group by shift for this date
+                                    const shift1Items = dateExpenses.filter(e => e.shift === 'shift1');
+                                    const shift2Items = dateExpenses.filter(e => e.shift === 'shift2');
+                                    const adminItems = dateExpenses.filter(e => e.shift === 'admin');
+                                    
+                                    return `
+                                        <div>
+                                            <button onclick="toggleCategory('date-${dateKey}')" class="w-full gradient-primary text-white rounded-2xl p-6 flex items-center justify-between hover:shadow-xl transition-all">
+                                                <div>
+                                                    <p class="text-2xl font-black text-left">${new Date(dateKey).toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                                                    <p class="text-sm opacity-90 font-semibold text-left">${dateExpenses.length} transaksi</p>
+                                                </div>
+                                                <div class="flex items-center gap-3">
+                                                    <p class="text-3xl font-black">Rp ${dateTotal.toLocaleString('id-ID')}</p>
+                                                    <svg id="icon-date-${dateKey}" class="w-7 h-7 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                            <div id="detail-date-${dateKey}" class="collapsible-content">
+                                                <div class="mt-3 space-y-4">
+                                                    ${shift1Items.length > 0 ? `
+                                                    <div>
+                                                        <h4 class="text-xl font-black text-gray-700 mb-3">Shift 1 ${shiftData.shift1.cashier ? `• ${shiftData.shift1.cashier}` : ''}</h4>
+                                                        <div class="space-y-2">
+                                                            ${shift1Items.map(exp => `
+                                                                <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <div class="flex items-center gap-3 flex-1">
+                                                                            <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                                            <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
+                                                                            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                                        </div>
+                                                                        <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                                    </div>
+                                                                </div>
+                                                            `).join('')}
+                                                        </div>
+                                                    </div>
+                                                    ` : ''}
+                                                    
+                                                    ${shift2Items.length > 0 ? `
+                                                    <div>
+                                                        <h4 class="text-xl font-black text-gray-700 mb-3">Shift 2 ${shiftData.shift2.cashier ? `• ${shiftData.shift2.cashier}` : ''}</h4>
+                                                        <div class="space-y-2">
+                                                            ${shift2Items.map(exp => `
+                                                                <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <div class="flex items-center gap-3 flex-1">
+                                                                            <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                                            <span class="badge-modern bg-amber-100 text-amber-700">${exp.category}</span>
+                                                                            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                                        </div>
+                                                                        <p class="text-xl font-black text-pink-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                                    </div>
+                                                                </div>
+                                                            `).join('')}
+                                                        </div>
+                                                    </div>
+                                                    ` : ''}
+                                                    
+                                                    ${adminItems.length > 0 ? `
+                                                    <div>
+                                                        <h4 class="text-xl font-black text-gray-700 mb-3">Pengeluaran Admin</h4>
+                                                        <div class="space-y-2">
+                                                            ${adminItems.map(exp => `
+                                                                <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <div class="flex items-center gap-3 flex-1">
+                                                                            <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                                            <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
+                                                                            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                                        </div>
+                                                                        <p class="text-xl font-black text-blue-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                                    </div>
+                                                                </div>
+                                                            `).join('')}
+                                                        </div>
+                                                    </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="glass-effect card-modern rounded-3xl p-8">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">🏷️ Pengeluaran per Kategori</h3>
+                            <div class="space-y-3">
+                                ${categoryTotals.map(cat => {
+                                    const categoryExpenses = filteredExpenses.filter(e => e.category === cat.category);
+                                    const categoryByDate = {};
+                                    categoryExpenses.forEach(exp => {
+                                        const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
+                                        if (!categoryByDate[dateKey]) categoryByDate[dateKey] = [];
+                                        categoryByDate[dateKey].push(exp);
+                                    });
+                                    const sortedCategoryDates = Object.keys(categoryByDate).sort((a, b) => new Date(b) - new Date(a));
+                                    
+                                    return `
+                                        <div>
+                                            <button onclick="toggleCategory('cat-${cat.category}')" class="w-full gradient-primary text-white rounded-2xl p-6 flex items-center justify-between hover:shadow-xl transition-all">
+                                                <span class="text-xl font-black">${cat.category}</span>
+                                                <div class="flex items-center gap-3">
+                                                    <p class="text-2xl font-black">Rp ${cat.total.toLocaleString('id-ID')}</p>
+                                                    <svg id="icon-cat-${cat.category}" class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                            <div id="detail-cat-${cat.category}" class="collapsible-content">
+                                                <div class="mt-3 space-y-3">
+                                                    ${sortedCategoryDates.map(dateKey => {
+                                                        const dateExpenses = categoryByDate[dateKey];
+                                                        const dateTotal = dateExpenses.reduce((sum, e) => sum + e.amount, 0);
+                                                        return `
+                                                            <div>
+                                                                <button onclick="toggleCategory('cat-${cat.category}-${dateKey}')" class="w-full bg-white rounded-xl p-4 flex items-center justify-between hover:shadow-lg transition-all border-2 border-gray-200">
+                                                                    <p class="text-lg font-black text-gray-800">${new Date(dateKey).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                                                                    <div class="flex items-center gap-3">
+                                                                        <p class="text-xl font-black text-purple-600">Rp ${dateTotal.toLocaleString('id-ID')}</p>
+                                                                        <svg id="icon-cat-${cat.category}-${dateKey}" class="w-5 h-5 text-purple-600 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                                                        </svg>
+                                                                    </div>
+                                                                </button>
+                                                                <div id="detail-cat-${cat.category}-${dateKey}" class="collapsible-content">
+                                                                    <div class="mt-2 space-y-2">
+                                                                        ${dateExpenses.map(exp => `
+                                                                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                                                                <div class="flex items-center justify-between">
+                                                                                    <div class="flex items-center gap-3 flex-1">
+                                                                                        <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                                                        <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                                                    </div>
+                                                                                    <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        `).join('')}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        `;
+                                                    }).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        ` : `
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">🏷️ Pengeluaran per Kategori</h3>
+                            <div class="space-y-3">
+                                ${categoryTotals.map(cat => {
+                                    const categoryExpenses = filteredExpenses.filter(e => e.category === cat.category);
+                                    return `
+                                        <div>
+                                            <button onclick="toggleCategory('cat-${cat.category}')" class="w-full gradient-primary text-white rounded-2xl p-6 flex items-center justify-between hover:shadow-xl transition-all">
+                                                <span class="text-xl font-black">${cat.category}</span>
+                                                <div class="flex items-center gap-3">
+                                                    <p class="text-2xl font-black">Rp ${cat.total.toLocaleString('id-ID')}</p>
+                                                    <svg id="icon-cat-${cat.category}" class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                            <div id="detail-cat-${cat.category}" class="collapsible-content">
+                                                <div class="mt-3 space-y-2">
+                                                    ${categoryExpenses.map(exp => `
+                                                        <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                            <div class="flex items-center justify-between">
+                                                                <div class="flex items-center gap-3 flex-1">
+                                                                    <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                                    <span class="badge-modern ${exp.shift === 'shift1' ? 'bg-red-100 text-red-700' : exp.shift === 'shift2' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">${exp.shift === 'admin' ? 'Admin' : exp.shift === 'shift1' ? 'Shift 1' : 'Shift 2'}</span>
+                                                                    <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                                </div>
+                                                                <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                            </div>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <div class="glass-effect card-modern rounded-3xl p-8">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📋 Detail Pengeluaran Harian</h3>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-xl font-black text-gray-700 mb-4">Shift 1 ${shiftData.shift1.cashier ? `• ${shiftData.shift1.cashier}` : ''}</h4>
+                                ${shift1Expenses.length === 0 ? `
+                                    <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
+                                ` : `
+                                    <div class="space-y-2">
+                                        ${shift1Expenses.map(exp => `
+                                            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-3 flex-1">
+                                                        <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                        <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
+                                                        <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                    </div>
+                                                    <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-xl font-black text-gray-700 mb-4">Shift 2 ${shiftData.shift2.cashier ? `• ${shiftData.shift2.cashier}` : ''}</h4>
+                                ${shift2Expenses.length === 0 ? `
+                                    <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
+                                ` : `
+                                    <div class="space-y-2">
+                                        ${shift2Expenses.map(exp => `
+                                            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-3 flex-1">
+                                                        <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                        <span class="badge-modern bg-amber-100 text-amber-700">${exp.category}</span>
+                                                        <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                    </div>
+                                                    <p class="text-xl font-black text-pink-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-xl font-black text-gray-700 mb-4">Pengeluaran Admin</h4>
+                                ${adminExpenses.length === 0 ? `
+                                    <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
+                                ` : `
+                                    <div class="space-y-2">
+                                        ${adminExpenses.map(exp => `
+                                            <div class="bg-white rounded-xl p-4 border border-gray-200">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-3 flex-1">
+                                                        <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
+                                                        <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
+                                                        <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+                                                    </div>
+                                                    <p class="text-xl font-black text-blue-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function selectShift(shift) {
+            if (shift === 'shift1' && shiftData.shift1.status === 'closed') {
+                showNotification('🔒 Shift 1 sudah ditutup!', 'warning');
+                return;
+            }
+            if (shift === 'shift2' && shiftData.shift2.status === 'closed') {
+                showNotification('🔒 Shift 2 sudah ditutup!', 'warning');
+                return;
+            }
+            if (shift === 'shift2' && shiftData.shift1.status === 'open') {
+                showNotification('⚠️ Shift 1 harus ditutup dulu!', 'warning');
+                return;
+            }
+            currentShift = shift;
+            currentView = shift;
+            renderCurrentView();
+        }
+
+        function backToHome() {
+            currentView = 'home';
+            currentShift = null;
+            currentCashier = null;
+            renderCurrentView();
+        }
+
+        function showAdminPinDialog() {
+            const app = document.getElementById('app');
+            const dialog = document.createElement('div');
+            dialog.id = 'adminPinDialog';
+            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 backdrop-blur-sm';
+            dialog.style.zIndex = '1000';
+            dialog.innerHTML = `
+                <div class="w-full max-w-md glass-effect card-modern rounded-3xl p-8 animate-slide-in">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-black text-gray-800 mb-2">PIN Admin</h3>
+                        <p class="text-gray-500 font-medium">Masukkan PIN untuk akses admin</p>
+                    </div>
+                    <input type="password" id="adminPinInput" placeholder="Masukkan PIN" class="input-modern w-full rounded-xl px-4 py-3 mb-6">
+                    <div class="flex gap-3">
+                        <button onclick="closeAdminPinDialog()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">Batal</button>
+                        <button onclick="verifyAdminPin()" class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg">Masuk</button>
+                    </div>
+                </div>
+            `;
+            app.appendChild(dialog);
+            
+            setTimeout(() => {
+                const input = document.getElementById('adminPinInput');
+                if (input) {
+                    input.focus();
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') verifyAdminPin();
+                    });
+                }
+            }, 100);
+        }
+
+        function closeAdminPinDialog() {
+            const dialog = document.getElementById('adminPinDialog');
+            if (dialog) dialog.remove();
+        }
+
+        function verifyAdminPin() {
+            const input = document.getElementById('adminPinInput');
+            if (!input) return;
+            
+            if (input.value === ADMIN_PIN) {
+                currentView = 'admin';
+                closeAdminPinDialog();
+                renderCurrentView();
+            } else {
+                showNotification('❌ PIN salah!', 'error');
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function useShift1EndCash() {
+            const input = document.getElementById('startCash');
+            if (input) {
+                input.value = formatRupiah(shiftData.shift1.endCash.toString());
+            }
+        }
+
+        function formatCurrencyInput(input) {
+            const value = input.value.replace(/\D/g, '');
+            input.value = formatRupiah(value);
+        }
+
+        async function loginShift() {
+  const cashierName = document.getElementById('cashierSelect').value;
+  const pin = document.getElementById('cashierPin').value;
+  const startCashValue = document.getElementById('startCash').value;
+  const startCash = parseRupiah(startCashValue);
+
+  if (!cashierName || !pin || startCash <= 0) {
+    showNotification('⚠️ Data tidak lengkap', 'warning');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('action', 'loginShift');
+  fd.append('shift', currentShift);
+  fd.append('cashier', cashierName);
+  fd.append('pin', pin);
+  fd.append('startCash', startCash);
+
+  try {
+    const res = await fetch(API_BASE, { method: 'POST', body: fd });
+    const json = await res.json();
+
+    if (!json.success) {
+      showNotification(json.message, 'error');
+      return;
+    }
+
+    currentCashier = cashierName;
+    shiftData[currentShift] = {
+      status: 'open',
+      startCash: startCash,
+      endCash: 0,
+      cashier: cashierName
+    };
+
+    showNotification('✅ Shift berhasil dimulai', 'success');
+    renderCurrentView();
+
+  } catch (e) {
+    showNotification('Koneksi backend gagal', 'error');
+  }
+}
+
+
+        function addExpense() {
+            const name = document.getElementById('expenseName').value;
+            const amountValue = document.getElementById('expenseAmount').value;
+            const amount = parseRupiah(amountValue);
+            const category = document.getElementById('expenseCategory').value;
+            
+            if (!name || !amount || !category) {
+                showNotification('⚠️ Lengkapi semua field!', 'warning');
+                return;
+            }
+            
+            const expense = {
+                id: Date.now().toString(),
+                shift: currentShift,
+                expense_name: name,
+                amount: amount,
+                category: category,
+                timestamp: new Date().toISOString()
+            };
+            
+            expenses.push(expense);
+            
+            document.getElementById('expenseName').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseCategory').value = '';
+            
+            showNotification('✅ Pengeluaran ditambahkan!', 'success');
+            renderCurrentView();
+        }
+
+        function deleteExpense(id) {
+            const index = expenses.findIndex(e => e.id === id);
+            if (index > -1) {
+                expenses.splice(index, 1);
+                showNotification('✅ Pengeluaran dihapus!', 'success');
+                renderCurrentView();
+            }
+        }
+
+        function closeShift() {
+            const app = document.getElementById('app');
+            const dialog = document.createElement('div');
+            dialog.id = 'closeShiftDialog';
+            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 backdrop-blur-sm';
+            dialog.style.zIndex = '1000';
+            dialog.innerHTML = `
+                <div class="w-full max-w-md glass-effect card-modern rounded-3xl p-8 animate-slide-in">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-black text-gray-800 mb-2">Tutup ${currentShift === 'shift1' ? 'Shift 1' : 'Shift 2'}</h3>
+                        <p class="text-gray-500 font-medium">Masukkan kas akhir shift</p>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Kas Akhir</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
+                            <input type="text" id="endCash" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="cancelCloseShift()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">Batal</button>
+                        <button onclick="processCloseShift()" class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg">Tutup</button>
+                    </div>
+                </div>
+            `;
+            app.appendChild(dialog);
+        }
+
+        function processCloseShift() {
+            const endCashValue = document.getElementById('endCash').value;
+            const endCash = parseRupiah(endCashValue);
+            
+            if (endCash <= 0) {
+                showNotification('⚠️ Kas akhir harus diisi!', 'warning');
+                return;
+            }
+            
+            shiftData[currentShift].endCash = endCash;
+            shiftData[currentShift].status = 'closed';
+            
+            cancelCloseShift();
+            backToHome();
+            showNotification('✅ Shift berhasil ditutup!', 'success');
+        }
+
+        function cancelCloseShift() {
+            const dialog = document.getElementById('closeShiftDialog');
+            if (dialog) dialog.remove();
+        }
+
+        function addPendingAdminExpense() {
+            const name = document.getElementById('adminExpenseName').value;
+            const amountValue = document.getElementById('adminExpenseAmount').value;
+            const amount = parseRupiah(amountValue);
+            const category = document.getElementById('adminExpenseCategory').value;
+            
+            if (!name || !amount || !category) {
+                showNotification('⚠️ Lengkapi semua field!', 'warning');
+                return;
+            }
+            
+            pendingAdminExpenses.push({ expense_name: name, amount: amount, category: category });
+            
+            document.getElementById('adminExpenseName').value = '';
+            document.getElementById('adminExpenseAmount').value = '';
+            document.getElementById('adminExpenseCategory').value = '';
+            
+            showNotification('✅ Ditambahkan ke daftar!', 'success');
+            renderCurrentView();
+        }
+
+        function removePendingExpense(index) {
+            pendingAdminExpenses.splice(index, 1);
+            renderCurrentView();
+        }
+
+        function logoutAdmin() {
+            for (const pending of pendingAdminExpenses) {
+                expenses.push({
+                    id: Date.now().toString() + Math.random(),
+                    shift: 'admin',
+                    expense_name: pending.expense_name,
+                    amount: pending.amount,
+                    category: pending.category,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+            if (pendingAdminExpenses.length > 0) {
+                showNotification('✅ Pengeluaran disimpan!', 'success');
+            }
+            
+            pendingAdminExpenses = [];
+            backToHome();
+        }
+
+        function applyFilters() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const search = document.getElementById('searchInput').value;
+            
+            if (!startDate || !endDate) {
+                showNotification('⚠️ Pilih periode!', 'warning');
+                return;
+            }
+            
+            selectedPeriodStart = startDate;
+            selectedPeriodEnd = endDate;
+            searchQuery = search;
+            
+            showNotification('✅ Filter diterapkan!', 'success');
+            renderCurrentView();
+        }
+
+        function toggleChartData(type) {
+            chartVisibleData[type] = !chartVisibleData[type];
+            
+            const button = document.getElementById(`chart-toggle-${type}`);
+            if (chartVisibleData[type]) {
+                if (type === 'Bahan Baku') button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white';
+                else if (type === 'Operasional') button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white';
+                else button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white';
+            } else {
+                button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-md bg-gray-200 text-gray-400';
+            }
+            
+            updateChart();
+        }
+
+        function createChart() {
+            const canvas = document.getElementById('expenseChart');
+            if (!canvas) return;
+            
+            const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
+            const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
+            
+            const filteredExpenses = expenses.filter(exp => {
+                const expDate = new Date(exp.timestamp).toISOString().split('T')[0];
+                const matchesPeriod = expDate >= startDate && expDate <= endDate;
+                const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesPeriod && matchesSearch;
+            });
+            
+            const expensesByDate = {};
+            filteredExpenses.forEach(exp => {
+                const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
+                if (!expensesByDate[dateKey]) {
+                    expensesByDate[dateKey] = { 'Bahan Baku': 0, 'Operasional': 0, 'Staff': 0 };
+                }
+                expensesByDate[dateKey][exp.category] += exp.amount;
+            });
+            
+            const sortedDates = Object.keys(expensesByDate).sort();
+            const labels = sortedDates.map(date => new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
+            
+            const datasets = [];
+            
+            if (chartVisibleData['Bahan Baku']) {
+                datasets.push({
+                    label: 'Bahan Baku',
+                    data: sortedDates.map(date => expensesByDate[date]['Bahan Baku']),
+                    backgroundColor: 'rgba(220, 38, 38, 0.85)',
+                    borderColor: 'rgb(220, 38, 38)',
+                    borderWidth: 0,
+                    borderRadius: 8,
+                    borderSkipped: false
+                });
+            }
+            
+            if (chartVisibleData['Operasional']) {
+                datasets.push({
+                    label: 'Operasional',
+                    data: sortedDates.map(date => expensesByDate[date]['Operasional']),
+                    backgroundColor: 'rgba(245, 158, 11, 0.85)',
+                    borderColor: 'rgb(245, 158, 11)',
+                    borderWidth: 0,
+                    borderRadius: 8,
+                    borderSkipped: false
+                });
+            }
+            
+            if (chartVisibleData['Staff']) {
+                datasets.push({
+                    label: 'Staff',
+                    data: sortedDates.map(date => expensesByDate[date]['Staff']),
+                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 0,
+                    borderRadius: 8,
+                    borderSkipped: false
+                });
+            }
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const ctx = canvas.getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            displayColors: true,
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            boxPadding: 6,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: false,
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 13,
+                                    weight: '700'
+                                },
+                                color: '#374151'
+                            }
+                        },
+                        y: {
+                            stacked: false,
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
+                                    } else if (value >= 1000) {
+                                        return 'Rp ' + (value / 1000).toFixed(0) + 'rb';
+                                    }
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                },
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                color: '#6b7280'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (chartInstance) {
+                const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
+                const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
+                
+                const filteredExpenses = expenses.filter(exp => {
+                    const expDate = new Date(exp.timestamp).toISOString().split('T')[0];
+                    const matchesPeriod = expDate >= startDate && expDate <= endDate;
+                    const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
+                    return matchesPeriod && matchesSearch;
+                });
+                
+                const expensesByDate = {};
+                filteredExpenses.forEach(exp => {
+                    const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
+                    if (!expensesByDate[dateKey]) {
+                        expensesByDate[dateKey] = { 'Bahan Baku': 0, 'Operasional': 0, 'Staff': 0 };
+                    }
+                    expensesByDate[dateKey][exp.category] += exp.amount;
+                });
+                
+                const sortedDates = Object.keys(expensesByDate).sort();
+                
+                const datasets = [];
+                
+                if (chartVisibleData['Bahan Baku']) {
+                    datasets.push({
+                        label: 'Bahan Baku',
+                        data: sortedDates.map(date => expensesByDate[date]['Bahan Baku']),
+                        backgroundColor: 'rgba(220, 38, 38, 0.85)',
+                        borderColor: 'rgb(220, 38, 38)',
+                        borderWidth: 0,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    });
+                }
+                
+                if (chartVisibleData['Operasional']) {
+                    datasets.push({
+                        label: 'Operasional',
+                        data: sortedDates.map(date => expensesByDate[date]['Operasional']),
+                        backgroundColor: 'rgba(245, 158, 11, 0.85)',
+                        borderColor: 'rgb(245, 158, 11)',
+                        borderWidth: 0,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    });
+                }
+                
+                if (chartVisibleData['Staff']) {
+                    datasets.push({
+                        label: 'Staff',
+                        data: sortedDates.map(date => expensesByDate[date]['Staff']),
+                        backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 0,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    });
+                }
+                
+                chartInstance.data.datasets = datasets;
+                chartInstance.update();
+            }
+        }
+
+        function toggleCategory(id) {
+            const detail = document.getElementById(`detail-${id}`);
+            const icon = document.getElementById(`icon-${id}`);
+            
+            if (detail && icon) {
+                if (detail.classList.contains('open')) {
+                    detail.classList.remove('open');
+                    icon.style.transform = 'rotate(0deg)';
+                } else {
+                    detail.classList.add('open');
+                    icon.style.transform = 'rotate(180deg)';
+                }
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const existing = document.getElementById('toast-message');
+            if (existing) existing.remove();
+            
+            let bgColor = '#dc2626';
+            if (type === 'success') bgColor = '#10b981';
+            if (type === 'warning') bgColor = '#f59e0b';
+            
+            const toast = document.createElement('div');
+            toast.id = 'toast-message';
+            toast.className = 'fixed top-6 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-2xl shadow-2xl font-bold z-50 animate-slide-in';
+            toast.style.backgroundColor = bgColor;
+            toast.style.color = 'white';
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function onConfigChange(config) {
+            renderCurrentView();
+        }
+
+        if (window.elementSdk) {
+            window.elementSdk.init({
+                defaultConfig,
+                onConfigChange,
+                mapToCapabilities: () => ({
+                    recolorables: [],
+                    borderables: [],
+                    fontEditable: undefined,
+                    fontSizeable: undefined
+                }),
+                mapToEditPanelValues: (config) => new Map([
+                    ["app_title", config.app_title || defaultConfig.app_title],
+                    ["shift1_label", config.shift1_label || defaultConfig.shift1_label],
+                    ["shift2_label", config.shift2_label || defaultConfig.shift2_label],
+                    ["admin_label", config.admin_label || defaultConfig.admin_label]
+                ])
+            });
+        }
+
+       window.addEventListener('load', init);
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
