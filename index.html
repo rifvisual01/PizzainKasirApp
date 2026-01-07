@@ -107,6 +107,7 @@
         let currentView = 'home';
         let currentShift = null;
         let currentCashier = null;
+   let isConnectedToBackend = false;
         let expenses = [];
         let shiftData = {
             shift1: { status: 'available', startCash: 0, endCash: 0, cashier: null },
@@ -141,9 +142,10 @@ async function init() {
     const json = await res.json();
 
     if (json.success) {
-      expenses = json.data.expenses || [];
-      shiftData = json.data.shiftData || shiftData;
-    }
+  expenses = json.data.expenses || [];
+  shiftData = json.data.shiftData || shiftData;
+  isConnectedToBackend = true;
+}
   } catch (err) {
     console.error('INIT getData error', err);
   }
@@ -206,9 +208,6 @@ async function init() {
                                         <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
                                             ${appTitle}
                                         </h1>
-                                        <div class="inline-flex items-center gap-2 bg-yellow-500 px-3 py-1 rounded-full mt-2">
-                                            <span class="text-xs font-black text-gray-900">MODE DEMO</span>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-center gap-3 flex-wrap">
@@ -1531,4 +1530,5 @@ async function init() {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
