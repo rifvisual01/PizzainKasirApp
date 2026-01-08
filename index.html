@@ -144,13 +144,7 @@ async function loadBackendData() {
 
     if (json.success) {
   expenses = json.data.expenses || [];
-  shiftData = {
-  shift1: json.shifts?.['Shift 1'] || null,
-  shift2: json.shifts?.['Shift 2'] || null
-};
-     if (!json.shifts) {
-  throw new Error('Data shift tidak ditemukan di response backend');
-}
+  shiftData = json.data.shiftData || shiftData;
   cashiers = json.data.cashiers || [];
 
       // 🔄 Render ulang SETELAH data masuk
@@ -1091,11 +1085,19 @@ async function loadBackendData() {
         async function loginShift() {
   const cashierName = document.getElementById('cashierSelect').value;
   const pin = document.getElementById('cashierPin').value;
-  const startCash = parseRupiah(document.getElementById('startCash').value);
+  const startCashValue = document.getElementById('startCash').value;
+  const startCash = parseRupiah(startCashValue);
 
   if (!cashierName || !pin || startCash <= 0) {
     showNotification('⚠️ Data tidak lengkap', 'warning');
     return;
+  }
+
+  // 🔒 UX: kunci tombol saat proses
+  const btn = document.getElementById('startShiftBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
   }
 
   const fd = new FormData();
@@ -1111,28 +1113,43 @@ async function loadBackendData() {
       body: fd
     });
 
-    const json = await res.json();
+    const json = await response.json();
 
-    if (!json.success) {
-      showNotification(json.message, 'error');
-      return;
-    }
-
-    // ✅ SINKRON DARI BACKEND
-    await loadBackendData();
-
-    currentCashier = cashierName;
-    currentView = currentShift;
-    renderCurrentView();
-
-    showNotification('✅ Shift berhasil dimulai', 'success');
-
-  } catch (err) {
-    console.error(err);
-    showNotification('❌ Terjadi kesalahan aplikasi', 'error');
-  }
+if (!json.success) {
+  showNotification(json.message, 'error');
+  return;
 }
 
+// ⬇️ TAMBAHAN WAJIB (JANGAN DIHAPUS)
+await loadBackendData();
+
+cancelCloseShift();
+backToHome();
+showNotification('✅ Shift berhasil ditutup', 'success');
+
+    // ✅ Update state setelah backend sukses
+    currentCashier = cashierName;
+    shiftData[currentShift] = {
+  status: 'open',
+  startCash: startCash,
+  endCash: 0,
+  cashier: cashierName,
+  openedAt: new Date().toISOString() // ⬅️ WAKTU LOGIN
+};
+
+    showNotification('✅ Shift berhasil dimulai', 'success');
+    renderCurrentView();
+
+  } catch (e) {
+    showNotification('❌ Koneksi backend gagal', 'error');
+  } finally {
+    // 🔓 UX: buka kembali tombol
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Mulai Shift';
+    }
+  }
+}
 
 
 
@@ -1223,6 +1240,8 @@ async function loadBackendData() {
     showNotification('⚠️ Kas akhir harus diisi!', 'warning');
     return;
   }
+await loadBackendData();
+renderCurrentView();
 
   const fd = new FormData();
   fd.append('action', 'closeShift');
@@ -1632,8 +1651,6 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
-
-
 
 
 
