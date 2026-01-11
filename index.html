@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="/_sdk/element_sdk.js"></script>
 <script>
- const API_BASE = "/api";
+ const API_BASE = "https://script.google.com/macros/s/AKfycbyMrKtQT_hzr7wSodOurIJpsuwmfSCUJsyCMXxo4YAFSRh8RRGXQZdc-4VNqF9xuPH1Kw/exec";
 </script>
 
   <style>
@@ -1025,10 +1025,13 @@ async function loadBackendData() {
                         <h3 class="text-2xl font-black text-gray-800 mb-2">PIN Admin</h3>
                         <p class="text-gray-500 font-medium">Masukkan PIN untuk akses admin</p>
                     </div>
-                    <input type="password" id="adminPinInput" placeholder="Masukkan PIN" class="input-modern w-full rounded-xl px-4 py-3 mb-6">
-                    <div class="flex gap-3">
-                        <button onclick="closeAdminPinDialog()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold">Batal</button>
-                        <button onclick="verifyAdminPin()" class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg">Masuk</button>
+                    <input type="password" id="adminPin" placeholder="Masukkan PIN"
+  class="input-modern w-full rounded-xl px-4 py-3 mb-6">
+
+<button onclick="loginAdmin()"
+  class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg">
+  Masuk
+</button>
                     </div>
                 </div>
             `;
@@ -1048,21 +1051,6 @@ async function loadBackendData() {
         function closeAdminPinDialog() {
             const dialog = document.getElementById('adminPinDialog');
             if (dialog) dialog.remove();
-        }
-
-        function verifyAdminPin() {
-            const input = document.getElementById('adminPinInput');
-            if (!input) return;
-            
-            if (input.value === ADMIN_PIN) {
-                currentView = 'admin';
-                closeAdminPinDialog();
-                renderCurrentView();
-            } else {
-                showNotification('❌ PIN salah!', 'error');
-                input.value = '';
-                input.focus();
-            }
         }
 
         function useShift1EndCash() {
@@ -1617,6 +1605,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
