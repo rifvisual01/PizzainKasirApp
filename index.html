@@ -1139,10 +1139,10 @@ async function loadBackendData() {
   const fd = new FormData();
   fd.append('action', 'loginShift');
   fd.append('pin', pin);
+  fd.append('shift', currentShift);
+  fd.append('cashier', cashierName);
   fd.append('startCash', startCash);
-  fd.append('shift', 'admin');
-fd.append('cashier', 'admin');
-
+         
   try {
     // 🔐 STEP 1 — cek PIN & izin buka shift
     const res = await fetch(API_BASE, {
@@ -1461,26 +1461,59 @@ btn.disabled = true;
             if (dialog) dialog.remove();
         }
 
-        function addPendingAdminExpense() {
-            const name = document.getElementById('adminExpenseName').value;
-            const amountValue = document.getElementById('adminExpenseAmount').value;
-            const amount = parseRupiah(amountValue);
-            const category = document.getElementById('adminExpenseCategory').value;
-            
-            if (!name || !amount || !category) {
-                showNotification('⚠️ Lengkapi semua field!', 'warning');
-                return;
-            }
-            
-            pendingAdminExpenses.push({ expense_name: name, amount: amount, category: category });
-            
-            document.getElementById('adminExpenseName').value = '';
-            document.getElementById('adminExpenseAmount').value = '';
-            document.getElementById('adminExpenseCategory').value = '';
-            
-            showNotification('✅ Ditambahkan ke daftar!', 'success');
-            renderCurrentView();
-        }
+        async function addPendingAdminExpense() {
+  const name = document.getElementById('adminExpenseName').value;
+  const amount = parseRupiah(document.getElementById('adminExpenseAmount').value);
+  const category = document.getElementById('adminExpenseCategory').value;
+
+  if (!name || amount <= 0 || !category) {
+    showNotification('Lengkapi semua data', 'warning');
+    return;
+  }
+
+  // 🔥 Buat object expense
+  const exp = {
+    id: 'tmp-' + Date.now(),
+    shift: 'admin',
+    cashier_name: 'admin',
+    expense_name: name,
+    category,
+    amount,
+    timestamp: new Date().toISOString()
+  };
+
+  // 🔥 Masukkan ke UI dulu
+  expenses.push(exp);
+  renderCurrentView();
+
+  // reset form
+  document.getElementById('adminExpenseName').value = '';
+  document.getElementById('adminExpenseAmount').value = '';
+
+  // 🔥 Kirim ke backend di background
+  const fd = new FormData();
+  fd.append('action', 'addExpense');
+  fd.append('shift', 'admin');
+  fd.append('cashier', 'admin');
+  fd.append('expense_name', name);
+  fd.append('category', category);
+  fd.append('amount', amount);
+
+  try {
+    const res = await fetch(API_BASE, { method: 'POST', body: fd });
+    const json = await res.json();
+
+    if (json.success && json.data?.id) {
+      // update ID temp → ID asli dari server
+      exp.id = json.data.id;
+    } else {
+      showNotification('Gagal simpan ke server', 'error');
+    }
+  } catch {
+    showNotification('Koneksi server gagal', 'error');
+  }
+}
+
 
         function removePendingExpense(index) {
             pendingAdminExpenses.splice(index, 1);
@@ -1832,6 +1865,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
