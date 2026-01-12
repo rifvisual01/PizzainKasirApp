@@ -1088,27 +1088,33 @@ async function loadBackendData() {
   fd.append('startCash', startCash);
 
   try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
+    const res = await fetch(API_BASE, { method: 'POST', body: fd });
+const json = await res.json();
 
-    const json = await res.json();
-
-    if (json.success) {
-  // 🔥 Update local state agar UI tahu shift sudah aktif
-  shiftData[currentShift].status = 'open';
-  shiftData[currentShift].startCash = startCash;
-  shiftData[currentShift].cashier = cashierName;
-  shiftData[currentShift].openedAt = new Date().toISOString();
-
-  currentCashier = cashierName;
-  currentView = currentShift;
-
-  showNotification('Shift berhasil dimulai', 'success');
-  renderCurrentView();
+if (!json.success) {
+  btn.textContent = originalText;
+  btn.disabled = false;
+  showNotification(json.message, 'error');
+  return;
 }
 
+// 🔥 PIN benar → masuk shift SEKARANG
+shiftData[currentShift].status = 'open';
+shiftData[currentShift].startCash = startCash;
+shiftData[currentShift].cashier = cashierName;
+shiftData[currentShift].openedAt = new Date().toISOString();
+
+currentCashier = cashierName;
+currentView = currentShift;
+
+renderCurrentView();
+showNotification('Shift dimulai', 'success');
+
+// ⏳ sekarang tulis ke database di background
+fetch(API_BASE, {
+  method: 'POST',
+  body: fd
+});
 
     await loadBackendData();
     renderCurrentView();
@@ -1117,6 +1123,11 @@ async function loadBackendData() {
   } catch (e) {
     showNotification('❌ Koneksi backend gagal', 'error');
   }
+         const btn = document.getElementById('startShiftBtn');
+const originalText = btn.textContent;
+btn.textContent = 'Memulai shift...';
+btn.disabled = true;
+
 }
 
 function showCloseShiftConfirmation(kasAkhir) {
@@ -1298,12 +1309,18 @@ function closeConfirmModal() {
     showNotification('⚠️ Kas akhir harus diisi!', 'warning');
     return;
   }
-  // 🔥 TUTUP modal kas akhir dulu
+
   cancelCloseShift();
 
-  // 🔒 baru tampilkan modal PIN
-  showCloseShiftConfirmation(endCash);
+  // 🔥 HANYA Shift 1 pakai konfirmasi 2 kasir
+  if (currentShift === 'shift1') {
+    showCloseShiftConfirmation(endCash);
+  } else {
+    // Shift 2 langsung ditutup
+    finalizeCloseShift(endCash);
+  }
 }
+
 
    async function confirmCloseShift(kasAkhir) {
   const pin1 = document.getElementById('pinShift1').value;
@@ -1734,6 +1751,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
