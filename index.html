@@ -1251,12 +1251,21 @@ async function loadBackendData() {
     showNotification('⚠️ Kas akhir harus diisi!', 'warning');
     return;
   }
-await loadBackendData();
-renderCurrentView();
 
+  const closingShift = currentShift;
+
+  // 🔥 1. Update UI dulu (optimistic)
+  shiftData[closingShift].endCash = endCash;
+  shiftData[closingShift].status = 'closed';
+
+  cancelCloseShift();
+  backToHome();
+  showNotification('✅ Shift ditutup', 'success');
+
+  // 🔄 2. Simpan ke backend di background
   const fd = new FormData();
   fd.append('action', 'closeShift');
-  fd.append('shift', currentShift);
+  fd.append('shift', closingShift);
   fd.append('endCash', endCash);
 
   try {
@@ -1264,26 +1273,18 @@ renderCurrentView();
       method: 'POST',
       body: fd
     });
-
     const json = await res.json();
 
     if (!json.success) {
-      showNotification(json.message || 'Gagal menutup shift', 'error');
-      return;
+      throw new Error(json.message);
     }
 
-    // ✅ Update state frontend SETELAH backend sukses
-    shiftData[currentShift].endCash = endCash;
-    shiftData[currentShift].status = 'closed';
-
-    cancelCloseShift();
-    backToHome();
-    showNotification('✅ Shift berhasil ditutup!', 'success');
-
   } catch (err) {
-    showNotification('❌ Koneksi backend gagal', 'error');
+    console.error(err);
+    showNotification('⚠️ Gagal sinkron ke server', 'error');
   }
 }
+
 
 
         function cancelCloseShift() {
@@ -1662,6 +1663,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
