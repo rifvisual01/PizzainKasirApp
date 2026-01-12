@@ -1022,39 +1022,58 @@ async function loadBackendData() {
         }
 
         function showAdminPinDialog() {
-            const app = document.getElementById('app');
-            const dialog = document.createElement('div');
-            dialog.id = 'adminPinDialog';
-            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 backdrop-blur-sm';
-            dialog.style.zIndex = '1000';
-            dialog.innerHTML = `
-                <div class="w-full max-w-md glass-effect card-modern rounded-3xl p-8 animate-slide-in">
-                    <div class="text-center mb-6">
-                        <h3 class="text-2xl font-black text-gray-800 mb-2">PIN Admin</h3>
-                        <p class="text-gray-500 font-medium">Masukkan PIN untuk akses admin</p>
-                    </div>
-                    <input type="password" id="adminPin" placeholder="Masukkan PIN"
-  class="input-modern w-full rounded-xl px-4 py-3 mb-6">
+  // hapus jika masih ada
+  document.getElementById('adminPinDialog')?.remove();
 
-<button onclick="loginAdmin()"
-  class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg">
-  Masuk
-</button>
-                    </div>
-                </div>
-            `;
-            app.appendChild(dialog);
-            
-            setTimeout(() => {
-                const input = document.getElementById('adminPinInput');
-                if (input) {
-                    input.focus();
-                    input.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') verifyAdminPin();
-                    });
-                }
-            }, 100);
-        }
+  const modal = document.createElement('div');
+  modal.id = 'adminPinDialog';
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.onclick = closeAdminPinDialog; // klik background = tutup
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
+         onclick="event.stopPropagation()">
+
+      <h3 class="text-2xl font-black mb-2 text-center">🔐 PIN Admin</h3>
+      <p class="text-center text-gray-500 mb-6">Masukkan PIN untuk akses admin</p>
+
+      <input
+        id="adminPin"
+        type="password"
+        placeholder="Masukkan PIN"
+        class="input-modern w-full rounded-xl px-4 py-3 mb-6 text-center text-xl"
+      />
+
+      <div class="flex gap-3">
+        <button
+          onclick="closeAdminPinDialog()"
+          class="flex-1 bg-gray-200 hover:bg-gray-300 rounded-xl py-3 font-bold"
+        >
+          Batal
+        </button>
+
+        <button
+          onclick="loginAdmin()"
+          class="flex-1 gradient-primary text-white rounded-xl py-3 font-bold"
+        >
+          Masuk
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // auto focus + Enter submit
+  setTimeout(() => {
+    const input = document.getElementById('adminPin');
+    input?.focus();
+    input?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') loginAdmin();
+    });
+  }, 50);
+}
+
 
         function closeAdminPinDialog() {
             const dialog = document.getElementById('adminPinDialog');
@@ -1786,6 +1805,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
