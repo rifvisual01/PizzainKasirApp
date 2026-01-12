@@ -997,6 +997,27 @@ async function loadBackendData() {
   }
 }
 
+   async function deleteExpense(id) {
+  // 🔥 hapus dari UI dulu
+  expenses = expenses.filter(e => e.id !== id);
+  renderCurrentView();
+
+  const fd = new FormData();
+  fd.append('action', 'deleteExpense');
+  fd.append('id', id);
+
+  try {
+    const res = await fetch(API_BASE, { method: 'POST', body: fd });
+    const json = await res.json();
+
+    if (!json.success) {
+      showNotification('⚠️ Gagal hapus di server', 'error');
+    }
+  } catch {
+    showNotification('⚠️ Koneksi gagal', 'error');
+  }
+}
+
         function selectShift(shift) {
             if (shift === 'shift1' && shiftData.shift1.status === 'closed') {
                 showNotification('🔒 Shift 1 sudah ditutup!', 'warning');
@@ -1178,7 +1199,7 @@ function showCloseShiftConfirmation(kasAkhir) {
 
       <div class="flex gap-3 mt-6">
         <button onclick="closeConfirmModal()" class="flex-1 bg-gray-200 rounded-xl py-3 font-bold">Batal</button>
-        <button onclick="confirmCloseShift(${kasAkhir})" class="flex-1 bg-red-600 text-white rounded-xl py-3 font-bold">Tutup Shift</button>
+        <button id="confirmCloseBtn" onclick="confirmCloseShift(${kasAkhir})" class="flex-1 bg-red-600 text-white rounded-xl py-3 font-bold">Tutup Shift</button>
       </div>
     </div>
   `;
@@ -1335,6 +1356,9 @@ function closeConfirmModal() {
 
 
    async function confirmCloseShift(kasAkhir) {
+    const btn = document.getElementById('confirmCloseBtn');
+btn.textContent = 'Menutup...';
+btn.disabled = true;
   const pin1 = document.getElementById('pinShift1').value;
   const shift2Cashier = document.getElementById('cashierShift2').value;
   const pin2 = document.getElementById('pinShift2').value;
@@ -1763,6 +1787,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
