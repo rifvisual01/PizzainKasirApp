@@ -1121,35 +1121,53 @@ async function loadBackendData() {
 
 
 
-        function addExpense() {
-            const name = document.getElementById('expenseName').value;
-            const amountValue = document.getElementById('expenseAmount').value;
-            const amount = parseRupiah(amountValue);
-            const category = document.getElementById('expenseCategory').value;
-            
-            if (!name || !amount || !category) {
-                showNotification('⚠️ Lengkapi semua field!', 'warning');
-                return;
-            }
-            
-            const expense = {
-                id: Date.now().toString(),
-                shift: currentShift === 'Shift 1' ? 'shift1' : 'shift2',
-                expense_name: name,
-                amount: amount,
-                category: category,
-                timestamp: new Date().toISOString()
-            };
-            
-            expenses.push(expense);
-            
-            document.getElementById('expenseName').value = '';
-            document.getElementById('expenseAmount').value = '';
-            document.getElementById('expenseCategory').value = '';
-            
-            showNotification('✅ Pengeluaran ditambahkan!', 'success');
-            renderCurrentView();
-        }
+        async function addExpense() {
+  const name = document.getElementById('expenseName').value;
+  const amountRaw = document.getElementById('expenseAmount').value;
+  const category = document.getElementById('expenseCategory').value;
+  const amount = parseRupiah(amountRaw);
+
+  if (!name || !category || amount <= 0) {
+    showNotification('Data tidak lengkap', 'warning');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('action', 'addExpense');
+  fd.append('shift', currentShift);
+  fd.append('cashier', currentCashier || shiftData[currentShift].cashier);
+  fd.append('expense_name', name);
+  fd.append('category', category);
+  fd.append('amount', amount);
+
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
+
+    const json = await res.json();
+
+    if (!json.success) {
+      showNotification(json.message || 'Gagal simpan', 'error');
+      return;
+    }
+
+    // 🔥 Masukkan ke state lokal agar langsung muncul
+    expenses.push(json.data);
+
+    document.getElementById('expenseName').value = '';
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseCategory').value = '';
+
+    showNotification('Pengeluaran ditambahkan', 'success');
+    renderCurrentView();
+
+  } catch (err) {
+    console.error(err);
+    showNotification('Koneksi ke server gagal', 'error');
+  }
+}
 
         function deleteExpense(id) {
             const index = expenses.findIndex(e => e.id === id);
@@ -1619,6 +1637,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
