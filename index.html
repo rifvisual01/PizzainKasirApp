@@ -1263,14 +1263,35 @@ function closeConfirmModal() {
 }
 
 
-        function deleteExpense(id) {
-            const index = expenses.findIndex(e => e.id === id);
-            if (index > -1) {
-                expenses.splice(index, 1);
-                showNotification('✅ Pengeluaran dihapus!', 'success');
-                renderCurrentView();
-            }
-        }
+        async function deleteExpense(id) {
+  if (!id) {
+    showNotification('ID data tidak ditemukan', 'error');
+    return;
+  }
+
+  // 🔥 Optimistic UI: hapus langsung
+  expenses = expenses.filter(e => e.id !== id);
+  renderCurrentView();
+
+  const fd = new FormData();
+  fd.append('action', 'deleteExpense');
+  fd.append('id', id);
+
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
+
+    const json = await res.json();
+
+    if (!json.success) {
+      showNotification(json.message || 'Gagal hapus di server', 'error');
+    }
+  } catch (err) {
+    showNotification('❌ Koneksi backend gagal', 'error');
+  }
+}
 
         function closeShift() {
             const app = document.getElementById('app');
@@ -1765,6 +1786,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
