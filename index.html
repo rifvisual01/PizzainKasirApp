@@ -966,8 +966,15 @@ async function loadBackendData() {
         }
 
    async function loginAdmin() {
+  const btn = document.getElementById('adminLoginBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Memeriksa...';
+  btn.disabled = true;
+
   const pin = document.getElementById('adminPin').value;
   if (!pin) {
+    btn.textContent = originalText;
+    btn.disabled = false;
     showNotification('PIN wajib diisi', 'warning');
     return;
   }
@@ -984,18 +991,25 @@ async function loadBackendData() {
     const json = await res.json();
 
     if (!json.success) {
-      showNotification(json.message, 'error');
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showNotification(json.message || 'PIN salah', 'error');
       return;
     }
-     closeAdminPinDialog();   // ✅ tutup modal PIN
+
+    // ✅ sukses
+    closeAdminPinDialog();
     currentView = 'admin';
     showNotification(`Selamat datang, ${json.data.name}`, 'success');
     renderCurrentView();
 
   } catch (err) {
+    btn.textContent = originalText;
+    btn.disabled = false;
     showNotification('Koneksi backend gagal', 'error');
   }
 }
+
         function selectShift(shift) {
             if (shift === 'shift1' && shiftData.shift1.status === 'closed') {
                 showNotification('🔒 Shift 1 sudah ditutup!', 'warning');
@@ -1805,6 +1819,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
