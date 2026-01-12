@@ -613,6 +613,7 @@ async function loadBackendData() {
                                 ➕ Tambah ke Daftar
                             </button>
                             
+                            
                             ${pendingAdminExpenses.length > 0 ? `
                             <div class="mt-6">
                                 <h4 class="text-lg font-black text-gray-700 mb-3">📝 Pengeluaran Belum Disimpan</h4>
@@ -1471,22 +1472,23 @@ btn.disabled = true;
     return;
   }
 
-  const exp = {
+  expenses.push({
     id: 'tmp-' + Date.now(),
     shift: 'admin',
     cashier_name: 'admin',
     expense_name: name,
     category,
     amount,
-    timestamp: new Date().toISOString()
-  };
+    timestamp: new Date().toISOString(),
+    _draft: true
+  });
 
-  pendingAdminExpenses.push(exp);
-  renderAdminPendingList();
+  renderCurrentView();
 
   document.getElementById('adminExpenseName').value = '';
   document.getElementById('adminExpenseAmount').value = '';
 }
+
 function renderAdminPendingList() {
   const el = document.getElementById('adminPendingList');
   if (!el) return;
@@ -1512,31 +1514,26 @@ function renderAdminPendingList() {
 
 
         async function logoutAdmin() {
-  if (pendingAdminExpenses.length === 0) {
-    backToHome();
-    return;
-  }
+  const drafts = expenses.filter(e => e._draft && e.shift === 'admin');
 
-  for (const pending of pendingAdminExpenses) {
+  for (const e of drafts) {
     const fd = new FormData();
     fd.append('action', 'addExpense');
     fd.append('shift', 'admin');
     fd.append('cashier', 'admin');
-    fd.append('expense_name', pending.expense_name);
-    fd.append('category', pending.category);
-    fd.append('amount', pending.amount);
+    fd.append('expense_name', e.expense_name);
+    fd.append('category', e.category);
+    fd.append('amount', e.amount);
 
-    try {
-      await fetch(API_BASE, { method: 'POST', body: fd });
-    } catch {
-      showNotification('❌ Gagal kirim ke server', 'error');
-    }
+    await fetch(API_BASE, { method: 'POST', body: fd });
   }
 
-  pendingAdminExpenses = [];
+  // hapus draft
+  expenses = expenses.filter(e => !e._draft);
+
   await loadBackendData();
-  showNotification('✅ Pengeluaran admin disimpan!', 'success');
   backToHome();
+  showNotification('Pengeluaran admin disimpan', 'success');
 }
 
 
@@ -1865,6 +1862,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
