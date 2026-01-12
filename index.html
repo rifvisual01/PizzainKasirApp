@@ -1461,7 +1461,7 @@ btn.disabled = true;
             if (dialog) dialog.remove();
         }
 
-        async function addPendingAdminExpense() {
+        function addPendingAdminExpense() {
   const name = document.getElementById('adminExpenseName').value;
   const amount = parseRupiah(document.getElementById('adminExpenseAmount').value);
   const category = document.getElementById('adminExpenseCategory').value;
@@ -1471,7 +1471,6 @@ btn.disabled = true;
     return;
   }
 
-  // 🔥 Buat object expense
   const exp = {
     id: 'tmp-' + Date.now(),
     shift: 'admin',
@@ -1482,63 +1481,64 @@ btn.disabled = true;
     timestamp: new Date().toISOString()
   };
 
-  // 🔥 Masukkan ke UI dulu
-  expenses.push(exp);
-  renderCurrentView();
+  pendingAdminExpenses.push(exp);
+  renderAdminPendingList();
 
-  // reset form
   document.getElementById('adminExpenseName').value = '';
   document.getElementById('adminExpenseAmount').value = '';
+}
+function renderAdminPendingList() {
+  const el = document.getElementById('adminPendingList');
+  if (!el) return;
 
-  // 🔥 Kirim ke backend di background
-  const fd = new FormData();
-  fd.append('action', 'addExpense');
-  fd.append('shift', 'admin');
-  fd.append('cashier', 'admin');
-  fd.append('expense_name', name);
-  fd.append('category', category);
-  fd.append('amount', amount);
+  el.innerHTML = pendingAdminExpenses.map(e => `
+    <div class="flex justify-between bg-white p-4 rounded-xl shadow">
+      <div>
+        <p class="font-bold">${e.expense_name}</p>
+        <p class="text-sm text-gray-500">${e.category}</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <p class="font-bold">Rp ${e.amount.toLocaleString('id-ID')}</p>
+        <button onclick="removeAdminPending('${e.id}')" class="text-red-500">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
 
-  try {
-    const res = await fetch(API_BASE, { method: 'POST', body: fd });
-    const json = await res.json();
-
-    if (json.success && json.data?.id) {
-      // update ID temp → ID asli dari server
-      exp.id = json.data.id;
-    } else {
-      showNotification('Gagal simpan ke server', 'error');
-    }
-  } catch {
-    showNotification('Koneksi server gagal', 'error');
-  }
+        function removeAdminPending(id) {
+  pendingAdminExpenses = pendingAdminExpenses.filter(e => e.id !== id);
+  renderAdminPendingList();
 }
 
 
-        function removePendingExpense(index) {
-            pendingAdminExpenses.splice(index, 1);
-            renderCurrentView();
-        }
+        async function logoutAdmin() {
+  if (pendingAdminExpenses.length === 0) {
+    backToHome();
+    return;
+  }
 
-        function logoutAdmin() {
-            for (const pending of pendingAdminExpenses) {
-                expenses.push({
-                    id: Date.now().toString() + Math.random(),
-                    shift: 'admin',
-                    expense_name: pending.expense_name,
-                    amount: pending.amount,
-                    category: pending.category,
-                    timestamp: new Date().toISOString()
-                });
-            }
-            
-            if (pendingAdminExpenses.length > 0) {
-                showNotification('✅ Pengeluaran disimpan!', 'success');
-            }
-            
-            pendingAdminExpenses = [];
-            backToHome();
-        }
+  for (const pending of pendingAdminExpenses) {
+    const fd = new FormData();
+    fd.append('action', 'addExpense');
+    fd.append('shift', 'admin');
+    fd.append('cashier', 'admin');
+    fd.append('expense_name', pending.expense_name);
+    fd.append('category', pending.category);
+    fd.append('amount', pending.amount);
+
+    try {
+      await fetch(API_BASE, { method: 'POST', body: fd });
+    } catch {
+      showNotification('❌ Gagal kirim ke server', 'error');
+    }
+  }
+
+  pendingAdminExpenses = [];
+  await loadBackendData();
+  showNotification('✅ Pengeluaran admin disimpan!', 'success');
+  backToHome();
+}
+
 
         function applyFilters() {
             const startDate = document.getElementById('startDate').value;
@@ -1865,6 +1865,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
