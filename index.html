@@ -1070,13 +1070,19 @@ async function loadBackendData() {
         }
 
         async function loginShift() {
+  const btn = document.getElementById('startShiftBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Memulai shift...';
+  btn.disabled = true;
+
   const cashierName = document.getElementById('cashierSelect').value;
   const pin = document.getElementById('cashierPin').value;
-  const startCashValue = document.getElementById('startCash').value;
-  const startCash = parseRupiah(startCashValue);
+  const startCash = parseRupiah(document.getElementById('startCash').value);
 
   if (!cashierName || !pin || startCash <= 0) {
-    showNotification('⚠️ Data tidak lengkap', 'warning');
+    btn.textContent = originalText;
+    btn.disabled = false;
+    showNotification('Data tidak lengkap', 'warning');
     return;
   }
 
@@ -1088,47 +1094,48 @@ async function loadBackendData() {
   fd.append('startCash', startCash);
 
   try {
-    const res = await fetch(API_BASE, { method: 'POST', body: fd });
-const json = await res.json();
+    // 🔐 STEP 1 — cek PIN & izin buka shift
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
 
-if (!json.success) {
-  btn.textContent = originalText;
-  btn.disabled = false;
-  showNotification(json.message, 'error');
-  return;
-}
+    const json = await res.json();
 
-// 🔥 PIN benar → masuk shift SEKARANG
-shiftData[currentShift].status = 'open';
-shiftData[currentShift].startCash = startCash;
-shiftData[currentShift].cashier = cashierName;
-shiftData[currentShift].openedAt = new Date().toISOString();
+    if (!json.success) {
+      // PIN salah / shift belum boleh
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showNotification(json.message || 'PIN salah', 'error');
+      return;
+    }
 
-currentCashier = cashierName;
-currentView = currentShift;
+    // ⚡ STEP 2 — UI masuk shift SEKARANG
+    shiftData[currentShift].status = 'open';
+    shiftData[currentShift].startCash = startCash;
+    shiftData[currentShift].cashier = cashierName;
+    shiftData[currentShift].openedAt = new Date().toISOString();
 
-renderCurrentView();
-showNotification('Shift dimulai', 'success');
+    currentCashier = cashierName;
+    currentView = currentShift;
 
-// ⏳ sekarang tulis ke database di background
-fetch(API_BASE, {
-  method: 'POST',
-  body: fd
-});
-
-    await loadBackendData();
     renderCurrentView();
-    showNotification('✅ Shift berhasil dimulai', 'success');
 
-  } catch (e) {
-    showNotification('❌ Koneksi backend gagal', 'error');
+    // ⏳ STEP 3 — simpan ke database di background
+    fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    }).catch(() => {
+      showNotification('⚠️ Gagal sinkron ke server', 'error');
+    });
+
+  } catch (err) {
+    btn.textContent = originalText;
+    btn.disabled = false;
+    showNotification('Gagal terhubung ke server', 'error');
   }
-         const btn = document.getElementById('startShiftBtn');
-const originalText = btn.textContent;
-btn.textContent = 'Memulai shift...';
-btn.disabled = true;
-
 }
+
 
 function showCloseShiftConfirmation(kasAkhir) {
   const modal = document.createElement('div');
@@ -1751,6 +1758,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
