@@ -738,7 +738,15 @@ async function loadBackendData() {
                                                 <div class="mt-3 space-y-4">
                                                     ${shift1Items.length > 0 ? `
                                                     <div>
-                                                        <h4 class="text-xl font-black text-gray-700 mb-3">Shift 1 ${shiftData.shift1.cashier ? `• ${shiftData.shift1.cashier}` : ''}</h4>
+                                                        <h4 class="text-xl font-black text-gray-700 mb-2">Shift 1</h4>
+
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
+  <span>👤 ${shiftData.shift1.cashier || '-'}</span>
+  <span>🕒 ${shiftData.shift1.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>📥 Rp ${shiftData.shift1.startCash.toLocaleString('id-ID')}</span>
+  <span>📤 Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</span>
+</div>
+
                                                         <div class="space-y-2">
                                                             ${shift1Items.map(exp => `
                                                                 <div class="bg-white rounded-xl p-4 border border-gray-200">
@@ -758,7 +766,15 @@ async function loadBackendData() {
                                                     
                                                     ${shift2Items.length > 0 ? `
                                                     <div>
-                                                        <h4 class="text-xl font-black text-gray-700 mb-3">Shift 2 ${shiftData.shift2.cashier ? `• ${shiftData.shift2.cashier}` : ''}</h4>
+                                                        <h4 class="text-xl font-black text-gray-700 mb-2">Shift 2</h4>
+
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
+  <span>👤 ${shiftData.shift1.cashier || '-'}</span>
+  <span>🕒 ${shiftData.shift1.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>📥 Rp ${shiftData.shift1.startCash.toLocaleString('id-ID')}</span>
+  <span>📤 Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</span>
+</div>
+
                                                         <div class="space-y-2">
                                                             ${shift2Items.map(exp => `
                                                                 <div class="bg-white rounded-xl p-4 border border-gray-200">
@@ -1911,6 +1927,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
