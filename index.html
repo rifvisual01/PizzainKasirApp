@@ -788,10 +788,15 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift1.cashier || '-'}</span>
-  <span>🕒 ${shiftData.shift1.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>🕒 ${
+    shiftData.shift1.openedAt
+      ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : '-'
+  }</span>
   <span>📥 Rp ${shiftData.shift1.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</span>
 </div>
+
 
                                                         <div class="space-y-2">
                                                             ${shift1Items.map(exp => `
@@ -816,10 +821,15 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift2.cashier || '-'}</span>
-  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>🕒 ${
+    shiftData.shift2.openedAt
+      ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : '-'
+  }</span>
   <span>📥 Rp ${shiftData.shift2.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift2.endCash.toLocaleString('id-ID')}</span>
 </div>
+
 
                                                         <div class="space-y-2">
                                                             ${shift2Items.map(exp => `
@@ -978,10 +988,15 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift1.cashier || '-'}</span>
-  <span>🕒 ${shiftData.shift1.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>🕒 ${
+    shiftData.shift1.openedAt
+      ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : '-'
+  }</span>
   <span>📥 Rp ${shiftData.shift1.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</span>
 </div>
+
                                 ${shift1Expenses.length === 0 ? `
                                     <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
                                 ` : `
@@ -1007,10 +1022,15 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift2.cashier || '-'}</span>
-  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>🕒 ${
+    shiftData.shift2.openedAt
+      ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+      : '-'
+  }</span>
   <span>📥 Rp ${shiftData.shift2.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift2.endCash.toLocaleString('id-ID')}</span>
 </div>
+
 
                                 ${shift2Expenses.length === 0 ? `
                                     <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
@@ -1968,6 +1988,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
