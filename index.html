@@ -609,34 +609,34 @@ async function loadBackendData() {
                                 </div>
                             </div>
                             <button onclick="addPendingAdminExpense()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
-                                ➕ Tambah ke Daftar
+                                ➕ Tambah Pengeluaran
                             </button>
-                            <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
-  <h3 class="text-2xl font-black text-gray-800 mb-6">📋 Pengeluaran Admin</h3>
-
-  ${adminExpenses.length === 0 ? `
-    <p class="text-center text-gray-400 py-6">Belum ada pengeluaran</p>
-  ` : `
-    <div class="space-y-2">
-      ${adminExpenses.map(exp => `
-        <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3 flex-1">
-              <span class="text-base font-bold text-gray-500">
-                ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
-              </span>
-              <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
-              <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-            </div>
-            <div class="flex items-center gap-3">
-              <p class="text-xl font-black text-blue-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-              <button onclick="deleteExpense('${exp.id}')" class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">✕</button>
-            </div>
+                            ${adminExpenses.length > 0 ? `
+  <div class="mt-4 space-y-2">
+    ${adminExpenses.map(exp => `
+      <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 flex-1">
+            <span class="text-base font-bold text-gray-500">
+              ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
+            </span>
+            <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
+            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <p class="text-xl font-black text-blue-600">
+              Rp ${exp.amount.toLocaleString('id-ID')}
+            </p>
+            <button onclick="deleteExpense('${exp.id}')" class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">
+              ✕
+            </button>
           </div>
         </div>
-      `).join('')}
-    </div>
-  `}
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+
 </div>
 
                         </div>
@@ -1889,6 +1889,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
