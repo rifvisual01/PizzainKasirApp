@@ -123,11 +123,19 @@
             return parseInt(value.replace(/\./g, '')) || 0;
         }
    function init() {
-  // 1️⃣ Render UI secepat mungkin (tanpa nunggu backend)
-  renderCurrentView();
-
-  // 2️⃣ Ambil data backend di background
+  showLoading();
   loadBackendData();
+}
+
+   function showLoading() {
+  document.getElementById('app').innerHTML = `
+    <div class="min-h-full flex items-center justify-center">
+      <div class="text-center">
+        <div class="animate-spin w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+        <p class="font-bold text-gray-600">Memuat data...</p>
+      </div>
+    </div>
+  `;
 }
         
 async function loadBackendData() {
@@ -144,15 +152,9 @@ async function loadBackendData() {
     if (json.success) {
   expenses = json.data.expenses || [];
   cashiers = json.data.cashiers || [];
-
-  // 🔥 JANGAN overwrite shift yang sedang aktif
-  if (!currentShift) {
-    shiftData = json.data.shiftData || shiftData;
-  }
-
+  shiftData = json.data.shiftData || shiftData;
   renderCurrentView();
 }
-
   } catch (err) {
     console.error('Backend load failed', err);
   }
@@ -332,9 +334,22 @@ async function loadBackendData() {
                 return renderShiftLogin();
             }
             
-            const shiftExpenses = expenses.filter(e => e.shift === currentShift);
+            const today = new Date().toISOString().split('T')[0];
+
+const shiftExpenses = expenses.filter(e =>
+  e.shift === currentShift &&
+  e.timestamp &&
+  e.timestamp.startsWith(today)
+);
             const totalExpense = shiftExpenses.reduce((sum, e) => sum + e.amount, 0);
-            const prevShiftExpenses = currentShift === 'shift2' ? expenses.filter(e => e.shift === 'shift1') : [];
+            const prevShiftExpenses = currentShift === 'shift2'
+  ? expenses.filter(e =>
+      e.shift === 'shift1' &&
+      e.timestamp &&
+      e.timestamp.startsWith(today)
+    )
+  : [];
+
             
             return `
                 <div class="min-h-full p-6">
@@ -1592,8 +1607,11 @@ function renderAdminPendingList() {
 }
 
 
-        async function logoutAdmin() {
-  const drafts = expenses.filter(e => e._draft && e.shift === 'admin');
+        function logoutAdmin() {
+  currentView = 'home';
+  renderCurrentView();
+}
+
 
   for (const e of drafts) {
     const fd = new FormData();
@@ -1941,6 +1959,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
