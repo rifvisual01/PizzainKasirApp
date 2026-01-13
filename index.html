@@ -145,36 +145,16 @@ async function loadBackendData() {
       expenses = json.data.expenses || [];
       cashiers = json.data.cashiers || [];
 
+      // jangan overwrite shift yang sedang aktif
       if (!currentShift) {
         shiftData = json.data.shiftData || shiftData;
       }
 
-      // 🔥 JANGAN render ulang seluruh halaman
-      // cukup refresh bagian kecil jika perlu
-      refreshCountersOnly();
+      renderCurrentView(); // update UI tanpa reload
     }
   } catch (err) {
     console.error('Backend load failed', err);
   }
-}
-
-function refreshCountersOnly() {
-  if (currentView !== 'home') return;
-
-  const today = new Date().toISOString().split('T')[0];
-
-  const shift1Count = expenses.filter(e =>
-    e.shift === 'shift1' &&
-    e.timestamp?.startsWith(today)
-  ).length;
-
-  const shift2Count = expenses.filter(e =>
-    e.shift === 'shift2' &&
-    e.timestamp?.startsWith(today)
-  ).length;
-
-  document.getElementById('shift1-count')?.textContent = shift1Count;
-  document.getElementById('shift2-count')?.textContent = shift2Count;
 }
 
 
@@ -294,7 +274,7 @@ const shift2Count = shift2Expenses.length;
                                 <p class="text-base text-gray-500 mb-6 font-medium">Pagi sampai Siang</p>
                                 <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
                                     <span class="text-sm font-bold text-gray-600">Transaksi</span>
-                                    <span id="shift1-count" class="text-2xl font-black text-red-600">${shift1Count}</span>
+                                    <span class="text-2xl font-black text-red-600">${shift1Count}</span>
                                 </div>
                             </button>
                             
@@ -325,7 +305,7 @@ const shift2Count = shift2Expenses.length;
                                 <p class="text-base text-gray-500 mb-6 font-medium">Siang sampai Malam</p>
                                 <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
                                     <span class="text-sm font-bold text-gray-600">Transaksi</span>
-                                    <span id="shift2-count" class="text-2xl font-black text-amber-600">${shift2Count}</span>
+                                    <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
                                 </div>
                             </button>
                             
@@ -788,15 +768,10 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift1.cashier || '-'}</span>
-  <span>🕒 ${
-    shiftData.shift1.openedAt
-      ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      : '-'
-  }</span>
+  <span>🕒 ${shiftData.shift1.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
   <span>📥 Rp ${shiftData.shift1.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</span>
 </div>
-
 
                                                         <div class="space-y-2">
                                                             ${shift1Items.map(exp => `
@@ -821,15 +796,10 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift2.cashier || '-'}</span>
-  <span>🕒 ${
-    shiftData.shift2.openedAt
-      ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      : '-'
-  }</span>
+  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
   <span>📥 Rp ${shiftData.shift2.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift2.endCash.toLocaleString('id-ID')}</span>
 </div>
-
 
                                                         <div class="space-y-2">
                                                             ${shift2Items.map(exp => `
@@ -988,15 +958,10 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift1.cashier || '-'}</span>
-  <span>🕒 ${
-    shiftData.shift1.openedAt
-      ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      : '-'
-  }</span>
+  <span>🕒 ${shiftData.shift1.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
   <span>📥 Rp ${shiftData.shift1.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</span>
 </div>
-
                                 ${shift1Expenses.length === 0 ? `
                                     <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
                                 ` : `
@@ -1022,15 +987,10 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift2.cashier || '-'}</span>
-  <span>🕒 ${
-    shiftData.shift2.openedAt
-      ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-      : '-'
-  }</span>
+  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
   <span>📥 Rp ${shiftData.shift2.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift2.endCash.toLocaleString('id-ID')}</span>
 </div>
-
 
                                 ${shift2Expenses.length === 0 ? `
                                     <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
@@ -1988,9 +1948,6 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
-
-
-
 
 
 
