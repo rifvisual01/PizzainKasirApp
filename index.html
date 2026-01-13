@@ -1478,6 +1478,29 @@ btn.disabled = true;
     return;
   }
 
+  const tempId = 'temp-admin-' + Date.now();
+
+  const tempExpense = {
+    id: tempId,
+    shift: 'admin',
+    expense_name: name,
+    category,
+    amount,
+    timestamp: new Date().toISOString(),
+    cashier_name: 'admin',
+    _syncing: true
+  };
+
+  // 🔥 1. Tampilkan dulu di UI
+  expenses.push(tempExpense);
+  renderCurrentView();
+
+  // reset form
+  document.getElementById('adminExpenseName').value = '';
+  document.getElementById('adminExpenseAmount').value = '';
+  document.getElementById('adminExpenseCategory').value = '';
+
+  // 🔥 2. Kirim ke server di background
   const fd = new FormData();
   fd.append('action', 'addExpense');
   fd.append('shift', 'admin');
@@ -1493,25 +1516,24 @@ btn.disabled = true;
     });
 
     const json = await res.json();
+    if (!json.success) throw new Error(json.message);
 
-    if (!json.success) {
-      showNotification(json.message || 'Gagal simpan', 'error');
-      return;
+    // 🔁 Ganti temp dengan data dari server
+    const idx = expenses.findIndex(e => e.id === tempId);
+    if (idx !== -1) {
+      expenses[idx] = json.data;
     }
-
-    // masuk ke list utama
-    expenses.push(json.data);
-
-    // reset form
-    document.getElementById('adminExpenseName').value = '';
-    document.getElementById('adminExpenseAmount').value = '';
-    document.getElementById('adminExpenseCategory').value = '';
 
     renderCurrentView();
 
   } catch (err) {
     console.error(err);
-    showNotification('Gagal koneksi server', 'error');
+
+    // ❌ Gagal → hapus dari UI
+    expenses = expenses.filter(e => e.id !== tempId);
+    renderCurrentView();
+
+    showNotification('Gagal simpan ke server', 'error');
   }
 }
 
@@ -1889,6 +1911,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
