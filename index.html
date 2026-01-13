@@ -187,10 +187,23 @@ async function loadBackendData() {
             const shift2Label = config.shift2_label || defaultConfig.shift2_label;
             const adminLabel = config.admin_label || defaultConfig.admin_label;
             
-            const shift1Expenses = expenses.filter(e => e.shift === 'shift1');
-            const shift2Expenses = expenses.filter(e => e.shift === 'shift2');
-            const shift1Count = shift1Expenses.length;
-            const shift2Count = shift2Expenses.length;
+            const today = new Date().toISOString().split('T')[0];
+
+const shift1Expenses = expenses.filter(e =>
+  e.shift === 'shift1' &&
+  e.timestamp &&
+  e.timestamp.startsWith(today)
+);
+
+const shift2Expenses = expenses.filter(e =>
+  e.shift === 'shift2' &&
+  e.timestamp &&
+  e.timestamp.startsWith(today)
+);
+
+const shift1Count = shift1Expenses.length;
+const shift2Count = shift2Expenses.length;
+
             
             const shift1Status = shiftData.shift1.status;
             const shift2Status = shiftData.shift2.status;
@@ -1934,6 +1947,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
