@@ -145,16 +145,36 @@ async function loadBackendData() {
       expenses = json.data.expenses || [];
       cashiers = json.data.cashiers || [];
 
-      // jangan overwrite shift yang sedang aktif
       if (!currentShift) {
         shiftData = json.data.shiftData || shiftData;
       }
 
-      renderCurrentView(); // update UI tanpa reload
+      // 🔥 JANGAN render ulang seluruh halaman
+      // cukup refresh bagian kecil jika perlu
+      refreshCountersOnly();
     }
   } catch (err) {
     console.error('Backend load failed', err);
   }
+}
+
+function refreshCountersOnly() {
+  if (currentView !== 'home') return;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const shift1Count = expenses.filter(e =>
+    e.shift === 'shift1' &&
+    e.timestamp?.startsWith(today)
+  ).length;
+
+  const shift2Count = expenses.filter(e =>
+    e.shift === 'shift2' &&
+    e.timestamp?.startsWith(today)
+  ).length;
+
+  document.getElementById('shift1-count')?.textContent = shift1Count;
+  document.getElementById('shift2-count')?.textContent = shift2Count;
 }
 
 
@@ -274,7 +294,7 @@ const shift2Count = shift2Expenses.length;
                                 <p class="text-base text-gray-500 mb-6 font-medium">Pagi sampai Siang</p>
                                 <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
                                     <span class="text-sm font-bold text-gray-600">Transaksi</span>
-                                    <span class="text-2xl font-black text-red-600">${shift1Count}</span>
+                                    <span id="shift1-count" class="text-2xl font-black text-red-600">${shift1Count}</span>
                                 </div>
                             </button>
                             
@@ -305,7 +325,7 @@ const shift2Count = shift2Expenses.length;
                                 <p class="text-base text-gray-500 mb-6 font-medium">Siang sampai Malam</p>
                                 <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
                                     <span class="text-sm font-bold text-gray-600">Transaksi</span>
-                                    <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
+                                    <span id="shift2-count" class="text-2xl font-black text-amber-600">${shift2Count}</span>
                                 </div>
                             </button>
                             
@@ -1948,6 +1968,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
