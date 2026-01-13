@@ -796,7 +796,7 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift2.cashier || '-'}</span>
-  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
   <span>📥 Rp ${shiftData.shift2.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift2.endCash.toLocaleString('id-ID')}</span>
 </div>
@@ -987,7 +987,7 @@ const shiftExpenses = expenses.filter(e =>
 
 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-bold text-gray-600 mb-4">
   <span>👤 ${shiftData.shift2.cashier || '-'}</span>
-  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift1.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
+  <span>🕒 ${shiftData.shift2.openedAt ? new Date(shiftData.shift2.openedAt).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) : '-'}</span>
   <span>📥 Rp ${shiftData.shift2.startCash.toLocaleString('id-ID')}</span>
   <span>📤 Rp ${shiftData.shift2.endCash.toLocaleString('id-ID')}</span>
 </div>
@@ -1948,6 +1948,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
