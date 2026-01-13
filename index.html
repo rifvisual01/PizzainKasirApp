@@ -122,22 +122,15 @@
         function parseRupiah(value) {
             return parseInt(value.replace(/\./g, '')) || 0;
         }
-   function init() {
-  showLoading();
+   
+function init() {
+  // 1️⃣ Tampilkan UI langsung
+  renderCurrentView();
+
+  // 2️⃣ Muat data backend diam-diam
   loadBackendData();
 }
 
-   function showLoading() {
-  document.getElementById('app').innerHTML = `
-    <div class="min-h-full flex items-center justify-center">
-      <div class="text-center">
-        <div class="animate-spin w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-        <p class="font-bold text-gray-600">Memuat data...</p>
-      </div>
-    </div>
-  `;
-}
-        
 async function loadBackendData() {
   const fd = new FormData();
   fd.append('action', 'getData');
@@ -147,18 +140,25 @@ async function loadBackendData() {
       method: 'POST',
       body: fd
     });
+
     const json = await res.json();
 
     if (json.success) {
-  expenses = json.data.expenses || [];
-  cashiers = json.data.cashiers || [];
-  shiftData = json.data.shiftData || shiftData;
-  renderCurrentView();
-}
+      expenses = json.data.expenses || [];
+      cashiers = json.data.cashiers || [];
+
+      // jangan overwrite shift yang sedang aktif
+      if (!currentShift) {
+        shiftData = json.data.shiftData || shiftData;
+      }
+
+      renderCurrentView(); // update UI tanpa reload
+    }
   } catch (err) {
     console.error('Backend load failed', err);
   }
 }
+
 
         function renderCurrentView() {
             const app = document.getElementById('app');
@@ -1937,6 +1937,7 @@ function formatTanggalBackend(dateStr) {
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b97cb34e7df8a13',t:'MTc2NzY2NjYzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
+
 
 
 
