@@ -161,13 +161,23 @@ async function loadBackendData() {
 
    function getLastShift(date, shift) {
   return shiftHistory
-    .filter(s =>
-      new Date(s.tanggal).toISOString().split('T')[0] === date &&
-      s.shift === shift &&
-      s.status === 'closed'
-    )
+    .filter(s => {
+      const d = new Date(s.tanggal);
+      const localDate =
+        d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0');
+
+      return (
+        localDate === date &&
+        s.shift === shift &&
+        s.status === 'closed'
+      );
+    })
     .sort((a,b)=> new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
 }
+
+
 
 
 
@@ -2012,6 +2022,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
