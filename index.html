@@ -162,12 +162,13 @@ async function loadBackendData() {
    function getLastShift(date, shift) {
   return shiftHistory
     .filter(s =>
-      s.tanggal === date &&
+      new Date(s.tanggal).toISOString().split('T')[0] === date &&
       s.shift === shift &&
       s.status === 'closed'
     )
     .sort((a,b)=> new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
 }
+
 
 
         function renderCurrentView() {
@@ -2011,6 +2012,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
