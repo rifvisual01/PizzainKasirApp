@@ -86,6 +86,7 @@
  <body class="h-full bg-gradient-to-br from-red-600/50 via-red-500/40 to-red-600/50 overflow-auto">
   <div id="app" class="min-h-full"></div>
   <script>
+   
         const defaultConfig = {
             app_title: "Kasir Shift",
             shift1_label: "Shift 1",
@@ -112,6 +113,77 @@
         let chartInstance = null;
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
 
+let db;
+
+function initLocalDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("kasirDB", 1);
+
+    request.onupgradeneeded = e => {
+      db = e.target.result;
+      if (!db.objectStoreNames.contains("queue")) {
+        db.createObjectStore("queue", { keyPath: "id" });
+      }
+    };
+
+    request.onsuccess = e => {
+      db = e.target.result;
+      resolve();
+    };
+
+    request.onerror = () => reject("DB gagal dibuka");
+  });
+}
+
+   function saveToQueue(data) {
+  const tx = db.transaction(["queue"], "readwrite");
+  const store = tx.objectStore("queue");
+  store.put(data);
+}
+
+   function getAllQueue() {
+  return new Promise(resolve => {
+    const tx = db.transaction(["queue"], "readonly");
+    const store = tx.objectStore("queue");
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+   function deleteFromQueue(id) {
+  const tx = db.transaction(["queue"], "readwrite");
+  tx.objectStore("queue").delete(id);
+}
+
+   async function syncQueue() {
+  if (!navigator.onLine) return;
+
+  const items = await getAllQueue();
+
+  for (const item of items) {
+    try {
+      const fd = new FormData();
+      Object.entries(item.payload).forEach(([k,v]) => fd.append(k,v));
+
+      const res = await fetch(API_BASE, {
+        method: "POST",
+        body: fd
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        deleteFromQueue(item.id);
+      }
+    } catch (e) {
+      break; // stop kalau jaringan jelek
+    }
+  }
+}
+window.addEventListener("online", syncQueue);
+setInterval(syncQueue, 15000); // tiap 15 detik
+
+
+   
         function formatRupiah(value) {
             if (!value) return '';
             const number = value.toString().replace(/[^0-9]/g, '');
@@ -122,13 +194,26 @@
             return parseInt(value.replace(/\./g, '')) || 0;
         }
    
-function init() {
-  // 1️⃣ Tampilkan UI langsung
-  renderCurrentView();
+let appReady = false;
 
-  // 2️⃣ Muat data backend diam-diam
-  loadBackendData();
+async function init() {
+  // tampilkan loading merah sekali
+  showAppSkeleton();
+
+  // siapkan database offline
+  await initLocalDB();
+
+  // ambil data backend
+  await loadBackendData();
+
+  // coba kirim data offline jika ada
+  syncQueue();
+
+  // render UI sekali saja
+  appReady = true;
+  renderCurrentView();
 }
+
 
 async function loadBackendData() {
   const fd = new FormData();
@@ -1407,44 +1492,21 @@ function closeConfirmModal() {
   document.getElementById('expenseAmount').value = '';
   document.getElementById('expenseCategory').value = '';
 
-  // Kirim ke backend di background
-  const fd = new FormData();
-  fd.append('action', 'addExpense');
-  fd.append('shift', tempExpense.shift);
-  fd.append('cashier', tempExpense.cashier_name);
-  fd.append('expense_name', tempExpense.expense_name);
-  fd.append('category', tempExpense.category);
-  fd.append('amount', tempExpense.amount);
-
-  try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
-    const json = await res.json();
-
-    if (!json.success) {
-      throw new Error(json.message);
-    }
-
-    // 🔁 Ganti temp dengan versi dari server
-    const idx = expenses.findIndex(e => e.id === tempId);
-    if (idx !== -1) {
-      expenses[idx] = json.data;
-    }
-
-    renderCurrentView();
-
-  } catch (err) {
-    console.error(err);
-
-    // ❌ Hapus yang gagal
-    expenses = expenses.filter(e => e.id !== tempId);
-    renderCurrentView();
-
-    showNotification('Gagal simpan ke server', 'error');
+  // Simpan ke offline queue (IndexedDB)
+saveToQueue({
+  id: tempId,
+  payload: {
+    action: 'addExpense',
+    shift: tempExpense.shift,
+    cashier: tempExpense.cashier_name,
+    expense_name: tempExpense.expense_name,
+    category: tempExpense.category,
+    amount: tempExpense.amount
   }
-}
+});
+
+// Coba sync kalau sedang online
+syncQueue();
 
 
         async function deleteExpense(id) {
@@ -2022,6 +2084,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
