@@ -124,6 +124,10 @@ function initLocalDB() {
       if (!db.objectStoreNames.contains("queue")) {
         db.createObjectStore("queue", { keyPath: "id" });
       }
+
+     if (!db.objectStoreNames.contains('users')) {
+  db.createObjectStore('users', { keyPath: 'name' });
+}
     };
 
     request.onsuccess = e => {
@@ -135,6 +139,34 @@ function initLocalDB() {
   });
 }
 
+   async function deleteFromQueueByTempId(tempId) {
+  const db = await openDB();
+  const tx = db.transaction('queue', 'readwrite');
+  const store = tx.objectStore('queue');
+
+  const all = await store.getAll();
+  for (const item of all) {
+    if (item.payload && item.payload.tempId === tempId) {
+      store.delete(item.id);
+    }
+  }
+
+  await tx.complete;
+}
+
+   async function verifyPinOffline(cashierName, pinInput) {
+  const db = await openDB();
+  const tx = db.transaction('users', 'readonly');
+  const store = tx.objectStore('users');
+
+  const user = await store.get(cashierName);
+  if (!user || !user.active) return false;
+
+  const inputHash = await hashPIN(pinInput);
+  return inputHash === user.pinHash;
+}
+
+   
    function saveToQueue(data) {
   const tx = db.transaction(["queue"], "readwrite");
   const store = tx.objectStore("queue");
@@ -159,26 +191,57 @@ function initLocalDB() {
   if (!navigator.onLine) return;
 
   const items = await getAllQueue();
+  if (!items.length) return;
 
   for (const item of items) {
     try {
+      const { payload } = item;
       const fd = new FormData();
-      Object.entries(item.payload).forEach(([k,v]) => fd.append(k,v));
+
+      // ===== ADD EXPENSE =====
+      if (payload.action === 'addExpense') {
+        Object.entries(payload).forEach(([k, v]) => {
+          if (k !== 'tempId') fd.append(k, v);
+        });
+      }
+
+      // ===== OPEN SHIFT =====
+      if (payload.action === 'openShift') {
+        fd.append('action', 'openShift');
+        fd.append('shift', payload.shift);
+        fd.append('cashier', payload.cashier);
+        fd.append('startCash', payload.startCash);
+        fd.append('openedAt', payload.openedAt);
+      }
+
+      // ===== CLOSE SHIFT =====
+      if (payload.action === 'closeShift') {
+        fd.append('action', 'closeShift');
+        fd.append('shift', payload.shift);
+        fd.append('endCash', payload.endCash);
+        fd.append('closedAt', payload.closedAt);
+      }
 
       const res = await fetch(API_BASE, {
-        method: "POST",
+        method: 'POST',
         body: fd
       });
 
       const json = await res.json();
-      if (json.success) {
-        deleteFromQueue(item.id);
+      if (!json.success) {
+        break; // ⛔ STOP kalau server menolak
       }
-    } catch (e) {
-      break; // stop kalau jaringan jelek
+
+      // ✅ sukses → hapus dari queue
+      await deleteFromQueue(item.id);
+
+    } catch (err) {
+      // ⛔ jaringan jelek / fetch gagal
+      break;
     }
   }
 }
+
 window.addEventListener("online", syncQueue);
 setInterval(syncQueue, 15000); // tiap 15 detik
 
@@ -1362,9 +1425,11 @@ ${shift2Expenses.length === 0 ? `
   btn.textContent = 'Memulai shift...';
   btn.disabled = true;
 
+  // 🔑 AMBIL INPUT DULU (WAJIB)
   const cashierName = document.getElementById('cashierSelect').value;
   const pin = document.getElementById('cashierPin').value;
   const startCash = parseRupiah(document.getElementById('startCash').value);
+  const shift = currentShift;
 
   if (!cashierName || !pin || startCash <= 0) {
     btn.textContent = originalText;
@@ -1373,55 +1438,87 @@ ${shift2Expenses.length === 0 ? `
     return;
   }
 
+  // ===== OFFLINE LOGIN =====
+  if (!navigator.onLine) {
+    const ok = await verifyPinOffline(cashierName, pin);
+    if (!ok) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showNotification('PIN salah (offline)', 'error');
+      return;
+    }
+
+    // UI-first (perilaku lama)
+    shiftData[shift] = {
+      cashier: cashierName,
+      startCash,
+      status: 'open',
+      openedAt: new Date().toISOString()
+    };
+
+    currentCashier = cashierName;
+    currentView = shift;
+
+    renderCurrentView();
+
+    // simpan ke queue untuk sync nanti
+    saveToQueue({
+      id: 'openShift-' + Date.now(),
+      payload: {
+        action: 'openShift',
+        shift,
+        cashier: cashierName,
+        startCash,
+        openedAt: shiftData[shift].openedAt
+      }
+    });
+
+    btn.textContent = originalText;
+    btn.disabled = false;
+    return; // ⛔ STOP
+  }
+
+  // ===== ONLINE LOGIN (KODE LAMA, AMAN) =====
   const fd = new FormData();
   fd.append('action', 'loginShift');
   fd.append('pin', pin);
-  fd.append('shift', currentShift);
+  fd.append('shift', shift);
   fd.append('cashier', cashierName);
   fd.append('startCash', startCash);
-         
-  try {
-    // 🔐 STEP 1 — cek PIN & izin buka shift
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
 
+  try {
+    const res = await fetch(API_BASE, { method: 'POST', body: fd });
     const json = await res.json();
 
     if (!json.success) {
-      // PIN salah / shift belum boleh
       btn.textContent = originalText;
       btn.disabled = false;
       showNotification(json.message || 'PIN salah', 'error');
       return;
     }
 
-    // ⚡ STEP 2 — UI masuk shift SEKARANG
-    shiftData[currentShift].status = 'open';
-    shiftData[currentShift].startCash = startCash;
-    shiftData[currentShift].cashier = cashierName;
-    shiftData[currentShift].openedAt = new Date().toISOString();
+    shiftData[shift].status = 'open';
+    shiftData[shift].startCash = startCash;
+    shiftData[shift].cashier = cashierName;
+    shiftData[shift].openedAt = new Date().toISOString();
 
     currentCashier = cashierName;
-    currentView = currentShift;
+    currentView = shift;
 
     renderCurrentView();
 
-    // ⏳ STEP 3 — simpan ke database di background
-    fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    }).catch(() => {
+    fetch(API_BASE, { method: 'POST', body: fd }).catch(() => {
       showNotification('⚠️ Gagal sinkron ke server', 'error');
     });
 
   } catch (err) {
+    showNotification('Gagal terhubung ke server', 'error');
+  } finally {
     btn.textContent = originalText;
     btn.disabled = false;
-    showNotification('Gagal terhubung ke server', 'error');
   }
 }
+
 
 
 function showCloseShiftConfirmation(kasAkhir) {
@@ -1500,6 +1597,7 @@ saveToQueue({
   id: tempId,
   payload: {
     action: 'addExpense',
+    tempId: tempId,            // 🔥 TAMBAHKAN INI
     shift: tempExpense.shift,
     cashier: tempExpense.cashier_name,
     expense_name: tempExpense.expense_name,
@@ -1508,17 +1606,25 @@ saveToQueue({
   }
 });
 
+
 // Coba sync kalau sedang online
 syncQueue();
 }
 
         async function deleteExpense(id) {
-  if (!id) {
-    showNotification('ID data tidak ditemukan', 'error');
+  if (!id) return;
+
+  // 🔥 OFFLINE ITEM (BELUM PERNAH KE SERVER)
+  if (String(id).startsWith('temp-')) {
+    expenses = expenses.filter(e => e.id !== id);
+    renderCurrentView();
+
+    // hapus dari queue supaya tidak terkirim
+    await deleteFromQueueByTempId(id);
     return;
   }
 
-  // 🔥 Optimistic UI: hapus langsung
+  // ===== PERILAKU LAMA (ONLINE ITEM) =====
   expenses = expenses.filter(e => e.id !== id);
   renderCurrentView();
 
@@ -1531,7 +1637,6 @@ syncQueue();
       method: 'POST',
       body: fd
     });
-
     const json = await res.json();
 
     if (!json.success) {
@@ -1541,6 +1646,7 @@ syncQueue();
     showNotification('❌ Koneksi backend gagal', 'error');
   }
 }
+
 
         function closeShift() {
             const app = document.getElementById('app');
@@ -1634,28 +1740,54 @@ btn.disabled = true;
     closeConfirmModal();
 
     // lanjut ke penutupan shift
-    await finalizeCloseShift(kasAkhir);
-
-  } catch (e) {
-    showNotification('Gagal verifikasi', 'error');
-  }
-}
-
-   async function finalizeCloseShift(endCash) {
+async function finalizeCloseShift(endCash) {
   const closingShift = currentShift;
 
   // UI-first
   shiftData[closingShift].status = 'closed';
   shiftData[closingShift].endCash = endCash;
-  backToHome();
+  shiftData[closingShift].closedAt = new Date().toISOString();
 
+  currentShift = null;
+  currentCashier = null;
+  renderCurrentView();
+
+  // ===== OFFLINE CLOSE SHIFT =====
+  if (!navigator.onLine) {
+    saveToQueue({
+      id: 'closeShift-' + Date.now(),
+      payload: {
+        action: 'closeShift',
+        shift: closingShift,
+        endCash,
+        closedAt: shiftData[closingShift].closedAt
+      }
+    });
+    return;
+  }
+
+  // ===== ONLINE CLOSE SHIFT =====
   const fd = new FormData();
   fd.append('action', 'closeShift');
   fd.append('shift', closingShift);
   fd.append('endCash', endCash);
 
-  await fetch(API_BASE, { method: 'POST', body: fd });
+  try {
+    await fetch(API_BASE, { method: 'POST', body: fd });
+  } catch (e) {
+    // fallback ke queue kalau gagal kirim
+    saveToQueue({
+      id: 'closeShift-' + Date.now(),
+      payload: {
+        action: 'closeShift',
+        shift: closingShift,
+        endCash,
+        closedAt: shiftData[closingShift].closedAt
+      }
+    });
+  }
 }
+
 
 
         function cancelCloseShift() {
@@ -2086,6 +2218,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
