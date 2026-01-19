@@ -1687,9 +1687,7 @@ syncQueue();
             app.appendChild(dialog);
         }
 
-                
-   /* ===== DEBUG CUT END ===== */
-/* 
+             
         function processCloseShift() {
   const endCashValue = document.getElementById('endCash').value;
   const endCash = parseRupiah(endCashValue);
@@ -1711,9 +1709,10 @@ syncQueue();
 }
 
    async function confirmCloseShift(kasAkhir) {
-    const btn = document.getElementById('confirmCloseBtn');
-btn.textContent = 'Menutup...';
-btn.disabled = true;
+  const btn = document.getElementById('confirmCloseBtn');
+  btn.textContent = 'Menutup...';
+  btn.disabled = true;
+
   const pin1 = document.getElementById('pinShift1').value;
   const shift2Cashier = document.getElementById('cashierShift2').value;
   const pin2 = document.getElementById('pinShift2').value;
@@ -1741,7 +1740,15 @@ btn.disabled = true;
 
     closeConfirmModal();
 
-    // lanjut ke penutupan shift
+    // 🔥 PANGGIL, BUKAN DEFINISIKAN
+    await finalizeCloseShift(kasAkhir);
+
+  } catch (err) {
+    showNotification('Gagal verifikasi PIN', 'error');
+  }
+}
+
+
 async function finalizeCloseShift(endCash) {
   const closingShift = currentShift;
 
@@ -1777,7 +1784,6 @@ async function finalizeCloseShift(endCash) {
   try {
     await fetch(API_BASE, { method: 'POST', body: fd });
   } catch (e) {
-    // fallback ke queue kalau gagal kirim
     saveToQueue({
       id: 'closeShift-' + Date.now(),
       payload: {
@@ -1792,11 +1798,12 @@ async function finalizeCloseShift(endCash) {
 
 
 
+
         function cancelCloseShift() {
             const dialog = document.getElementById('closeShiftDialog');
             if (dialog) dialog.remove();
         }
-   */
+
         async function addPendingAdminExpense() {
   const name = document.getElementById('adminExpenseName').value;
   const amount = parseRupiah(document.getElementById('adminExpenseAmount').value);
@@ -2220,6 +2227,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
