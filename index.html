@@ -458,6 +458,9 @@ const shift2Count = shift2Expenses.length;
             `;
         }
 
+   /* ===== DEBUG CUT ===== */
+/*
+
         function renderShiftScreen() {
             const config = window.elementSdk?.config || defaultConfig;
             const shiftLabel = currentShift === 'shift1' ? (config.shift1_label || defaultConfig.shift1_label) : (config.shift2_label || defaultConfig.shift2_label);
@@ -679,8 +682,6 @@ const shiftExpenses = expenses.filter(e =>
             `;
         }
 
-/* ===== DEBUG CUT ===== */
-/*
    
         function renderAdminScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -2094,6 +2095,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
