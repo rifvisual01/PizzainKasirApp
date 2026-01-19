@@ -1431,42 +1431,31 @@ function showCloseShiftConfirmation(kasAkhir) {
 
   modal.innerHTML = `
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-      <h3 class="text-2xl font-black mb-4 text-red-600">🔒 Konfirmasi Tutup Shift 1</h3>
+      <h3 class="text-2xl font-black mb-4 text-red-600">🔒 Konfirmasi Tutup Shift</h3>
 
       <div class="bg-red-50 p-4 rounded-xl mb-4">
-        <p class="text-sm text-gray-600">Kas Akhir yang diinput</p>
-        <p class="text-3xl font-black text-red-600">Rp ${kasAkhir.toLocaleString('id-ID')}</p>
+        <p class="text-sm text-gray-700 mb-2">Kas akhir:</p>
+        <p class="text-3xl font-black text-red-600">
+          Rp ${kasAkhir.toLocaleString('id-ID')}
+        </p>
       </div>
 
-      <div class="space-y-4">
-        <div>
-          <label class="font-bold text-sm">PIN Kasir Shift 1</label>
-          <input type="password" id="pinShift1" class="input-modern w-full p-3 rounded-xl">
-        </div>
-
-        <div>
-          <label class="font-bold text-sm">Kasir Shift 2</label>
-          <select id="cashierShift2" class="input-modern w-full p-3 rounded-xl">
-            <option value="">Pilih Kasir</option>
-            ${cashiers.map(c => `<option value="${c}">${c}</option>`).join('')}
-          </select>
-        </div>
-
-        <div>
-          <label class="font-bold text-sm">PIN Kasir Shift 2</label>
-          <input type="password" id="pinShift2" class="input-modern w-full p-3 rounded-xl">
-        </div>
-      </div>
-
-      <div class="flex gap-3 mt-6">
-        <button onclick="closeConfirmModal()" class="flex-1 bg-gray-200 rounded-xl py-3 font-bold">Batal</button>
-        <button id="confirmCloseBtn" onclick="confirmCloseShift(${kasAkhir})" class="flex-1 bg-red-600 text-white rounded-xl py-3 font-bold">Tutup Shift</button>
+      <div class="flex gap-3">
+        <button onclick="document.getElementById('close-confirm-modal').remove()"
+          class="flex-1 bg-gray-200 rounded-xl py-3 font-bold">
+          Batal
+        </button>
+        <button onclick="confirmCloseShift()"
+          class="flex-1 bg-red-600 text-white rounded-xl py-3 font-bold">
+          Tutup Shift
+        </button>
       </div>
     </div>
   `;
 
   document.body.appendChild(modal);
 }
+
 
 function closeConfirmModal() {
   document.getElementById('close-confirm-modal')?.remove();
@@ -2098,6 +2087,7 @@ function formatTanggalBackend(dateStr) {
     </script>
 </body>
 </html>
+
 
 
 
