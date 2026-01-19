@@ -1960,7 +1960,8 @@ function formatTanggalBackend(dateStr) {
   const year = d.getFullYear();
   return `${day}/${month}/${year}`;
 }
-
+          /* ===== DEBUG CUT ===== */
+/*
         function updateChart() {
             if (chartInstance) {
                 const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
@@ -2026,8 +2027,7 @@ function formatTanggalBackend(dateStr) {
                 chartInstance.update();
             }
         }
-          /* ===== DEBUG CUT ===== */
-/*
+
         function toggleCategory(id) {
             const detail = document.getElementById(`detail-${id}`);
             const icon = document.getElementById(`icon-${id}`);
@@ -2095,6 +2095,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
