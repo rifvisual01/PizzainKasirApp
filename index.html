@@ -211,22 +211,19 @@ let appReady = false;
 }
 
 async function init() {
-  // tampilkan loading merah sekali
-  showAppSkeleton();
-
-  // siapkan database offline
-  await initLocalDB();
-
-  // ambil data backend
-  await loadBackendData();
-
-  // coba kirim data offline jika ada
-  syncQueue();
-
-  // render UI sekali saja
-  appReady = true;
+  // 1️⃣ Langsung tampilkan UI utama (tanpa nunggu data)
   renderCurrentView();
+
+  // 2️⃣ Siapkan offline DB (cepat)
+  initLocalDB();
+
+  // 3️⃣ Load data backend DIAM-DIAM
+  loadBackendData().then(() => {
+    syncQueue();          // sync kalau ada
+    renderCurrentView();  // refresh UI setelah data masuk
+  });
 }
+
 
 
 async function loadBackendData() {
@@ -2089,6 +2086,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
