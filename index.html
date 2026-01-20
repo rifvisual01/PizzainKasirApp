@@ -1778,7 +1778,6 @@ syncQueue();
   }
 }
 
-
 async function confirmCloseShift(kasAkhir) {
   const btn = document.getElementById('confirmCloseBtn');
   if (btn) {
@@ -1791,6 +1790,10 @@ async function confirmCloseShift(kasAkhir) {
 
   if (!cashier2El || !pin2El) {
     showNotification('Form konfirmasi tidak lengkap', 'error');
+    if (btn) {
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
+    }
     return;
   }
 
@@ -1799,31 +1802,35 @@ async function confirmCloseShift(kasAkhir) {
 
   if (!cashier2 || !pinShift2) {
     showNotification('Lengkapi kasir & PIN shift 2', 'warning');
-    btn.textContent = 'Konfirmasi';
-    btn.disabled = false;
+    if (btn) {
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
+    }
     return;
   }
 
   // =====================================================
-  // 🔌 OFFLINE VERIFY (OPS B)
+  // 🔌 OFFLINE VERIFY (FINAL - TANPA users)
   // =====================================================
   if (!navigator.onLine) {
-    const user = users.find(u =>
+    const ok = (window.LOCAL_CASHIERS || []).some(u =>
       u.name === cashier2 &&
       String(u.pin) === String(pinShift2) &&
       u.active === true
     );
 
-    if (!user) {
+    if (!ok) {
       showNotification('PIN kasir Shift 2 salah (offline)', 'error');
-      btn.textContent = 'Konfirmasi';
-      btn.disabled = false;
+      if (btn) {
+        btn.textContent = 'Konfirmasi';
+        btn.disabled = false;
+      }
       return;
     }
 
     showNotification(
       'Offline: PIN diverifikasi secara lokal',
-      'warning'
+      'success'
     );
 
     closeConfirmModal();
@@ -1832,7 +1839,7 @@ async function confirmCloseShift(kasAkhir) {
   }
 
   // =====================================================
-  // 🌐 ONLINE VERIFY (BACKEND)
+  // 🌐 ONLINE VERIFY (BACKEND) — KODE LAMA DIPERTAHANKAN
   // =====================================================
   const fd = new FormData();
   fd.append('action', 'verifyShift2Pin');
@@ -1845,8 +1852,10 @@ async function confirmCloseShift(kasAkhir) {
 
     if (!json.success) {
       showNotification(json.message || 'PIN shift 2 salah', 'error');
-      btn.textContent = 'Konfirmasi';
-      btn.disabled = false;
+      if (btn) {
+        btn.textContent = 'Konfirmasi';
+        btn.disabled = false;
+      }
       return;
     }
 
@@ -1855,11 +1864,12 @@ async function confirmCloseShift(kasAkhir) {
 
   } catch (err) {
     showNotification('Gagal verifikasi PIN shift 2', 'error');
-    btn.textContent = 'Konfirmasi';
-    btn.disabled = false;
+    if (btn) {
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
+    }
   }
 }
-
 
 
 
@@ -2350,6 +2360,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
