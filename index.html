@@ -1698,22 +1698,16 @@ syncQueue();
         }
 
        function processCloseShift() {
-  // 🔥 ambil kas akhir dari state, BUKAN input
-  const kasAkhir = shiftData[currentShift]?.endCash
-    ?? calculateCurrentCash(); // fallback jika ada
-
-  if (!kasAkhir || kasAkhir <= 0) {
-    showNotification('⚠️ Kas akhir tidak valid', 'warning');
-    return;
-  }
-
-  // Shift 1 → pakai konfirmasi 2 kasir
+  // Shift 1 → buka modal konfirmasi (TANPA validasi)
   if (currentShift === 'shift1') {
-    showCloseShiftConfirmation(kasAkhir);
+    showCloseShiftConfirmation();
   } else {
+    // Shift 2 → langsung tutup (pakai hitungan otomatis)
+    const kasAkhir = calculateCurrentCash();
     finalizeCloseShift(kasAkhir);
   }
 }
+
 
 function calculateCurrentCash() {
   const startCash = shiftData[currentShift]?.startCash || 0;
@@ -2248,6 +2242,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
