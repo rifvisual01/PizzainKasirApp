@@ -1697,27 +1697,33 @@ syncQueue();
             app.appendChild(dialog);
         }
 
-             
-        function processCloseShift() {
-  const endCashValue = document.getElementById('endCash').value;
-  const endCash = parseRupiah(endCashValue);
+       function processCloseShift() {
+  // 🔥 ambil kas akhir dari state, BUKAN input
+  const kasAkhir = shiftData[currentShift]?.endCash
+    ?? calculateCurrentCash(); // fallback jika ada
 
-  if (endCash <= 0) {
-    showNotification('⚠️ Kas akhir harus diisi!', 'warning');
+  if (!kasAkhir || kasAkhir <= 0) {
+    showNotification('⚠️ Kas akhir tidak valid', 'warning');
     return;
   }
 
-  cancelCloseShift();
-
-  // 🔥 Shift 1 → butuh konfirmasi 2 kasir
+  // Shift 1 → pakai konfirmasi 2 kasir
   if (currentShift === 'shift1') {
-    showCloseShiftConfirmation(endCash); // ⬅️ INI PENTING
+    showCloseShiftConfirmation(kasAkhir);
   } else {
-    // Shift 2 langsung ditutup
-    finalizeCloseShift(endCash);
+    finalizeCloseShift(kasAkhir);
   }
 }
 
+function calculateCurrentCash() {
+  const startCash = shiftData[currentShift]?.startCash || 0;
+
+  const totalExpense = expenses
+    .filter(e => e.shift === currentShift)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  return startCash - totalExpense;
+}
 
    async function confirmCloseShift(kasAkhir) {
   const btn = document.getElementById('confirmCloseBtn');
@@ -2242,6 +2248,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
