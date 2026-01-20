@@ -173,27 +173,15 @@ function initLocalDB() {
 }
 
    async function processQueue() {
-  // ⛔ jangan paksa sync kalau masih offline
   if (!navigator.onLine) return;
-
-const backendOk = await isBackendReachable();
-if (!backendOk) {
-  console.warn('⏳ Backend belum siap, tunda sync');
-  return;
-}
-
-
-  if (!db) {
-    console.warn('⚠️ DB belum siap');
-    return;
-  }
+  if (!db) return;
 
   const tx = db.transaction(["queue"], "readwrite");
   const store = tx.objectStore("queue");
-  const request = store.getAll();
+  const req = store.getAll();
 
-  request.onsuccess = async () => {
-    const items = request.result;
+  req.onsuccess = async () => {
+    const items = req.result;
     if (!items || items.length === 0) return;
 
     console.log("🔄 Sinkronisasi queue:", items.length);
@@ -205,22 +193,24 @@ if (!backendOk) {
           fd.append(k, v);
         });
 
-        await fetch(API_BASE, {
+        const res = await fetch(API_BASE, {
           method: "POST",
           body: fd
         });
 
-        // ✅ hanya hapus jika fetch benar-benar sukses
+        if (!res.ok) throw new Error('Fetch failed');
+
+        // ✅ sukses → hapus dari queue
         store.delete(item.id);
 
       } catch (err) {
-        console.warn("❌ Gagal sync item:", item.id);
-        // ❗ jangan spam → break dulu
-        break;
+        console.warn("⏳ Backend belum siap, tunda sync");
+        break; // ⛔ STOP, jangan spam
       }
     }
   };
 }
+
 
 
    function getAllQueue() {
@@ -1581,22 +1571,6 @@ ${shift2Expenses.length === 0 ? `
   }
 }
    
-async function isBackendReachable() {
-  try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 3000); // timeout 3 detik
-
-    const res = await fetch(API_BASE, {
-      method: 'HEAD',
-      signal: controller.signal
-    });
-
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
-}
-
 
 function showCloseShiftConfirmation(kasAkhir) {
   // 🔥 simpan kas akhir ke global sementara
@@ -2437,6 +2411,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
