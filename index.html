@@ -562,9 +562,10 @@ const shiftExpenses = expenses.filter(e =>
 
                                     </span>
                                 </div>
-                                <button onclick="closeShift()" class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
-                                    Tutup Shift
-                                </button>
+                               <button onclick="processCloseShift()" 
+  class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
+  Tutup Shift
+</button>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-red-700 rounded-xl p-6 text-white text-center">
@@ -2241,6 +2242,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
