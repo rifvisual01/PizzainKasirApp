@@ -1572,7 +1572,10 @@ function showCloseShiftConfirmation(kasAkhir) {
           class="input-modern w-full rounded-xl px-4 py-3 pr-12 text-base appearance-none cursor-pointer bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
         >
           <option value="">Pilih Kasir</option>
-          ${cashiers.map(c => `<option value="${c}">${c}</option>`).join('')}
+          ${(window.LOCAL_CASHIERS || [])
+  .filter(u => u.active)
+  .map(u => `<option value="${u.name}">${u.name}</option>`)
+  .join('')}
         </select>
 
         <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -2347,6 +2350,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
