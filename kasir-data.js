@@ -1,27 +1,8 @@
-// ================================
-// DATA KASIR LOKAL (OFFLINE-FIRST)
-// ================================
+// kasir-data.js
 window.LOCAL_CASHIERS = [
   {
     name: 'Rifqi',
     pin: '1111',
-    active: true,
-    role: 'cashier'
+    active: true
   }
-
-   {
-    name: 'Afifah',
-    pin: '2222',
-    active: true,
-    role: 'cashier'
-  }
-
- {
-    name: 'iki',
-    pin: '3333',
-    active: true,
-    role: 'cashier'
-  }
-
-
 ];
