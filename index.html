@@ -1423,26 +1423,27 @@ ${shift2Expenses.length === 0 ? `
             input.value = formatRupiah(value);
         }
 
-        async function loginShift() {
+       async function loginShift() {
   const btn = document.getElementById('startShiftBtn');
   const originalText = btn.textContent;
   btn.textContent = 'Memulai shift...';
   btn.disabled = true;
 
-  // 🔑 AMBIL INPUT DULU (WAJIB)
   const cashierName = document.getElementById('cashierSelect').value;
   const pin = document.getElementById('cashierPin').value;
   const startCash = parseRupiah(document.getElementById('startCash').value);
   const shift = currentShift;
 
-  if (!cashierName || !pin || startCash <= 0) {
+  if (!shift || !cashierName || !pin || startCash <= 0) {
     btn.textContent = originalText;
     btn.disabled = false;
     showNotification('Data tidak lengkap', 'warning');
     return;
   }
 
-  // ===== OFFLINE LOGIN =====
+  // =====================================================
+  // 🔌 OFFLINE LOGIN (OPS B)
+  // =====================================================
   if (!navigator.onLine) {
     const ok = await verifyPinOffline(cashierName, pin);
     if (!ok) {
@@ -1452,37 +1453,43 @@ ${shift2Expenses.length === 0 ? `
       return;
     }
 
-    // UI-first (perilaku lama)
-    shiftData[shift] = {
-      cashier: cashierName,
-      startCash,
-      status: 'open',
-      openedAt: new Date().toISOString()
-    };
+    // ✅ JANGAN TIMPA OBJECT
+    shiftData[shift].status = 'open';
+    shiftData[shift].cashier = cashierName;
+    shiftData[shift].startCash = startCash;
+    shiftData[shift].openedAt = new Date().toISOString();
 
+    currentShift = shift;          // 🔥 WAJIB
     currentCashier = cashierName;
     currentView = shift;
 
     renderCurrentView();
 
-    // simpan ke queue untuk sync nanti
+    // ✅ ACTION HARUS loginShift
     saveToQueue({
-      id: 'openShift-' + Date.now(),
+      id: 'loginShift-' + Date.now(),
       payload: {
-        action: 'openShift',
+        action: 'loginShift',
         shift,
         cashier: cashierName,
-        startCash,
-        openedAt: shiftData[shift].openedAt
+        pin,
+        startCash
       }
     });
 
+    showNotification(
+      'Offline: shift dibuka dengan verifikasi lokal',
+      'warning'
+    );
+
     btn.textContent = originalText;
     btn.disabled = false;
-    return; // ⛔ STOP
+    return;
   }
 
-  // ===== ONLINE LOGIN (KODE LAMA, AMAN) =====
+  // =====================================================
+  // 🌐 ONLINE LOGIN (BACKEND)
+  // =====================================================
   const fd = new FormData();
   fd.append('action', 'loginShift');
   fd.append('pin', pin);
@@ -1506,14 +1513,11 @@ ${shift2Expenses.length === 0 ? `
     shiftData[shift].cashier = cashierName;
     shiftData[shift].openedAt = new Date().toISOString();
 
+    currentShift = shift;          // 🔥 WAJIB
     currentCashier = cashierName;
     currentView = shift;
 
     renderCurrentView();
-
-    fetch(API_BASE, { method: 'POST', body: fd }).catch(() => {
-      showNotification('⚠️ Gagal sinkron ke server', 'error');
-    });
 
   } catch (err) {
     showNotification('Gagal terhubung ke server', 'error');
@@ -1522,6 +1526,7 @@ ${shift2Expenses.length === 0 ? `
     btn.disabled = false;
   }
 }
+
 
 function showCloseShiftConfirmation(kasAkhir) {
   // 🔥 simpan kas akhir ke global sementara
@@ -1776,21 +1781,20 @@ syncQueue();
 async function confirmCloseShift(kasAkhir) {
   const btn = document.getElementById('confirmCloseBtn');
   if (btn) {
-    btn.textContent = 'Menutup...';
+    btn.textContent = 'Memverifikasi...';
     btn.disabled = true;
   }
 
-  // ✅ AMBIL DATA DARI UI YANG MEMANG ADA
-  const shift2Cashier = document.getElementById('cashierShift2');
-  const pin2 = document.getElementById('pinShift2');
+  const cashier2El = document.getElementById('cashierShift2');
+  const pin2El = document.getElementById('pinShift2');
 
-  if (!shift2Cashier || !pin2) {
+  if (!cashier2El || !pin2El) {
     showNotification('Form konfirmasi tidak lengkap', 'error');
     return;
   }
 
-  const cashier2 = shift2Cashier.value;
-  const pinShift2 = pin2.value;
+  const cashier2 = cashier2El.value;
+  const pinShift2 = pin2El.value;
 
   if (!cashier2 || !pinShift2) {
     showNotification('Lengkapi kasir & PIN shift 2', 'warning');
@@ -1799,7 +1803,36 @@ async function confirmCloseShift(kasAkhir) {
     return;
   }
 
-  // ===== VERIFIKASI KE BACKEND =====
+  // =====================================================
+  // 🔌 OFFLINE VERIFY (OPS B)
+  // =====================================================
+  if (!navigator.onLine) {
+    const user = users.find(u =>
+      u.name === cashier2 &&
+      String(u.pin) === String(pinShift2) &&
+      u.active === true
+    );
+
+    if (!user) {
+      showNotification('PIN kasir Shift 2 salah (offline)', 'error');
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
+      return;
+    }
+
+    showNotification(
+      'Offline: PIN diverifikasi secara lokal',
+      'warning'
+    );
+
+    closeConfirmModal();
+    await finalizeCloseShift(kasAkhir);
+    return;
+  }
+
+  // =====================================================
+  // 🌐 ONLINE VERIFY (BACKEND)
+  // =====================================================
   const fd = new FormData();
   fd.append('action', 'verifyShift2Pin');
   fd.append('cashier', cashier2);
@@ -1816,7 +1849,6 @@ async function confirmCloseShift(kasAkhir) {
       return;
     }
 
-    // ✅ SUKSES → SHIFT 1 DITUTUP
     closeConfirmModal();
     await finalizeCloseShift(kasAkhir);
 
@@ -1826,6 +1858,7 @@ async function confirmCloseShift(kasAkhir) {
     btn.disabled = false;
   }
 }
+
 
 
 
@@ -2316,6 +2349,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
