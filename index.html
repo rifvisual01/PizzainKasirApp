@@ -1769,49 +1769,60 @@ syncQueue();
 }
 
 
-   async function confirmCloseShift(kasAkhir) {
+async function confirmCloseShift(kasAkhir) {
   const btn = document.getElementById('confirmCloseBtn');
-
   if (btn) {
     btn.textContent = 'Menutup...';
     btn.disabled = true;
   }
 
+  // ✅ AMBIL DATA DARI UI YANG MEMANG ADA
+  const shift2Cashier = document.getElementById('cashierShift2');
+  const pin2 = document.getElementById('pinShift2');
 
-  const pin1 = document.getElementById('pinShift1').value;
-  const shift2Cashier = document.getElementById('cashierShift2').value;
-  const pin2 = document.getElementById('pinShift2').value;
-
-  if (!pin1 || !shift2Cashier || !pin2) {
-    showNotification('Lengkapi semua PIN', 'warning');
+  if (!shift2Cashier || !pin2) {
+    showNotification('Form konfirmasi tidak lengkap', 'error');
     return;
   }
 
+  const cashier2 = shift2Cashier.value;
+  const pinShift2 = pin2.value;
+
+  if (!cashier2 || !pinShift2) {
+    showNotification('Lengkapi kasir & PIN shift 2', 'warning');
+    btn.textContent = 'Konfirmasi';
+    btn.disabled = false;
+    return;
+  }
+
+  // ===== VERIFIKASI KE BACKEND =====
   const fd = new FormData();
-  fd.append('action', 'verifyCloseShiftPins');
-  fd.append('shift1Cashier', currentCashier);
-  fd.append('pin1', pin1);
-  fd.append('shift2Cashier', shift2Cashier);
-  fd.append('pin2', pin2);
+  fd.append('action', 'verifyShift2Pin');
+  fd.append('cashier', cashier2);
+  fd.append('pin', pinShift2);
 
   try {
     const res = await fetch(API_BASE, { method: 'POST', body: fd });
     const json = await res.json();
 
     if (!json.success) {
-      showNotification(json.message || 'PIN salah', 'error');
+      showNotification(json.message || 'PIN shift 2 salah', 'error');
+      btn.textContent = 'Konfirmasi';
+      btn.disabled = false;
       return;
     }
 
+    // ✅ SUKSES → SHIFT 1 DITUTUP
     closeConfirmModal();
-
-    // 🔥 PANGGIL, BUKAN DEFINISIKAN
     await finalizeCloseShift(kasAkhir);
 
   } catch (err) {
-    showNotification('Gagal verifikasi PIN', 'error');
+    showNotification('Gagal verifikasi PIN shift 2', 'error');
+    btn.textContent = 'Konfirmasi';
+    btn.disabled = false;
   }
 }
+
 
 
 async function finalizeCloseShift(endCash) {
@@ -2292,6 +2303,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
