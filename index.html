@@ -315,23 +315,20 @@ let appReady = false;
 
 async function init() {
   renderCurrentView();
-
   await initLocalDB();
 
-  // 🔥 hanya sync queue kalau online
   if (navigator.onLine) {
     processQueue();
 
     loadBackendData()
       .then(() => renderCurrentView())
       .catch(() => {
-        console.warn('⚠️ Backend belum bisa diakses');
+        console.warn('⏳ Backend belum bisa diakses');
       });
+  } else {
+    console.log('📴 Offline mode aktif');
   }
 }
-
-
-
 
 
 async function loadBackendData() {
@@ -2411,6 +2408,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
