@@ -154,17 +154,19 @@ function initLocalDB() {
   await tx.complete;
 }
 
-   async function verifyPinOffline(cashierName, pinInput) {
-  const db = await openDB();
-  const tx = db.transaction('users', 'readonly');
-  const store = tx.objectStore('users');
+   async function verifyPinOffline(name, pin) {
+  const raw = localStorage.getItem('cachedUsers');
+  if (!raw) return false;
 
-  const user = await store.get(cashierName);
-  if (!user || !user.active) return false;
+  const users = JSON.parse(raw);
 
-  const inputHash = await hashPIN(pinInput);
-  return inputHash === user.pinHash;
+  return users.some(u =>
+    u.name === name &&
+    String(u.pin) === String(pin) &&
+    u.active === true
+  );
 }
+
 
    
    function saveToQueue(data) {
@@ -2349,6 +2351,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
