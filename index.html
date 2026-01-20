@@ -176,6 +176,13 @@ function initLocalDB() {
   // ⛔ jangan paksa sync kalau masih offline
   if (!navigator.onLine) return;
 
+const backendOk = await isBackendReachable();
+if (!backendOk) {
+  console.warn('⏳ Backend belum siap, tunda sync');
+  return;
+}
+
+
   if (!db) {
     console.warn('⚠️ DB belum siap');
     return;
@@ -1573,6 +1580,22 @@ ${shift2Expenses.length === 0 ? `
     btn.disabled = false;
   }
 }
+   
+async function isBackendReachable() {
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 3000); // timeout 3 detik
+
+    const res = await fetch(API_BASE, {
+      method: 'HEAD',
+      signal: controller.signal
+    });
+
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
 
 
 function showCloseShiftConfirmation(kasAkhir) {
@@ -2414,6 +2437,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
