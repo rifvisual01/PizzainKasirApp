@@ -562,10 +562,9 @@ const shiftExpenses = expenses.filter(e =>
 
                                     </span>
                                 </div>
-                               <button onclick="processCloseShift()" 
-  class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
-  Tutup Shift
-</button>
+                                <button onclick="closeShift()" class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
+                                    Tutup Shift
+                                </button>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="bg-red-700 rounded-xl p-6 text-white text-center">
@@ -1520,7 +1519,10 @@ ${shift2Expenses.length === 0 ? `
   }
 }
 
-function showCloseShiftConfirmation() {
+function showCloseShiftConfirmation(kasAkhir) {
+  // 🔥 simpan kas akhir ke global sementara
+  window.__closeShiftCash = kasAkhir;
+
   const modal = document.createElement('div');
   modal.id = 'close-confirm-modal';
   modal.className =
@@ -1532,26 +1534,23 @@ function showCloseShiftConfirmation() {
         🔒 Konfirmasi Tutup Shift
       </h3>
 
-      <div class="mb-4">
-        <label class="text-sm font-bold">Kas akhir</label>
-        <input
-          id="endCashInput"
-          type="text"
-          class="w-full border rounded-xl p-3 mt-1"
-          placeholder="Masukkan kas akhir"
-        />
+      <div class="bg-red-50 p-4 rounded-xl mb-4">
+        <p class="text-sm text-gray-700 mb-2">Kas akhir:</p>
+        <p class="text-3xl font-black text-red-600">
+          Rp ${kasAkhir.toLocaleString('id-ID')}
+        </p>
       </div>
 
       <div class="flex gap-3">
         <button
           onclick="cancelCloseShift()"
-          class="flex-1 bg-gray-200 rounded-xl py-3 font-bold">
+          class="flex-1 bg-gray-200 text-gray-800 rounded-xl py-3 font-bold">
           Batal
         </button>
 
         <button
           id="confirmCloseBtn"
-          onclick="confirmCloseShift()"
+          onclick="confirmCloseShift(window.__closeShiftCash)"
           class="flex-1 bg-red-600 text-white rounded-xl py-3 font-bold">
           Tutup Shift
         </button>
@@ -1561,7 +1560,6 @@ function showCloseShiftConfirmation() {
 
   document.body.appendChild(modal);
 }
-
 
 
 function closeConfirmModal() {
@@ -1698,59 +1696,43 @@ syncQueue();
             app.appendChild(dialog);
         }
 
-       function processCloseShift() {
-  // Shift 1 → buka modal konfirmasi (TANPA validasi)
+             
+        function processCloseShift() {
+  const endCashValue = document.getElementById('endCash').value;
+  const endCash = parseRupiah(endCashValue);
+
+  if (endCash <= 0) {
+    showNotification('⚠️ Kas akhir harus diisi!', 'warning');
+    return;
+  }
+
+  cancelCloseShift();
+
+  // 🔥 Shift 1 → butuh konfirmasi 2 kasir
   if (currentShift === 'shift1') {
-    showCloseShiftConfirmation();
+    showCloseShiftConfirmation(endCash); // ⬅️ INI PENTING
   } else {
-    // Shift 2 → langsung tutup (pakai hitungan otomatis)
-    const kasAkhir = calculateCurrentCash();
-    finalizeCloseShift(kasAkhir);
+    // Shift 2 langsung ditutup
+    finalizeCloseShift(endCash);
   }
 }
 
 
-function calculateCurrentCash() {
-  const startCash = shiftData[currentShift]?.startCash || 0;
-
-  const totalExpense = expenses
-    .filter(e => e.shift === currentShift)
-    .reduce((sum, e) => sum + e.amount, 0);
-
-  return startCash - totalExpense;
-}
-
-   async function confirmCloseShift() {
+   async function confirmCloseShift(kasAkhir) {
   const btn = document.getElementById('confirmCloseBtn');
+
   if (btn) {
     btn.textContent = 'Menutup...';
     btn.disabled = true;
   }
 
-  // 🔥 ambil kas akhir dari input modal
-  const input = document.getElementById('endCashInput');
-  const kasAkhir = parseRupiah(input?.value || '');
 
-  if (!kasAkhir || kasAkhir <= 0) {
-    showNotification('⚠️ Kas akhir harus diisi', 'warning');
-    if (btn) {
-      btn.textContent = 'Tutup Shift';
-      btn.disabled = false;
-    }
-    return;
-  }
-
-  // 🔐 verifikasi 2 kasir (shift 1)
   const pin1 = document.getElementById('pinShift1').value;
   const shift2Cashier = document.getElementById('cashierShift2').value;
   const pin2 = document.getElementById('pinShift2').value;
 
   if (!pin1 || !shift2Cashier || !pin2) {
     showNotification('Lengkapi semua PIN', 'warning');
-    if (btn) {
-      btn.textContent = 'Tutup Shift';
-      btn.disabled = false;
-    }
     return;
   }
 
@@ -2259,11 +2241,6 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
-
-
-
-
-
 
 
 
