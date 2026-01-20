@@ -341,26 +341,30 @@ async function loadBackendData() {
 
 
         function renderCurrentView() {
-            const app = document.getElementById('app');
-            
-            if (currentView === 'home') {
-                app.innerHTML = renderHomeScreen();
-            } else if (currentView === 'shift1' || currentView === 'shift2') {
-                app.innerHTML = renderShiftScreen();
-            } else if (currentView === 'admin') {
-                app.innerHTML = renderAdminScreen();
-                
-                setTimeout(() => {
-                    const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
-                    const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
-                    const isMultiDay = startDate !== endDate;
-                    
-                    if (isMultiDay) {
-                        createChart();
-                    }
-                }, 100);
-            }
-        }
+  const app = document.getElementById('app');
+
+  if (currentView === 'home') {
+    return app.innerHTML = renderHomeScreen();
+  }
+
+  if (currentView === 'shift1' || currentView === 'shift2') {
+    if (currentShift && shiftData[currentShift]) {
+      return app.innerHTML = renderShiftScreen();
+    }
+    currentView = 'home';
+    return app.innerHTML = renderHomeScreen();
+  }
+
+  if (currentView === 'admin') {
+    app.innerHTML = renderAdminScreen();
+    setTimeout(() => {
+      const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
+      const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
+      if (startDate !== endDate) createChart();
+    }, 100);
+  }
+}
+
 
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -1841,8 +1845,9 @@ async function finalizeCloseShift(endCash) {
   shiftData[closingShift].closedAt = new Date().toISOString();
 
   currentShift = null;
-  currentCashier = null;
-  renderCurrentView();
+currentCashier = null;
+currentView = 'home'; // 🔥 INI KUNCI UTAMA
+renderCurrentView();
 
   const payload = {
     action: 'closeShift',
@@ -2311,6 +2316,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
