@@ -9,6 +9,8 @@
 <script>
  const API_BASE = "https://script.google.com/macros/s/AKfycbyMrKtQT_hzr7wSodOurIJpsuwmfSCUJsyCMXxo4YAFSRh8RRGXQZdc-4VNqF9xuPH1Kw/exec";
 </script>
+  <script src="./kasir-data.js"></script>
+
 
   <style>
         body {
@@ -154,13 +156,10 @@ function initLocalDB() {
   await tx.complete;
 }
 
-   async function verifyPinOffline(name, pin) {
-  const raw = localStorage.getItem('cachedUsers');
-  if (!raw) return false;
+   function verifyPinOffline(name, pin) {
+  if (!window.LOCAL_CASHIERS) return false;
 
-  const users = JSON.parse(raw);
-
-  return users.some(u =>
+  return window.LOCAL_CASHIERS.some(u =>
     u.name === name &&
     String(u.pin) === String(pin) &&
     u.active === true
@@ -689,15 +688,14 @@ const shiftExpenses = expenses.filter(e =>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2">Pilih Kasir</label>
 <select id="cashierSelect" class="input-modern w-full rounded-xl px-4 py-3">
-  <option value="">
-    ${cashiers.length === 0 ? 'Memuat kasir...' : 'Pilih Kasir'}
-  </option>
+  <option value="">Pilih Kasir</option>
 
-  ${cashiers.map(name => `
-    <option value="${name}">${name}</option>
-  `).join('')}
+  ${window.LOCAL_CASHIERS
+    .filter(u => u.active)
+    .map(u => `
+      <option value="${u.name}">${u.name}</option>
+    `).join('')}
 </select>
-
                             </div>
                             
                             <div>
@@ -1445,7 +1443,7 @@ ${shift2Expenses.length === 0 ? `
   // 🔌 OFFLINE LOGIN (OPS B)
   // =====================================================
   if (!navigator.onLine) {
-    const ok = await verifyPinOffline(cashierName, pin);
+    const ok = verifyPinOffline(cashierName, pin);
     if (!ok) {
       btn.textContent = originalText;
       btn.disabled = false;
@@ -2349,6 +2347,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
