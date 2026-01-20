@@ -172,6 +172,42 @@ function initLocalDB() {
   store.put(data);
 }
 
+   async function processQueue() {
+  if (!db) return;
+
+  const tx = db.transaction(["queue"], "readwrite");
+  const store = tx.objectStore("queue");
+  const request = store.getAll();
+
+  request.onsuccess = async () => {
+    const items = request.result;
+    if (!items || items.length === 0) return;
+
+    console.log("🔄 Sinkronisasi queue:", items.length);
+
+    for (const item of items) {
+      try {
+        const fd = new FormData();
+        Object.entries(item.payload).forEach(([k, v]) => {
+          fd.append(k, v);
+        });
+
+        await fetch(API_BASE, {
+          method: "POST",
+          body: fd
+        });
+
+        // ✅ HAPUS JIKA SUKSES
+        store.delete(item.id);
+
+      } catch (err) {
+        console.warn("❌ Gagal sync item:", item.id);
+        // ❗ jangan dihapus → dicoba lagi nanti
+      }
+    }
+  };
+}
+
    function getAllQueue() {
   return new Promise(resolve => {
     const tx = db.transaction(["queue"], "readonly");
@@ -273,18 +309,25 @@ let appReady = false;
 }
 
 async function init() {
-  // 1️⃣ Langsung tampilkan UI utama (tanpa nunggu data)
+  // 1️⃣ Render UI secepat mungkin
   renderCurrentView();
 
-  // 2️⃣ Siapkan offline DB (cepat)
-  initLocalDB();
+  // 2️⃣ Tunggu DB offline siap
+  await initLocalDB();
 
-  // 3️⃣ Load data backend DIAM-DIAM
-  loadBackendData().then(() => {
-    syncQueue();          // sync kalau ada
-    renderCurrentView();  // refresh UI setelah data masuk
-  });
+  // 3️⃣ Kalau online, langsung proses queue
+  if (navigator.onLine) {
+    processQueue();
+  }
+
+  // 4️⃣ Load backend DIAM-DIAM (kalau online)
+  if (navigator.onLine) {
+    loadBackendData().then(() => {
+      renderCurrentView();
+    });
+  }
 }
+
 
 
 
@@ -2356,10 +2399,13 @@ function formatTanggalBackend(dateStr) {
         }
 
        window.addEventListener('load', init);
+   window.addEventListener('online', processQueue);
+
     </script>
 
 </body>
 </html>
+
 
 
 
