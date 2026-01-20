@@ -204,9 +204,9 @@ function initLocalDB() {
         store.delete(item.id);
 
       } catch (err) {
-        console.warn("⏳ Backend belum siap, tunda sync");
-        break; // ⛔ STOP, jangan spam
-      }
+  console.warn("⏳ Gagal kirim item queue:", item.id);
+  continue; // ✅ LANJUT item berikutnya, JANGAN STOP
+}
     }
   };
 }
@@ -269,8 +269,10 @@ function initLocalDB() {
 
       const json = await res.json();
       if (!json.success) {
-        break; // ⛔ STOP kalau server menolak
-      }
+  console.warn('Server menolak item, lanjut item berikutnya');
+  continue;
+}
+
 
       // ✅ sukses → hapus dari queue
       await deleteFromQueue(item.id);
@@ -1529,44 +1531,43 @@ ${shift2Expenses.length === 0 ? `
   }
 
   // =====================================================
-  // 🌐 ONLINE LOGIN (BACKEND)
-  // =====================================================
-  const fd = new FormData();
-  fd.append('action', 'loginShift');
-  fd.append('pin', pin);
-  fd.append('shift', shift);
-  fd.append('cashier', cashierName);
-  fd.append('startCash', startCash);
+// 🌐 ONLINE LOGIN (BACKEND)
+// =====================================================
+const fd = new FormData();
+fd.append('action', 'loginShift');
+fd.append('pin', pin);
+fd.append('shift', shift);
+fd.append('cashier', cashierName);
+fd.append('startCash', startCash);
 
-  try {
-    const res = await fetch(API_BASE, { method: 'POST', body: fd });
-    const json = await res.json();
+try {
+  const res = await fetch(API_BASE, { method: 'POST', body: fd });
+  const json = await res.json();
 
-    if (!json.success) {
-      btn.textContent = originalText;
-      btn.disabled = false;
-      showNotification(json.message || 'PIN salah', 'error');
-      return;
-    }
-
-    shiftData[shift].status = 'open';
-    shiftData[shift].startCash = startCash;
-    shiftData[shift].cashier = cashierName;
-    shiftData[shift].openedAt = new Date().toISOString();
-
-    currentShift = shift;          // 🔥 WAJIB
-    currentCashier = cashierName;
-    currentView = shift;
-
-    renderCurrentView();
-
-  } catch (err) {
-    showNotification('Gagal terhubung ke server', 'error');
-  } finally {
-    btn.textContent = originalText;
-    btn.disabled = false;
+  if (!json.success) {
+    showNotification(json.message || 'PIN salah', 'error');
+    return; // ⛔ STOP JIKA GAGAL
   }
+
+  // ✅ TAHAP 3 — SINKRONKAN STATE LOKAL SAAT ONLINE (POSISI BENAR)
+  shiftData[shift].status = 'open';
+  shiftData[shift].cashier = cashierName;
+  shiftData[shift].startCash = startCash;
+  shiftData[shift].openedAt = new Date().toISOString();
+
+  currentShift = shift;
+  currentCashier = cashierName;
+  currentView = shift;
+
+  renderCurrentView();
+
+} catch (err) {
+  showNotification('Gagal terhubung ke server', 'error');
+} finally {
+  btn.textContent = originalText;
+  btn.disabled = false;
 }
+
    
 
 function showCloseShiftConfirmation(kasAkhir) {
@@ -2408,6 +2409,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
