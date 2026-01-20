@@ -173,7 +173,13 @@ function initLocalDB() {
 }
 
    async function processQueue() {
-  if (!db) return;
+  // ⛔ jangan paksa sync kalau masih offline
+  if (!navigator.onLine) return;
+
+  if (!db) {
+    console.warn('⚠️ DB belum siap');
+    return;
+  }
 
   const tx = db.transaction(["queue"], "readwrite");
   const store = tx.objectStore("queue");
@@ -197,16 +203,18 @@ function initLocalDB() {
           body: fd
         });
 
-        // ✅ HAPUS JIKA SUKSES
+        // ✅ hanya hapus jika fetch benar-benar sukses
         store.delete(item.id);
 
       } catch (err) {
         console.warn("❌ Gagal sync item:", item.id);
-        // ❗ jangan dihapus → dicoba lagi nanti
+        // ❗ jangan spam → break dulu
+        break;
       }
     }
   };
 }
+
 
    function getAllQueue() {
   return new Promise(resolve => {
@@ -309,24 +317,22 @@ let appReady = false;
 }
 
 async function init() {
-  // 1️⃣ Render UI secepat mungkin
   renderCurrentView();
 
-  // 2️⃣ Tunggu DB offline siap
   await initLocalDB();
 
-  // 3️⃣ Kalau online, langsung proses queue
+  // 🔥 hanya sync queue kalau online
   if (navigator.onLine) {
     processQueue();
-  }
 
-  // 4️⃣ Load backend DIAM-DIAM (kalau online)
-  if (navigator.onLine) {
-    loadBackendData().then(() => {
-      renderCurrentView();
-    });
+    loadBackendData()
+      .then(() => renderCurrentView())
+      .catch(() => {
+        console.warn('⚠️ Backend belum bisa diakses');
+      });
   }
 }
+
 
 
 
@@ -2399,12 +2405,16 @@ function formatTanggalBackend(dateStr) {
         }
 
        window.addEventListener('load', init);
-   window.addEventListener('online', processQueue);
+   window.addEventListener('online', () => {
+  setTimeout(processQueue, 1000);
+});
+
 
     </script>
 
 </body>
 </html>
+
 
 
 
