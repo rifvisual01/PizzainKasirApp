@@ -1826,9 +1826,16 @@ async function confirmCloseShift(kasAkhir) {
 
 
 async function finalizeCloseShift(endCash) {
-  const closingShift = currentShift;
+  // 🔒 KUNCI SHIFT DI AWAL (INI KUNCI UTAMA)
+  const closingShift = currentShift || 'shift1';
 
-  // UI-first
+  // 🛡️ GUARD: jika shift tidak valid, STOP
+  if (!shiftData[closingShift]) {
+    showNotification('Status shift tidak valid', 'error');
+    return;
+  }
+
+  // ===== UI-FIRST (AMAN) =====
   shiftData[closingShift].status = 'closed';
   shiftData[closingShift].endCash = endCash;
   shiftData[closingShift].closedAt = new Date().toISOString();
@@ -1837,37 +1844,38 @@ async function finalizeCloseShift(endCash) {
   currentCashier = null;
   renderCurrentView();
 
-  // ===== OFFLINE CLOSE SHIFT =====
+  const payload = {
+    action: 'closeShift',
+    shift: closingShift,
+    endCash,
+    closedAt: shiftData[closingShift].closedAt
+  };
+
+  // ===== OFFLINE =====
   if (!navigator.onLine) {
     saveToQueue({
       id: 'closeShift-' + Date.now(),
-      payload: {
-        action: 'closeShift',
-        shift: closingShift,
-        endCash,
-        closedAt: shiftData[closingShift].closedAt
-      }
+      payload
     });
     return;
   }
 
-  // ===== ONLINE CLOSE SHIFT =====
-  const fd = new FormData();
-  fd.append('action', 'closeShift');
-  fd.append('shift', closingShift);
-  fd.append('endCash', endCash);
-
+  // ===== ONLINE =====
   try {
-    await fetch(API_BASE, { method: 'POST', body: fd });
+    await fetch(API_BASE, {
+      method: 'POST',
+      body: (() => {
+        const fd = new FormData();
+        fd.append('action', payload.action);
+        fd.append('shift', payload.shift);
+        fd.append('endCash', payload.endCash);
+        return fd;
+      })()
+    });
   } catch (e) {
     saveToQueue({
       id: 'closeShift-' + Date.now(),
-      payload: {
-        action: 'closeShift',
-        shift: closingShift,
-        endCash,
-        closedAt: shiftData[closingShift].closedAt
-      }
+      payload
     });
   }
 }
@@ -2303,6 +2311,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
