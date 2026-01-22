@@ -172,11 +172,11 @@ function initLocalDB() {
   store.put(data);
 }
 
-   async function processQueue() {
+async function processQueue() {
   if (!navigator.onLine) return;
   if (!db) return;
 
-  const tx = db.transaction(["queue"], "readwrite");
+  const tx = db.transaction(["queue"], "readonly");
   const store = tx.objectStore("queue");
   const req = store.getAll();
 
@@ -189,27 +189,45 @@ function initLocalDB() {
     for (const item of items) {
       try {
         const fd = new FormData();
+
+        // kirim payload
         Object.entries(item.payload).forEach(([k, v]) => {
           fd.append(k, v);
         });
+
+        // 🔥 WAJIB: tandai ini SYNC
+        fd.append('__sync', '1');
 
         const res = await fetch(API_BASE, {
           method: "POST",
           body: fd
         });
 
-        if (!res.ok) throw new Error('Fetch failed');
+        if (!res.ok) {
+          throw new Error("HTTP error");
+        }
 
-        // ✅ sukses → hapus dari queue
-        store.delete(item.id);
+        const json = await res.json();
+
+        // 🔥 backend boleh return success:false tapi TETAP dianggap selesai
+        if (json && json.success === false) {
+          console.warn("⚠️ Server menolak item (sinkron):", item.id);
+        }
+
+        // ✅ APAPUN hasilnya → HAPUS dari queue
+        const txDel = db.transaction(["queue"], "readwrite");
+        txDel.objectStore("queue").delete(item.id);
 
       } catch (err) {
-  console.warn("⏳ Gagal kirim item queue:", item.id);
-  continue; // ✅ LANJUT item berikutnya, JANGAN STOP
-}
+        console.warn("⏳ Gagal kirim item queue:", item.id);
+        // ❌ JANGAN DELETE
+        // ❌ JANGAN STOP
+        continue;
+      }
     }
   };
 }
+
 
 
 
@@ -2409,6 +2427,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
