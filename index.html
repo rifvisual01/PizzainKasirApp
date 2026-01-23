@@ -2404,12 +2404,20 @@ function formatTanggalBackend(dateStr) {
        window.addEventListener('load', init);
    
    window.addEventListener("online", processQueue);
+   // 🔥 Jika halaman direfresh dalam kondisi ONLINE
+window.addEventListener("load", () => {
+  if (navigator.onLine) {
+    processQueue();
+  }
+});
+
 
 
     </script>
 
 </body>
 </html>
+
 
 
 
