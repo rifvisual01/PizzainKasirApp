@@ -166,148 +166,19 @@ function initLocalDB() {
   );
 }
 
-   function saveToQueue(data) {
-  const tx = db.transaction(["queue"], "readwrite");
-  const store = tx.objectStore("queue");
-  store.put(data);
-}
-
-async function processQueue() {
-  if (!navigator.onLine) return;
-  if (!db) return;
-
-  const tx = db.transaction(["queue"], "readonly");
-  const store = tx.objectStore("queue");
-  const req = store.getAll();
-
-  req.onsuccess = async () => {
-    const items = req.result;
-    if (!items || items.length === 0) return;
-
-    console.log("🔄 Sinkronisasi queue:", items.length);
-
-    for (const item of items) {
-      try {
-        const fd = new FormData();
-
-        // kirim payload
-        Object.entries(item.payload).forEach(([k, v]) => {
-          fd.append(k, v);
-        });
-
-        // 🔥 WAJIB: tandai ini SYNC
-        fd.append('__sync', '1');
-
-        const res = await fetch(API_BASE, {
-          method: "POST",
-          body: fd
-        });
-
-        if (!res.ok) {
-          throw new Error("HTTP error");
-        }
-
-        const json = await res.json();
-
-        // 🔥 backend boleh return success:false tapi TETAP dianggap selesai
-        if (json && json.success === false) {
-          console.warn("⚠️ Server menolak item (sinkron):", item.id);
-        }
-
-        // ✅ APAPUN hasilnya → HAPUS dari queue
-        const txDel = db.transaction(["queue"], "readwrite");
-        txDel.objectStore("queue").delete(item.id);
-
-      } catch (err) {
-        console.warn("⏳ Gagal kirim item queue:", item.id);
-        // ❌ JANGAN DELETE
-        // ❌ JANGAN STOP
-        continue;
-      }
-    }
-  };
-}
-
-
-
-
-   function getAllQueue() {
-  return new Promise(resolve => {
-    const tx = db.transaction(["queue"], "readonly");
+function saveToQueue(data) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["queue"], "readwrite");
     const store = tx.objectStore("queue");
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
+
+    store.put(data);
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 
-   function deleteFromQueue(id) {
-  const tx = db.transaction(["queue"], "readwrite");
-  tx.objectStore("queue").delete(id);
-}
-
-   async function syncQueue() {
-  if (!navigator.onLine) return;
-
-  const items = await getAllQueue();
-  if (!items.length) return;
-
-  for (const item of items) {
-    try {
-      const { payload } = item;
-      const fd = new FormData();
-
-      // ===== ADD EXPENSE =====
-      if (payload.action === 'addExpense') {
-        Object.entries(payload).forEach(([k, v]) => {
-          if (k !== 'tempId') fd.append(k, v);
-        });
-      }
-
-      // ===== OPEN SHIFT =====
-      if (payload.action === 'openShift') {
-        fd.append('action', 'openShift');
-        fd.append('shift', payload.shift);
-        fd.append('cashier', payload.cashier);
-        fd.append('startCash', payload.startCash);
-        fd.append('openedAt', payload.openedAt);
-      }
-
-      // ===== CLOSE SHIFT =====
-      if (payload.action === 'closeShift') {
-        fd.append('action', 'closeShift');
-        fd.append('shift', payload.shift);
-        fd.append('endCash', payload.endCash);
-        fd.append('closedAt', payload.closedAt);
-      }
-
-      const res = await fetch(API_BASE, {
-        method: 'POST',
-        body: fd
-      });
-
-      const json = await res.json();
-      if (!json.success) {
-  console.warn('Server menolak item, lanjut item berikutnya');
-  continue;
-}
-
-
-      // ✅ sukses → hapus dari queue
-      await deleteFromQueue(item.id);
-
-    } catch (err) {
-      // ⛔ jaringan jelek / fetch gagal
-      break;
-    }
-  }
-}
-
-window.addEventListener("online", syncQueue);
-setInterval(syncQueue, 15000); // tiap 15 detik
-
-
-   
-        function formatRupiah(value) {
+       function formatRupiah(value) {
             if (!value) return '';
             const number = value.toString().replace(/[^0-9]/g, '');
             return number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -338,8 +209,6 @@ async function init() {
   await initLocalDB();
 
   if (navigator.onLine) {
-    processQueue();
-
     loadBackendData()
       .then(() => renderCurrentView())
       .catch(() => {
@@ -349,7 +218,6 @@ async function init() {
     console.log('📴 Offline mode aktif');
   }
 }
-
 
 async function loadBackendData() {
   const fd = new FormData();
@@ -1483,7 +1351,7 @@ ${shift2Expenses.length === 0 ? `
             input.value = formatRupiah(value);
         }
 
-   async function loginShift() {
+  async function loginShift() {
   const btn = document.getElementById('startShiftBtn');
   const originalText = btn.textContent;
   btn.textContent = 'Memulai shift...';
@@ -1502,7 +1370,17 @@ ${shift2Expenses.length === 0 ? `
   }
 
   // =====================================================
-  // 🔌 OFFLINE LOGIN (TIDAK DIUBAH)
+  // 🔒 GUARD — JANGAN BUKA SHIFT JIKA SUDAH OPEN DI UI
+  // =====================================================
+  if (shiftData[shift]?.status === 'open') {
+    btn.textContent = originalText;
+    btn.disabled = false;
+    showNotification('Shift sudah terbuka', 'warning');
+    return;
+  }
+
+  // =====================================================
+  // 🔌 OFFLINE LOGIN
   // =====================================================
   if (!navigator.onLine) {
     const ok = verifyPinOffline(cashierName, pin);
@@ -1513,6 +1391,7 @@ ${shift2Expenses.length === 0 ? `
       return;
     }
 
+    // UI-FIRST
     shiftData[shift].status = 'open';
     shiftData[shift].cashier = cashierName;
     shiftData[shift].startCash = startCash;
@@ -1524,7 +1403,8 @@ ${shift2Expenses.length === 0 ? `
 
     renderCurrentView();
 
-    saveToQueue({
+    // simpan ke queue (tunggu commit)
+    await saveToQueue({
       id: 'loginShift-' + Date.now(),
       payload: {
         action: 'loginShift',
@@ -1546,10 +1426,10 @@ ${shift2Expenses.length === 0 ? `
   }
 
   // =====================================================
-  // 🌐 ONLINE LOGIN (UI-FIRST, CEPAT)
+  // 🌐 ONLINE LOGIN (UI-FIRST)
   // =====================================================
 
-  // ✅ 1. UI LANGSUNG DIPINDAHKAN (TANPA MENUNGGU SERVER)
+  // 1️⃣ UI langsung pindah
   shiftData[shift].status = 'open';
   shiftData[shift].cashier = cashierName;
   shiftData[shift].startCash = startCash;
@@ -1561,7 +1441,7 @@ ${shift2Expenses.length === 0 ? `
 
   renderCurrentView();
 
-  // ✅ 2. BACKEND DI BELAKANG (SINKRONISASI)
+  // 2️⃣ backend sinkron di belakang
   const fd = new FormData();
   fd.append('action', 'loginShift');
   fd.append('pin', pin);
@@ -1574,6 +1454,7 @@ ${shift2Expenses.length === 0 ? `
     const res = await fetch(API_BASE, { method: 'POST', body: fd });
     const json = await res.json();
 
+    // backend boleh menolak (idempotent), UI tidak rollback
     if (!json.success) {
       showNotification(
         json.message || 'Sinkronisasi login gagal',
@@ -1581,8 +1462,8 @@ ${shift2Expenses.length === 0 ? `
       );
     }
   } catch (err) {
-    // jika koneksi bermasalah, simpan ke queue
-    saveToQueue({
+    // network error → simpan ke queue
+    await saveToQueue({
       id: 'loginShift-' + Date.now(),
       payload: {
         action: 'loginShift',
@@ -1602,7 +1483,6 @@ ${shift2Expenses.length === 0 ? `
     btn.disabled = false;
   }
 }
-
 
 
 function showCloseShiftConfirmation(kasAkhir) {
@@ -1796,66 +1676,88 @@ syncQueue();
 }
 
 
-        function closeShift() {
-            const app = document.getElementById('app');
-            const dialog = document.createElement('div');
-            dialog.id = 'closeShiftDialog';
-            dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 backdrop-blur-sm';
-            dialog.style.zIndex = '1000';
-            dialog.innerHTML = `
-                <div class="w-full max-w-md glass-effect card-modern rounded-3xl p-8 animate-slide-in">
-                    <div class="text-center mb-6">
-                        <h3 class="text-2xl font-black text-gray-800 mb-2">Tutup ${currentShift === 'shift1' ? 'Shift 1' : 'Shift 2'}</h3>
-                        <p class="text-gray-500 font-medium">Masukkan kas akhir shift</p>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Kas Akhir</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
-                            <input type="text" id="endCash" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
-                        </div>
-                    </div>
-                    <div class="flex gap-3">
-  <button
-    type="button"
-    onclick="cancelCloseShift()"
-    class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold"
-  >
-    Batal
-  </button>
+function closeShift() {
+  // 🔒 guard: jangan tutup kalau sudah closed
+  if (shiftData[currentShift]?.status === 'closed') {
+    showNotification('Shift sudah ditutup', 'warning');
+    return;
+  }
 
-  <button
-    type="button"
-    onclick="processCloseShift()"
-    class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg"
-  >
-    Tutup
-  </button>
-</div>
-            `;
-            app.appendChild(dialog);
-        }
+  const app = document.getElementById('app');
+  const dialog = document.createElement('div');
+  dialog.id = 'closeShiftDialog';
+  dialog.className =
+    'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-6 backdrop-blur-sm';
+  dialog.style.zIndex = '1000';
+
+  dialog.innerHTML = `
+    <div class="w-full max-w-md glass-effect card-modern rounded-3xl p-8 animate-slide-in">
+      <div class="text-center mb-6">
+        <h3 class="text-2xl font-black text-gray-800 mb-2">
+          Tutup ${currentShift === 'shift1' ? 'Shift 1' : 'Shift 2'}
+        </h3>
+        <p class="text-gray-500 font-medium">Masukkan kas akhir shift</p>
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm font-bold text-gray-700 mb-2">Kas Akhir</label>
+        <div class="relative">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
+          <input
+            type="text"
+            id="endCash"
+            placeholder="0"
+            oninput="formatCurrencyInput(this)"
+            class="input-modern w-full rounded-xl pl-12 pr-4 py-3"
+          >
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button
+          type="button"
+          onclick="cancelCloseShift()"
+          class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold"
+        >
+          Batal
+        </button>
+
+        <button
+          type="button"
+          onclick="processCloseShift()"
+          class="flex-1 gradient-primary text-white py-3 rounded-xl font-bold shadow-lg"
+        >
+          Tutup
+        </button>
+      </div>
+    </div>
+  `;
+
+  app.appendChild(dialog);
+}
+
 
          
-        function processCloseShift() {
-  const endCashValue = document.getElementById('endCash').value;
+       function processCloseShift() {
+  const endCashValue = document.getElementById('endCash')?.value;
   const endCash = parseRupiah(endCashValue);
 
-  if (endCash <= 0) {
+  if (!endCash || endCash <= 0) {
     showNotification('⚠️ Kas akhir harus diisi!', 'warning');
     return;
   }
 
   cancelCloseShift();
 
-  // 🔥 Shift 1 → butuh konfirmasi 2 kasir
+  // 🔥 Shift 1 → konfirmasi 2 kasir
   if (currentShift === 'shift1') {
-    showCloseShiftConfirmation(endCash); // ⬅️ INI PENTING
+    showCloseShiftConfirmation(endCash);
   } else {
-    // Shift 2 langsung ditutup
+    // Shift 2 langsung finalize
     finalizeCloseShift(endCash);
   }
 }
+
 
 async function confirmCloseShift(kasAkhir) {
   const btn = document.getElementById('confirmCloseBtn');
@@ -1909,64 +1811,88 @@ return;
 
 }
 
-async function finalizeCloseShift(endCash) {
-  // 🔒 KUNCI SHIFT DI AWAL (INI KUNCI UTAMA)
-  const closingShift = currentShift || 'shift1';
-
-  // 🛡️ GUARD: jika shift tidak valid, STOP
-  if (!shiftData[closingShift]) {
-    showNotification('Status shift tidak valid', 'error');
+   async function finalizeCloseShift(endCash) {
+  // 🔒 GUARD: jangan tutup dua kali
+  if (shiftData[currentShift]?.status === 'closed') {
+    showNotification('Shift sudah ditutup', 'warning');
     return;
   }
 
-  // ===== UI-FIRST (AMAN) =====
-  shiftData[closingShift].status = 'closed';
-  shiftData[closingShift].endCash = endCash;
-  shiftData[closingShift].closedAt = new Date().toISOString();
+  // ================================
+  // 1️⃣ UI-FIRST — TUTUP DI UI DULU
+  // ================================
+  const closedAt = new Date().toISOString();
 
-  currentShift = null;
-currentCashier = null;
-currentView = 'home'; // 🔥 INI KUNCI UTAMA
-renderCurrentView();
+  shiftData[currentShift].status = 'closed';
+  shiftData[currentShift].endCash = endCash;
+  shiftData[currentShift].closedAt = closedAt;
 
+  renderCurrentView();
+
+  // ================================
+  // 2️⃣ SIAPKAN PAYLOAD
+  // ================================
   const payload = {
     action: 'closeShift',
-    shift: closingShift,
+    shift: currentShift,
     endCash,
-    closedAt: shiftData[closingShift].closedAt
+    closedAt
   };
 
-  // ===== OFFLINE =====
+  // ================================
+  // 3️⃣ OFFLINE → SIMPAN KE QUEUE
+  // ================================
   if (!navigator.onLine) {
-    saveToQueue({
+    await saveToQueue({
       id: 'closeShift-' + Date.now(),
       payload
     });
+
+    showNotification(
+      'Offline: shift ditutup dan akan disinkronkan',
+      'warning'
+    );
     return;
   }
 
-  // ===== ONLINE =====
+  // ================================
+  // 4️⃣ ONLINE → KIRIM KE BACKEND
+  // ================================
+  const fd = new FormData();
+  Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+  fd.append('__sync', '1');
+
   try {
-    await fetch(API_BASE, {
+    const res = await fetch(API_BASE, {
       method: 'POST',
-      body: (() => {
-        const fd = new FormData();
-        fd.append('action', payload.action);
-        fd.append('shift', payload.shift);
-        fd.append('endCash', payload.endCash);
-        return fd;
-      })()
+      body: fd
     });
-  } catch (e) {
-    saveToQueue({
+
+    const json = await res.json();
+
+    // backend boleh menolak (idempotent / duplicate)
+    if (!json.success) {
+      showNotification(
+        json.message || 'Sinkronisasi tutup shift gagal',
+        'warning'
+      );
+    }
+
+  } catch (err) {
+    // ================================
+    // 5️⃣ FALLBACK → SIMPAN KE QUEUE
+    // ================================
+    await saveToQueue({
       id: 'closeShift-' + Date.now(),
       payload
     });
+
+    showNotification(
+      'Koneksi bermasalah, tutup shift akan disinkronkan',
+      'warning'
+    );
   }
 }
-
-
-
 
 
         function cancelCloseShift() {
@@ -2394,14 +2320,14 @@ function formatTanggalBackend(dateStr) {
 
        window.addEventListener('load', init);
    
-   window.addEventListener('online', () => {
-  setTimeout(processQueue, 1000);
-});
+   window.addEventListener("online", processQueue);
+
 
     </script>
 
 </body>
 </html>
+
 
 
 
