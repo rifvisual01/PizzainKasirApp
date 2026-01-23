@@ -1870,67 +1870,24 @@ async function confirmCloseShift(kasAkhir) {
     return;
   }
 
-  // =====================================================
-  // 🔌 OFFLINE VERIFY (FINAL - TANPA users)
-  // =====================================================
-  if (!navigator.onLine) {
-    const ok = (window.LOCAL_CASHIERS || []).some(u =>
-      u.name === cashier2 &&
-      String(u.pin) === String(pinShift2) &&
-      u.active === true
-    );
+const ok = (window.LOCAL_CASHIERS || []).some(u =>
+  u.name === cashier2 &&
+  String(u.pin) === String(pinShift2) &&
+  u.active === true
+);
 
-    if (!ok) {
-      showNotification('PIN kasir Shift 2 salah (offline)', 'error');
-      if (btn) {
-        btn.textContent = 'Konfirmasi';
-        btn.disabled = false;
-      }
-      return;
-    }
-
-    showNotification(
-      'Offline: PIN diverifikasi secara lokal',
-      'success'
-    );
-
-    closeConfirmModal();
-    await finalizeCloseShift(kasAkhir);
-    return;
+if (!ok) {
+  showNotification('PIN kasir Shift 2 salah', 'error');
+  if (btn) {
+    btn.textContent = 'Konfirmasi';
+    btn.disabled = false;
   }
-
-  // =====================================================
-  // 🌐 ONLINE VERIFY (BACKEND) — KODE LAMA DIPERTAHANKAN
-  // =====================================================
-  const fd = new FormData();
-  fd.append('action', 'verifyShift2Pin');
-  fd.append('cashier', cashier2);
-  fd.append('pin', pinShift2);
-
-  try {
-    const res = await fetch(API_BASE, { method: 'POST', body: fd });
-    const json = await res.json();
-
-    if (!json.success) {
-      showNotification(json.message || 'PIN shift 2 salah', 'error');
-      if (btn) {
-        btn.textContent = 'Konfirmasi';
-        btn.disabled = false;
-      }
-      return;
-    }
-
-    closeConfirmModal();
-    await finalizeCloseShift(kasAkhir);
-
-  } catch (err) {
-    showNotification('Gagal verifikasi PIN shift 2', 'error');
-    if (btn) {
-      btn.textContent = 'Konfirmasi';
-      btn.disabled = false;
-    }
-  }
+  return;
 }
+
+closeConfirmModal();
+await finalizeCloseShift(kasAkhir);
+return;
 
 
 
@@ -2427,6 +2384,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
