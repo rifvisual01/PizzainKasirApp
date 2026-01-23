@@ -1483,7 +1483,7 @@ ${shift2Expenses.length === 0 ? `
             input.value = formatRupiah(value);
         }
 
-       async function loginShift() {
+   async function loginShift() {
   const btn = document.getElementById('startShiftBtn');
   const originalText = btn.textContent;
   btn.textContent = 'Memulai shift...';
@@ -1502,7 +1502,7 @@ ${shift2Expenses.length === 0 ? `
   }
 
   // =====================================================
-  // 🔌 OFFLINE LOGIN (OPS B)
+  // 🔌 OFFLINE LOGIN (TIDAK DIUBAH)
   // =====================================================
   if (!navigator.onLine) {
     const ok = verifyPinOffline(cashierName, pin);
@@ -1513,19 +1513,17 @@ ${shift2Expenses.length === 0 ? `
       return;
     }
 
-    // ✅ JANGAN TIMPA OBJECT
     shiftData[shift].status = 'open';
     shiftData[shift].cashier = cashierName;
     shiftData[shift].startCash = startCash;
     shiftData[shift].openedAt = new Date().toISOString();
 
-    currentShift = shift;          // 🔥 WAJIB
+    currentShift = shift;
     currentCashier = cashierName;
     currentView = shift;
 
     renderCurrentView();
 
-    // ✅ ACTION HARUS loginShift
     saveToQueue({
       id: 'loginShift-' + Date.now(),
       payload: {
@@ -1548,27 +1546,10 @@ ${shift2Expenses.length === 0 ? `
   }
 
   // =====================================================
-// 🌐 ONLINE LOGIN (BACKEND)
-// =====================================================
-const fd = new FormData();
-fd.append('action', 'loginShift');
-fd.append('pin', pin);
-fd.append('shift', shift);
-fd.append('cashier', cashierName);
-fd.append('startCash', startCash);
-fd.append('__sync', '1'); // 🔥 KUNCI UTAMA
+  // 🌐 ONLINE LOGIN (UI-FIRST, CEPAT)
+  // =====================================================
 
-
-try {
-  const res = await fetch(API_BASE, { method: 'POST', body: fd });
-  const json = await res.json();
-
-  if (!json.success) {
-    showNotification(json.message || 'PIN salah', 'error');
-    return; // ⛔ STOP JIKA GAGAL
-  }
-
-  // ✅ TAHAP 3 — SINKRONKAN STATE LOKAL SAAT ONLINE (POSISI BENAR)
+  // ✅ 1. UI LANGSUNG DIPINDAHKAN (TANPA MENUNGGU SERVER)
   shiftData[shift].status = 'open';
   shiftData[shift].cashier = cashierName;
   shiftData[shift].startCash = startCash;
@@ -1580,13 +1561,48 @@ try {
 
   renderCurrentView();
 
-} catch (err) {
-  showNotification('Gagal terhubung ke server', 'error');
-} finally {
-  btn.textContent = originalText;
-  btn.disabled = false;
+  // ✅ 2. BACKEND DI BELAKANG (SINKRONISASI)
+  const fd = new FormData();
+  fd.append('action', 'loginShift');
+  fd.append('pin', pin);
+  fd.append('shift', shift);
+  fd.append('cashier', cashierName);
+  fd.append('startCash', startCash);
+  fd.append('__sync', '1');
+
+  try {
+    const res = await fetch(API_BASE, { method: 'POST', body: fd });
+    const json = await res.json();
+
+    if (!json.success) {
+      showNotification(
+        json.message || 'Sinkronisasi login gagal',
+        'warning'
+      );
+    }
+  } catch (err) {
+    // jika koneksi bermasalah, simpan ke queue
+    saveToQueue({
+      id: 'loginShift-' + Date.now(),
+      payload: {
+        action: 'loginShift',
+        shift,
+        cashier: cashierName,
+        pin,
+        startCash
+      }
+    });
+
+    showNotification(
+      'Koneksi bermasalah, login akan disinkronkan',
+      'warning'
+    );
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 }
-       }
+
 
 
 function showCloseShiftConfirmation(kasAkhir) {
@@ -2386,6 +2402,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
