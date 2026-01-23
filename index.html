@@ -178,6 +178,74 @@ function saveToQueue(data) {
   });
 }
 
+   let isProcessingQueue = false;
+
+async function processQueue() {
+  if (!navigator.onLine) return;
+  if (!db) return;
+  if (isProcessingQueue) return;
+
+  isProcessingQueue = true;
+
+  try {
+    const tx = db.transaction(["queue"], "readonly");
+    const store = tx.objectStore("queue");
+
+    const items = await new Promise((resolve, reject) => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+
+    if (!items.length) return;
+
+    console.log("🔄 Sinkronisasi queue:", items.length);
+
+    for (const item of items) {
+      try {
+        const fd = new FormData();
+
+        Object.entries(item.payload).forEach(([k, v]) => {
+          fd.append(k, v);
+        });
+
+        // 🔒 tandai sinkronisasi
+        fd.append("__sync", "1");
+
+        const res = await fetch(API_BASE, {
+          method: "POST",
+          body: fd
+        });
+
+        const json = await res.json();
+
+        // backend boleh menolak (idempotent)
+        if (json && json.success === false) {
+          console.warn("⚠️ Server menolak item (idempotent):", item.id);
+        }
+
+        // ✅ HAPUS ITEM DARI QUEUE
+        await new Promise((resolve, reject) => {
+          const txDel = db.transaction(["queue"], "readwrite");
+          txDel.objectStore("queue").delete(item.id);
+          txDel.oncomplete = () => resolve();
+          txDel.onerror = () => reject(txDel.error);
+        });
+
+      } catch (err) {
+        console.warn("⏳ Gagal kirim item queue:", item.id);
+        break; // stop, tunggu online berikutnya
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ Error processQueue:", err);
+  } finally {
+    isProcessingQueue = false;
+  }
+}
+window.addEventListener("online", processQueue);
+
        function formatRupiah(value) {
             if (!value) return '';
             const number = value.toString().replace(/[^0-9]/g, '');
@@ -2327,6 +2395,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
