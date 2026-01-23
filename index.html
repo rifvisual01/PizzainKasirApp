@@ -178,7 +178,7 @@ function saveToQueue(data) {
   });
 }
 
-   let isProcessingQueue = false;
+let isProcessingQueue = false;
 
 async function processQueue() {
   if (!navigator.onLine) return;
@@ -197,7 +197,17 @@ async function processQueue() {
       req.onerror = () => reject(req.error);
     });
 
-    if (!items.length) return;
+    // 🔒 PENTING: reset flag jika kosong
+    if (!items.length) {
+      return;
+    }
+
+    // 🔥 WAJIB: URUTKAN BERDASARKAN WAKTU (FIFO)
+    items.sort((a, b) => {
+      const ta = Number(a.id.split('-').pop());
+      const tb = Number(b.id.split('-').pop());
+      return ta - tb;
+    });
 
     console.log("🔄 Sinkronisasi queue:", items.length);
 
@@ -219,12 +229,12 @@ async function processQueue() {
 
         const json = await res.json();
 
-        // backend boleh menolak (idempotent)
+        // backend boleh menolak (idempotent / duplicate)
         if (json && json.success === false) {
           console.warn("⚠️ Server menolak item (idempotent):", item.id);
         }
 
-        // ✅ HAPUS ITEM DARI QUEUE
+        // ✅ HAPUS ITEM — DAN TUNGGU COMMIT
         await new Promise((resolve, reject) => {
           const txDel = db.transaction(["queue"], "readwrite");
           txDel.objectStore("queue").delete(item.id);
@@ -234,17 +244,21 @@ async function processQueue() {
 
       } catch (err) {
         console.warn("⏳ Gagal kirim item queue:", item.id);
-        break; // stop, tunggu online berikutnya
+        break; // stop, tunggu event online berikutnya
       }
     }
 
   } catch (err) {
     console.error("❌ Error processQueue:", err);
   } finally {
+    // 🔥 PASTI RESET FLAG
     isProcessingQueue = false;
   }
 }
+
+// 🔥 SATU-SATUNYA PEMANGGIL
 window.addEventListener("online", processQueue);
+
 
        function formatRupiah(value) {
             if (!value) return '';
@@ -2396,6 +2410,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
