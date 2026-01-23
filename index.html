@@ -1556,6 +1556,8 @@ fd.append('pin', pin);
 fd.append('shift', shift);
 fd.append('cashier', cashierName);
 fd.append('startCash', startCash);
+fd.append('__sync', '1'); // 🔥 KUNCI UTAMA
+
 
 try {
   const res = await fetch(API_BASE, { method: 'POST', body: fd });
@@ -2384,6 +2386,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
