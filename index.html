@@ -1879,36 +1879,40 @@ return;
 
 }
 
-   async function finalizeCloseShift(endCash) {
-  // 🔒 GUARD: jangan tutup dua kali
-  if (shiftData[currentShift]?.status === 'closed') {
+async function finalizeCloseShift(endCash) {
+  // 🔒 guard
+  if (!currentShift || shiftData[currentShift]?.status === 'closed') {
     showNotification('Shift sudah ditutup', 'warning');
     return;
   }
 
-  // ================================
-  // 1️⃣ UI-FIRST — TUTUP DI UI DULU
-  // ================================
   const closedAt = new Date().toISOString();
 
+  // 1️⃣ update data shift
   shiftData[currentShift].status = 'closed';
   shiftData[currentShift].endCash = endCash;
   shiftData[currentShift].closedAt = closedAt;
 
+  // 🔥 2️⃣ MATIKAN SHIFT AKTIF
+  const closedShift = currentShift;
+  currentShift = null;
+  currentView = 'home';
+
+  // 3️⃣ render home
   renderCurrentView();
 
   // ================================
-  // 2️⃣ SIAPKAN PAYLOAD
+  // 4️⃣ siapkan payload CLOSE
   // ================================
   const payload = {
     action: 'closeShift',
-    shift: currentShift,
+    shift: closedShift,
     endCash,
     closedAt
   };
 
   // ================================
-  // 3️⃣ OFFLINE → SIMPAN KE QUEUE
+  // 5️⃣ OFFLINE → QUEUE
   // ================================
   if (!navigator.onLine) {
     await saveToQueue({
@@ -1924,7 +1928,7 @@ return;
   }
 
   // ================================
-  // 4️⃣ ONLINE → KIRIM KE BACKEND
+  // 6️⃣ ONLINE → BACKEND
   // ================================
   const fd = new FormData();
   Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
@@ -1938,18 +1942,14 @@ return;
 
     const json = await res.json();
 
-    // backend boleh menolak (idempotent / duplicate)
     if (!json.success) {
       showNotification(
         json.message || 'Sinkronisasi tutup shift gagal',
         'warning'
       );
     }
-
   } catch (err) {
-    // ================================
-    // 5️⃣ FALLBACK → SIMPAN KE QUEUE
-    // ================================
+    // fallback ke queue
     await saveToQueue({
       id: 'closeShift-' + Date.now(),
       payload
@@ -1961,6 +1961,7 @@ return;
     );
   }
 }
+
 
 
         function cancelCloseShift() {
@@ -2395,6 +2396,7 @@ function formatTanggalBackend(dateStr) {
 
 </body>
 </html>
+
 
 
 
