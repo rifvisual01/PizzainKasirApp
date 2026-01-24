@@ -141,21 +141,6 @@ function initLocalDB() {
   });
 }
 
-   async function deleteFromQueueByTempId(tempId) {
-  const db = await openDB();
-  const tx = db.transaction('queue', 'readwrite');
-  const store = tx.objectStore('queue');
-
-  const all = await store.getAll();
-  for (const item of all) {
-    if (item.payload && item.payload.tempId === tempId) {
-      store.delete(item.id);
-    }
-  }
-
-  await tx.complete;
-}
-
    function verifyPinOffline(name, pin) {
   if (!window.LOCAL_CASHIERS) return false;
 
@@ -178,18 +163,34 @@ function saveToQueue(data) {
   });
 }
 
-let isProcessingQueue = false;
+
+   const QUEUE_LOCK_KEY = 'QUEUE_SYNC_LOCK';
+
+function acquireQueueLock() {
+  if (localStorage.getItem(QUEUE_LOCK_KEY) === '1') {
+    return false; // 🔒 masih terkunci
+  }
+  localStorage.setItem(QUEUE_LOCK_KEY, '1');
+  return true;
+}
+
+function releaseQueueLock() {
+  localStorage.removeItem(QUEUE_LOCK_KEY);
+}
 
 async function processQueue() {
   if (!navigator.onLine) return;
   if (!db) return;
-  if (isProcessingQueue) return;
 
-  isProcessingQueue = true;
+  // 🔒 LOCK GLOBAL (ANTI DOUBEL)
+  if (!acquireQueueLock()) {
+    console.warn('🔒 Queue sedang diproses, skip');
+    return;
+  }
 
   try {
-    const tx = db.transaction(["queue"], "readonly");
-    const store = tx.objectStore("queue");
+    const tx = db.transaction(['queue'], 'readonly');
+    const store = tx.objectStore('queue');
 
     const items = await new Promise((resolve, reject) => {
       const req = store.getAll();
@@ -197,64 +198,56 @@ async function processQueue() {
       req.onerror = () => reject(req.error);
     });
 
-    // 🔒 PENTING: reset flag jika kosong
     if (!items.length) {
       return;
     }
 
-    // 🔥 WAJIB: URUTKAN BERDASARKAN WAKTU (FIFO)
+    // 🔥 FIFO WAJIB
     items.sort((a, b) => {
       const ta = Number(a.id.split('-').pop());
       const tb = Number(b.id.split('-').pop());
       return ta - tb;
     });
 
-    console.log("🔄 Sinkronisasi queue:", items.length);
+    console.log('🔄 Sinkronisasi queue:', items.length);
 
     for (const item of items) {
       try {
         const fd = new FormData();
-
         Object.entries(item.payload).forEach(([k, v]) => {
           fd.append(k, v);
         });
-
-        // 🔒 tandai sinkronisasi
-        fd.append("__sync", "1");
+        fd.append('__sync', '1');
 
         const res = await fetch(API_BASE, {
-          method: "POST",
+          method: 'POST',
           body: fd
         });
 
-        const json = await res.json();
+        await res.json(); // sukses / gagal tetap lanjut
 
-        // backend boleh menolak (idempotent / duplicate)
-        if (json && json.success === false) {
-          console.warn("⚠️ Server menolak item (idempotent):", item.id);
-        }
-
-        // ✅ HAPUS ITEM — DAN TUNGGU COMMIT
+        // ✅ HAPUS SETELAH KIRIM
         await new Promise((resolve, reject) => {
-          const txDel = db.transaction(["queue"], "readwrite");
-          txDel.objectStore("queue").delete(item.id);
-          txDel.oncomplete = () => resolve();
+          const txDel = db.transaction(['queue'], 'readwrite');
+          txDel.objectStore('queue').delete(item.id);
+          txDel.oncomplete = resolve;
           txDel.onerror = () => reject(txDel.error);
         });
 
       } catch (err) {
-        console.warn("⏳ Gagal kirim item queue:", item.id);
-        break; // stop, tunggu event online berikutnya
+        console.warn('⏳ Gagal kirim item:', item.id);
+        break; // stop → tunggu online berikutnya
       }
     }
 
   } catch (err) {
-    console.error("❌ Error processQueue:", err);
+    console.error('❌ Error processQueue:', err);
   } finally {
-    // 🔥 PASTI RESET FLAG
-    isProcessingQueue = false;
+    // 🔓 PASTI LEPAS LOCK
+    releaseQueueLock();
   }
 }
+
 
 // 🔥 SATU-SATUNYA PEMANGGIL
 window.addEventListener("online", processQueue);
@@ -1703,7 +1696,7 @@ async function addExpense() {
     return;
   }
 
-  // 🔑 ID FINAL (BUKAN TEMP)
+  // 🔑 ID FINAL (GLOBAL & STABIL)
   const expenseId =
     'exp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
 
@@ -1719,7 +1712,7 @@ async function addExpense() {
   };
 
   // =========================
-  // 1️⃣ UI-FIRST
+  // 1️⃣ UI-FIRST (OPTIMISTIC)
   // =========================
   expenses.push(expense);
   renderCurrentView();
@@ -1730,33 +1723,7 @@ async function addExpense() {
   document.getElementById('expenseCategory').value = '';
 
   // =========================
-  // 2️⃣ ONLINE → LANGSUNG KIRIM
-  // =========================
-  if (navigator.onLine) {
-    try {
-      const fd = new FormData();
-      fd.append('action', 'addExpense');
-      Object.entries(expense).forEach(([k, v]) => fd.append(k, v));
-      fd.append('__sync', '1');
-
-      const res = await fetch(API_BASE, {
-        method: 'POST',
-        body: fd
-      });
-
-      const json = await res.json();
-      if (!json.success) {
-        throw new Error('Server menolak');
-      }
-
-      return; // ✅ selesai
-    } catch (err) {
-      // jatuh ke offline mode
-    }
-  }
-
-  // =========================
-  // 3️⃣ OFFLINE / GAGAL ONLINE → QUEUE
+  // 2️⃣ SELALU MASUK QUEUE
   // =========================
   await saveToQueue({
     id: 'addExpense-' + expenseId,
@@ -1768,41 +1735,26 @@ async function addExpense() {
 }
 
 
-        async function deleteExpense(id) {
+
+       async function deleteExpense(id) {
   if (!id) return;
 
-  // 🔥 OFFLINE ITEM (BELUM PERNAH KE SERVER)
-  if (String(id).startsWith('temp-')) {
-    expenses = expenses.filter(e => e.id !== id);
-    renderCurrentView();
-
-    // hapus dari queue supaya tidak terkirim
-    await deleteFromQueueByTempId(id);
-    return;
-  }
-
-  // ===== PERILAKU LAMA (ONLINE ITEM) =====
+  // 1️⃣ UI-FIRST: langsung hilangkan dari UI
   expenses = expenses.filter(e => e.id !== id);
   renderCurrentView();
 
-  const fd = new FormData();
-  fd.append('action', 'deleteExpense');
-  fd.append('id', id);
-
-  try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
-    const json = await res.json();
-
-    if (!json.success) {
-      showNotification(json.message || 'Gagal hapus di server', 'error');
+  // 2️⃣ SELALU simpan ke queue (online / offline sama)
+  await saveToQueue({
+    id: 'deleteExpense-' + id,
+    payload: {
+      action: 'deleteExpense',
+      id
     }
-  } catch (err) {
-    showNotification('❌ Koneksi backend gagal', 'error');
-  }
+  });
+
+  showNotification('Pengeluaran dihapus', 'info');
 }
+
 
 
 function closeShift() {
@@ -2474,6 +2426,7 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
 
 
 
