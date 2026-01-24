@@ -2466,25 +2466,11 @@ function formatTanggalBackend(dateStr) {
 // ===============================
 window.addEventListener('load', () => {
   init();
-
-  // 🔥 jika load dalam kondisi ONLINE
-  if (navigator.onLine) {
-    processQueue();
-  }
-});
-
-// saat tab / halaman kembali aktif (anti refresh brutal)
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && navigator.onLine) {
-    processQueue();
-  }
-});
-
-
     </script>
 
 </body>
 </html>
+
 
 
 
