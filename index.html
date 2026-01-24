@@ -1684,8 +1684,8 @@ function closeConfirmModal() {
 }
 
 
-        async function addExpense() {
-  const name = document.getElementById('expenseName').value;
+async function addExpense() {
+  const name = document.getElementById('expenseName').value.trim();
   const amountRaw = document.getElementById('expenseAmount').value;
   const category = document.getElementById('expenseCategory').value;
   const amount = parseRupiah(amountRaw);
@@ -1695,46 +1695,75 @@ function closeConfirmModal() {
     return;
   }
 
-  // 🧠 Buat object lokal (optimistic)
-  const tempId = 'temp-' + Date.now();
-  const tempExpense = {
-    id: tempId,
+  if (!currentShift || !shiftData[currentShift]?.sessionId) {
+    showNotification('Shift belum aktif', 'warning');
+    return;
+  }
+
+  // 🔑 ID FINAL (BUKAN TEMP)
+  const expenseId =
+    'exp-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+
+  const expense = {
+    id: expenseId,
     shift: currentShift,
+    sessionId: shiftData[currentShift].sessionId,
+    cashier: currentCashier || shiftData[currentShift].cashier,
     expense_name: name,
     category,
     amount,
-    timestamp: new Date().toISOString(),
-    cashier_name: currentCashier || shiftData[currentShift].cashier,
-    _syncing: true
+    createdAt: new Date().toISOString()
   };
 
-  // 🔥 Langsung tampilkan di UI
-  expenses.push(tempExpense);
+  // =========================
+  // 1️⃣ UI-FIRST
+  // =========================
+  expenses.push(expense);
   renderCurrentView();
 
-  // Kosongkan form
+  // reset form
   document.getElementById('expenseName').value = '';
   document.getElementById('expenseAmount').value = '';
   document.getElementById('expenseCategory').value = '';
 
-  // Simpan ke offline queue (IndexedDB)
-saveToQueue({
-  id: tempId,
-  payload: {
-    action: 'addExpense',
-    tempId: tempId,            // 🔥 TAMBAHKAN INI
-    shift: tempExpense.shift,
-    cashier: tempExpense.cashier_name,
-    expense_name: tempExpense.expense_name,
-    category: tempExpense.category,
-    amount: tempExpense.amount
+  // =========================
+  // 2️⃣ ONLINE → LANGSUNG KIRIM
+  // =========================
+  if (navigator.onLine) {
+    try {
+      const fd = new FormData();
+      fd.append('action', 'addExpense');
+      Object.entries(expense).forEach(([k, v]) => fd.append(k, v));
+      fd.append('__sync', '1');
+
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        body: fd
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error('Server menolak');
+      }
+
+      return; // ✅ selesai
+    } catch (err) {
+      // jatuh ke offline mode
+    }
   }
-});
 
-
-// Coba sync kalau sedang online
-syncQueue();
+  // =========================
+  // 3️⃣ OFFLINE / GAGAL ONLINE → QUEUE
+  // =========================
+  await saveToQueue({
+    id: 'addExpense-' + expenseId,
+    payload: {
+      action: 'addExpense',
+      ...expense
+    }
+  });
 }
+
 
         async function deleteExpense(id) {
   if (!id) return;
@@ -2453,6 +2482,7 @@ document.addEventListener("visibilitychange", () => {
 
 </body>
 </html>
+
 
 
 
