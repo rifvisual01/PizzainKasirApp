@@ -1726,13 +1726,18 @@ async function addExpense() {
   // 2️⃣ SELALU MASUK QUEUE
   // =========================
   await saveToQueue({
-    id: 'addExpense-' + expenseId,
-    payload: {
-      action: 'addExpense',
-      ...expense
-    }
-  });
+  id: 'addExpense-' + expenseId,
+  payload: {
+    action: 'addExpense',
+    ...expense
+  }
+});
+
+// 🔔 JIKA ONLINE, LANGSUNG PROSES QUEUE
+if (navigator.onLine) {
+  processQueue();
 }
+
 
 
 
@@ -1745,12 +1750,18 @@ async function addExpense() {
 
   // 2️⃣ SELALU simpan ke queue (online / offline sama)
   await saveToQueue({
-    id: 'deleteExpense-' + id,
-    payload: {
-      action: 'deleteExpense',
-      id
-    }
-  });
+  id: 'deleteExpense-' + id,
+  payload: {
+    action: 'deleteExpense',
+    id
+  }
+});
+
+// 🔔 trigger sync jika online
+if (navigator.onLine) {
+  processQueue();
+}
+
 
   showNotification('Pengeluaran dihapus', 'info');
 }
@@ -2426,6 +2437,7 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
 
 
 
