@@ -430,18 +430,17 @@ async function loadBackendData() {
   app.innerHTML = renderAdminScreen();
 
   setTimeout(() => {
-    const dateKey = safeISODate(exp.createdAt)?.split('T')[0];
-if (!dateKey) return;
-
     const startDate = selectedPeriodStart || todayISO;
     const endDate = selectedPeriodEnd || todayISO;
 
+    if (startDate !== endDate) {
+      createChart();
+    }
+  }, 100);
     if (startDate && endDate && startDate !== endDate) {
       createChart();
     }
   }, 100);
-}
-
 }
 
 
@@ -2596,6 +2595,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
