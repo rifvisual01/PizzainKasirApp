@@ -120,6 +120,13 @@ let isSyncing = false;
 
 let db;
 
+   function getActiveCashiers() {
+  if (Array.isArray(window.LOCAL_CASHIERS)) {
+    return window.LOCAL_CASHIERS.filter(c => c.active);
+  }
+  return [];
+}
+
 function initLocalDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("kasirDB", 1);
@@ -144,14 +151,35 @@ function initLocalDB() {
   });
 }
 
-   function verifyPinOffline(name, pin) {
-  if (!window.LOCAL_CASHIERS) return false;
+   function getActiveCashiers() {
+  // PRIORITAS 1: cache runtime
+  if (Array.isArray(cashiers) && cashiers.length) {
+    return cashiers;
+  }
 
-  return window.LOCAL_CASHIERS.some(u =>
+  // PRIORITAS 2: LOCAL_CASHIERS
+  if (Array.isArray(window.LOCAL_CASHIERS)) {
+    return window.LOCAL_CASHIERS.filter(c => c.active);
+  }
+
+  return [];
+}
+
+   function verifyPinOffline(name, pin) {
+  const list = getActiveCashiers();
+
+  return list.some(u =>
     u.name === name &&
-    String(u.pin) === String(pin) &&
-    u.active === true
+    String(u.pin) === String(pin)
   );
+}
+
+function getUserByPin(name, pin) {
+  const list = getActiveCashiers();
+  return list.find(u =>
+    u.name === name &&
+    String(u.pin) === String(pin)
+  ) || null;
 }
 
 function saveToQueue(data) {
@@ -1319,7 +1347,7 @@ ${shift2Expenses.length === 0 ? `
 
 
 
-   async function loginAdmin() {
+  async function loginAdmin() {
   const btn = document.getElementById('adminLoginBtn');
   const originalText = btn.textContent;
   btn.textContent = 'Memeriksa...';
@@ -1332,6 +1360,44 @@ ${shift2Expenses.length === 0 ? `
     showNotification('PIN wajib diisi', 'warning');
     return;
   }
+
+  // =====================================================
+  // 🔌 OFFLINE MODE → VALIDASI LOKAL
+  // =====================================================
+  if (!navigator.onLine) {
+    const user = getActiveCashiers().find(u =>
+      String(u.pin) === String(pin) &&
+      u.active === true
+    );
+
+    if (!user) {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showNotification('PIN salah (offline)', 'error');
+      return;
+    }
+
+    if (user.role !== 'admin') {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      showNotification('Bukan admin', 'error');
+      return;
+    }
+
+    // ✅ sukses offline
+    closeAdminPinDialog();
+    currentView = 'admin';
+    showNotification(`Selamat datang, ${user.name}`, 'success');
+    renderCurrentView();
+
+    btn.textContent = originalText;
+    btn.disabled = false;
+    return;
+  }
+
+  // =====================================================
+  // 🌐 ONLINE MODE → BACKEND (KODE LAMA)
+  // =====================================================
   const fd = new FormData();
   fd.append('action', 'loginAdmin');
   fd.append('pin', pin);
@@ -1350,7 +1416,7 @@ ${shift2Expenses.length === 0 ? `
       return;
     }
 
-    // ✅ sukses
+    // ✅ sukses online
     closeAdminPinDialog();
     currentView = 'admin';
     showNotification(`Selamat datang, ${json.data.name}`, 'success');
@@ -1362,6 +1428,7 @@ ${shift2Expenses.length === 0 ? `
     showNotification('Koneksi backend gagal', 'error');
   }
 }
+
 
         function selectShift(shift) {
             if (shift === 'shift1' && shiftData.shift1.status === 'closed') {
@@ -2480,6 +2547,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
