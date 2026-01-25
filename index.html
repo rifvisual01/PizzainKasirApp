@@ -1355,72 +1355,61 @@ async function loginAdmin() {
 
   const pin = document.getElementById('adminPin').value;
   if (!pin) {
-    btn.textContent = originalText;
-    btn.disabled = false;
+    resetBtn();
     showNotification('PIN wajib diisi', 'warning');
     return;
   }
 
   // ===============================
-  // 🌐 COBA ONLINE DULU
+  // ⚡ 1️⃣ VALIDASI LOKAL DULU
   // ===============================
-  try {
-    if (navigator.onLine) {
-      const fd = new FormData();
-      fd.append('action', 'loginAdmin');
-      fd.append('pin', pin);
-
-      const res = await fetch(API_BASE, {
-        method: 'POST',
-        body: fd
-      });
-
-      const json = await res.json();
-
-      if (json.success) {
-        closeAdminPinDialog();
-        currentView = 'admin';
-        showNotification(`Selamat datang, ${json.data.name}`, 'success');
-        renderCurrentView();
-
-        btn.textContent = originalText;
-        btn.disabled = false;
-        return;
-      }
-    }
-  } catch (err) {
-    // 🔕 abaikan → lanjut ke offline
-  }
-
-  // ===============================
-  // 🔌 FALLBACK OFFLINE
-  // ===============================
-  const user = getActiveCashiers().find(u =>
+  const admin = getActiveCashiers().find(u =>
+    u.role === 'admin' &&
     String(u.pin) === String(pin)
   );
 
-  if (!user) {
-    btn.textContent = originalText;
-    btn.disabled = false;
-    showNotification('PIN salah', 'error');
+  if (!admin) {
+    resetBtn();
+    showNotification('PIN admin salah', 'error');
     return;
   }
 
-  if (String(user.role).toLowerCase() !== 'admin') {
-    btn.textContent = originalText;
-    btn.disabled = false;
-    showNotification('Bukan admin', 'error');
-    return;
-  }
-
+  // ===============================
+  // 🚀 2️⃣ UI FIRST (INSTAN)
+  // ===============================
   closeAdminPinDialog();
   currentView = 'admin';
-  showNotification(`Selamat datang, ${user.name}`, 'success');
   renderCurrentView();
 
-  btn.textContent = originalText;
-  btn.disabled = false;
+  showNotification(`Selamat datang, ${admin.name}`, 'success');
+  resetBtn();
+
+  // ===============================
+  // 🌐 3️⃣ BACKEND SYNC (NON-BLOCKING)
+  // ===============================
+  if (!navigator.onLine) return;
+
+  try {
+    const fd = new FormData();
+    fd.append('action', 'loginAdmin');
+    fd.append('pin', pin);
+    fd.append('__sync', '1');
+
+    await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
+  } catch (err) {
+    // ❗ tidak perlu apa-apa
+    console.warn('⚠️ Backend admin login gagal (diabaikan)');
+  }
+
+  function resetBtn() {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 }
+
 
 
 
@@ -2541,6 +2530,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
