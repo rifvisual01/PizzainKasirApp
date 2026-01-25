@@ -105,6 +105,7 @@
    let isConnectedToBackend = false;
         let expenses = [];
    let shiftHistory = [];
+   let isSyncing = false;
         let shiftData = {
             shift1: { status: 'available', startCash: 0, endCash: 0, cashier: null },
             shift2: { status: 'available', startCash: 0, endCash: 0, cashier: null }
@@ -164,29 +165,15 @@ function saveToQueue(data) {
 }
 
 
-   const QUEUE_LOCK_KEY = 'QUEUE_SYNC_LOCK';
-
-function acquireQueueLock() {
-  if (localStorage.getItem(QUEUE_LOCK_KEY) === '1') {
-    return false; // 🔒 masih terkunci
-  }
-  localStorage.setItem(QUEUE_LOCK_KEY, '1');
-  return true;
-}
-
-function releaseQueueLock() {
-  localStorage.removeItem(QUEUE_LOCK_KEY);
-}
-
 async function processQueue() {
   if (!navigator.onLine) return;
   if (!db) return;
-
-  // 🔒 LOCK GLOBAL (ANTI DOUBEL)
-  if (!acquireQueueLock()) {
-    console.warn('🔒 Queue sedang diproses, skip');
+  if (isProcessingQueue) {
+    console.warn('🔒 processQueue masih berjalan, skip');
     return;
   }
+
+  isProcessingQueue = true;
 
   try {
     const tx = db.transaction(['queue'], 'readonly');
@@ -198,14 +185,12 @@ async function processQueue() {
       req.onerror = () => reject(req.error);
     });
 
-    if (!items.length) {
-      return;
-    }
+    if (!items.length) return;
 
-    // 🔥 FIFO WAJIB
+    // FIFO
     items.sort((a, b) => {
-      const ta = Number(a.id.split('-').pop());
-      const tb = Number(b.id.split('-').pop());
+      const ta = Number(a.id.split('-').pop()) || 0;
+      const tb = Number(b.id.split('-').pop()) || 0;
       return ta - tb;
     });
 
@@ -219,14 +204,12 @@ async function processQueue() {
         });
         fd.append('__sync', '1');
 
-        const res = await fetch(API_BASE, {
+        await fetch(API_BASE, {
           method: 'POST',
           body: fd
         });
 
-        await res.json(); // sukses / gagal tetap lanjut
-
-        // ✅ HAPUS SETELAH KIRIM
+        // hapus setelah terkirim
         await new Promise((resolve, reject) => {
           const txDel = db.transaction(['queue'], 'readwrite');
           txDel.objectStore('queue').delete(item.id);
@@ -236,21 +219,63 @@ async function processQueue() {
 
       } catch (err) {
         console.warn('⏳ Gagal kirim item:', item.id);
-        break; // stop → tunggu online berikutnya
+        break; // stop, tunggu online berikutnya
       }
     }
 
   } catch (err) {
     console.error('❌ Error processQueue:', err);
   } finally {
-    // 🔓 PASTI LEPAS LOCK
-    releaseQueueLock();
+    isProcessingQueue = false;
+    isSyncing = false;
+    updateSyncIndicator();
   }
 }
 
-
 // 🔥 SATU-SATUNYA PEMANGGIL
 window.addEventListener("online", processQueue);
+
+   function updateSyncIndicator() {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+
+  // 🔴 OFFLINE
+  if (!navigator.onLine) {
+    el.innerHTML = `
+      <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+      <span>Offline</span>
+    `;
+    el.className =
+      'flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full font-bold';
+    return;
+  }
+
+  // 🔄 MENYINKRONKAN
+  if (isSyncing) {
+    el.innerHTML = `
+      <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"/>
+        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4" fill="none"/>
+      </svg>
+      <span>Menyinkronkan</span>
+    `;
+    el.className =
+      'flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold';
+    return;
+  }
+
+  // 🟢 ONLINE
+  el.innerHTML = `
+    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+    <span>Online</span>
+  `;
+  el.className =
+    'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
+}
+window.addEventListener('online', updateSyncIndicator);
+window.addEventListener('offline', updateSyncIndicator);
+updateSyncIndicator();
+
 
 
        function formatRupiah(value) {
@@ -426,10 +451,12 @@ const shift2Count = shift2Expenses.length;
                                         </svg>
                                         <p class="text-base text-white font-bold">Pizzain Indonesia</p>
                                     </div>
-                                    <div class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
-                                        <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                                        <span>Sistem Aktif</span>
-                                    </div>
+                                    <div id="syncStatus"
+     class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
+  <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+  <span>Online</span>
+</div>
+
                                     <div class="text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
                                         ${new Date().toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
                                     </div>
@@ -2438,6 +2465,7 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
 
 
 
