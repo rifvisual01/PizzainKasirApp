@@ -3,7 +3,7 @@
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kasir Shift</title>
+  <title>Pengeluaran Kasir</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
@@ -1347,7 +1347,7 @@ ${shift2Expenses.length === 0 ? `
 
 
 
-  async function loginAdmin() {
+async function loginAdmin() {
   const btn = document.getElementById('adminLoginBtn');
   const originalText = btn.textContent;
   btn.textContent = 'Memeriksa...';
@@ -1361,73 +1361,67 @@ ${shift2Expenses.length === 0 ? `
     return;
   }
 
-  // =====================================================
-  // 🔌 OFFLINE MODE → VALIDASI LOKAL
-  // =====================================================
-  if (!navigator.onLine) {
-    const user = getActiveCashiers().find(u =>
-      String(u.pin) === String(pin) &&
-      u.active === true
-    );
+  // ===============================
+  // 🌐 COBA ONLINE DULU
+  // ===============================
+  try {
+    if (navigator.onLine) {
+      const fd = new FormData();
+      fd.append('action', 'loginAdmin');
+      fd.append('pin', pin);
 
-    if (!user) {
-      btn.textContent = originalText;
-      btn.disabled = false;
-      showNotification('PIN salah (offline)', 'error');
-      return;
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        body: fd
+      });
+
+      const json = await res.json();
+
+      if (json.success) {
+        closeAdminPinDialog();
+        currentView = 'admin';
+        showNotification(`Selamat datang, ${json.data.name}`, 'success');
+        renderCurrentView();
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+        return;
+      }
     }
+  } catch (err) {
+    // 🔕 abaikan → lanjut ke offline
+  }
 
-    if (user.role !== 'admin') {
-      btn.textContent = originalText;
-      btn.disabled = false;
-      showNotification('Bukan admin', 'error');
-      return;
-    }
+  // ===============================
+  // 🔌 FALLBACK OFFLINE
+  // ===============================
+  const user = getActiveCashiers().find(u =>
+    String(u.pin) === String(pin)
+  );
 
-    // ✅ sukses offline
-    closeAdminPinDialog();
-    currentView = 'admin';
-    showNotification(`Selamat datang, ${user.name}`, 'success');
-    renderCurrentView();
-
+  if (!user) {
     btn.textContent = originalText;
     btn.disabled = false;
+    showNotification('PIN salah', 'error');
     return;
   }
 
-  // =====================================================
-  // 🌐 ONLINE MODE → BACKEND (KODE LAMA)
-  // =====================================================
-  const fd = new FormData();
-  fd.append('action', 'loginAdmin');
-  fd.append('pin', pin);
-
-  try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
-    const json = await res.json();
-
-    if (!json.success) {
-      btn.textContent = originalText;
-      btn.disabled = false;
-      showNotification(json.message || 'PIN salah', 'error');
-      return;
-    }
-
-    // ✅ sukses online
-    closeAdminPinDialog();
-    currentView = 'admin';
-    showNotification(`Selamat datang, ${json.data.name}`, 'success');
-    renderCurrentView();
-
-  } catch (err) {
+  if (String(user.role).toLowerCase() !== 'admin') {
     btn.textContent = originalText;
     btn.disabled = false;
-    showNotification('Koneksi backend gagal', 'error');
+    showNotification('Bukan admin', 'error');
+    return;
   }
+
+  closeAdminPinDialog();
+  currentView = 'admin';
+  showNotification(`Selamat datang, ${user.name}`, 'success');
+  renderCurrentView();
+
+  btn.textContent = originalText;
+  btn.disabled = false;
 }
+
 
 
         function selectShift(shift) {
@@ -2547,6 +2541,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
