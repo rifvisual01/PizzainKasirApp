@@ -2118,15 +2118,15 @@ async function finalizeCloseShift(endCash) {
   const tempId = 'temp-admin-' + Date.now();
 
   const tempExpense = {
-    id: tempId,
-    shift: 'admin',
-    expense_name: name,
-    category,
-    amount,
-    timestamp: safeISODate(new Date())
-    cashier_name: 'admin',
-    _syncing: true
-  };
+  id: tempId,
+  shift: 'admin',
+  expense_name: name,
+  category,
+  amount,
+  timestamp: safeISODate(new Date()),
+  cashier_name: 'admin',
+  _syncing: true
+};
 
   // 🔥 1. Tampilkan dulu di UI
   expenses.push(tempExpense);
@@ -2582,6 +2582,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
