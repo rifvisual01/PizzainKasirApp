@@ -408,40 +408,41 @@ async function loadBackendData() {
 }
 
 
-
-
-
-        function renderCurrentView() {
+  function renderCurrentView() {
   const app = document.getElementById('app');
 
   if (currentView === 'home') {
-    return app.innerHTML = renderHomeScreen();
+    app.innerHTML = renderHomeScreen();
+    return;
   }
 
   if (currentView === 'shift1' || currentView === 'shift2') {
     if (currentShift && shiftData[currentShift]) {
-      return app.innerHTML = renderShiftScreen();
+      app.innerHTML = renderShiftScreen();
+      return;
     }
     currentView = 'home';
-    return app.innerHTML = renderHomeScreen();
+    app.innerHTML = renderHomeScreen();
+    return;
   }
 
   if (currentView === 'admin') {
-  app.innerHTML = renderAdminScreen();
+    app.innerHTML = renderAdminScreen();
 
-  setTimeout(() => {
-    const startDate = selectedPeriodStart || todayISO;
-    const endDate = selectedPeriodEnd || todayISO;
+    setTimeout(() => {
+      const todayISO = safeISODate(new Date())?.split('T')[0];
+      const startDate = selectedPeriodStart || todayISO;
+      const endDate = selectedPeriodEnd || todayISO;
 
-    if (startDate !== endDate) {
-      createChart();
-    }
-  }, 100);
-    if (startDate && endDate && startDate !== endDate) {
-      createChart();
-    }
-  }, 100);
+      if (startDate && endDate && startDate !== endDate) {
+        createChart();
+      }
+    }, 100);
+
+    return;
+  }
 }
+
 
 
         function renderHomeScreen() {
@@ -2595,6 +2596,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
