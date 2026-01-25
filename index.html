@@ -430,7 +430,8 @@ async function loadBackendData() {
   app.innerHTML = renderAdminScreen();
 
   setTimeout(() => {
-    const todayISO = safeISODate(new Date())?.split('T')[0];
+    const dateKey = safeISODate(exp.createdAt)?.split('T')[0];
+if (!dateKey) return;
 
     const startDate = selectedPeriodStart || todayISO;
     const endDate = selectedPeriodEnd || todayISO;
@@ -828,18 +829,24 @@ const shiftExpenses = expenses.filter(e =>
 
 
         function renderAdminScreen() {
-            const config = window.elementSdk?.config || defaultConfig;
-            
-           const today = safeISODate(new Date())?.split('T')[0];
-            const startDate = selectedPeriodStart || today;
-            const endDate = selectedPeriodEnd || today;
-            
-            const filteredExpenses = expenses.filter(exp => {
-                const expDate = safeISODate(new Date(exp.timestamp))?.split('T')[0];
-                const matchesPeriod = expDate >= startDate && expDate <= endDate;
-                const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
-                return matchesPeriod && matchesSearch;
-            });
+  const config = window.elementSdk?.config || defaultConfig;
+
+  const today = safeISODate(new Date())?.split('T')[0];
+  const startDate = selectedPeriodStart || today;
+  const endDate = selectedPeriodEnd || today;
+
+  const filteredExpenses = expenses.filter(exp => {
+    const dateSource = exp.createdAt || exp.timestamp;   // 🔥 PENTING
+    const expDate = safeISODate(dateSource)?.split('T')[0];
+    if (!expDate) return false;
+
+    const matchesPeriod = expDate >= startDate && expDate <= endDate;
+    const matchesSearch =
+      !searchQuery ||
+      (exp.expense_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesPeriod && matchesSearch;
+  });
             
             const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
             const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
@@ -855,9 +862,12 @@ const shiftExpenses = expenses.filter(e =>
             // Group by date
             const expensesByDate = {};
             filteredExpenses.forEach(exp => {
-                const dateKey = safeISODate(new Date(exp.timestamp))?.split('T')[0];
-                if (!expensesByDate[dateKey]) expensesByDate[dateKey] = [];
-                expensesByDate[dateKey].push(exp);
+                const dateSource = exp.createdAt || exp.timestamp;
+const dateKey = safeISODate(dateSource)?.split('T')[0];
+if (!dateKey) return;
+
+if (!expensesByDate[dateKey]) expensesByDate[dateKey] = [];
+expensesByDate[dateKey].push(exp);
             });
             const sortedDates = Object.keys(expensesByDate).sort((a, b) => new Date(b) - new Date(a));
             
@@ -1144,11 +1154,15 @@ ${(() => {
                             <div class="space-y-3">
                                 ${categoryTotals.map(cat => {
                                     const categoryExpenses = filteredExpenses.filter(e => e.category === cat.category);
-                                    const categoryByDate = {};
-                                    categoryExpenses.forEach(exp => {
-                                       const dateKey = safeISODate(new Date(exp.timestamp))?.split('T')[0];
-                                        if (!categoryByDate[dateKey]) categoryByDate[dateKey] = [];
-                                        categoryByDate[dateKey].push(exp);
+const categoryByDate = {};
+
+categoryExpenses.forEach(exp => {
+  const dateSource = exp.createdAt || exp.timestamp;
+  const dateKey = safeISODate(dateSource)?.split('T')[0];
+  if (!dateKey) return;
+
+  if (!categoryByDate[dateKey]) categoryByDate[dateKey] = [];
+  categoryByDate[dateKey].push(exp);
                                     });
                                     const sortedCategoryDates = Object.keys(categoryByDate).sort((a, b) => new Date(b) - new Date(a));
                                     
@@ -2582,6 +2596,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
