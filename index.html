@@ -95,7 +95,8 @@
             shift2_label: "Shift 2",
             admin_label: "Laporan Admin"
         };
-       
+   
+       ///Variabel Global///
         const CATEGORIES = ["Bahan Baku", "Operasional", "Staff"];
 
         let currentView = 'home';
@@ -115,6 +116,8 @@
         let searchQuery = '';
         let chartInstance = null;
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
+   let isProcessingQueue = false; // 🔒 lock in-memory
+let isSyncing = false;         // 🔄 indikator UI
 
 let db;
 
@@ -2465,6 +2468,7 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
 
 
 
