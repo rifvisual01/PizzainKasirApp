@@ -2463,12 +2463,24 @@ window.addEventListener('load', () => {
   init();
 });
 
+   document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && navigator.onLine) {
+    processQueue();
+  }
+});
+   // 🔁 fallback sync tiap 30 detik (jika online & ada queue)
+setInterval(() => {
+  if (navigator.onLine) {
+    processQueue();
+  }
+}, 30000);
 
 
     </script>
 
 </body>
 </html>
+
 
 
 
