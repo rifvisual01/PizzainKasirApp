@@ -176,6 +176,8 @@ async function processQueue() {
   }
 
   isProcessingQueue = true;
+ isSyncing = true;
+updateSyncIndicator();
 
   try {
     const tx = db.transaction(['queue'], 'readonly');
@@ -2467,6 +2469,7 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
 
 
 
