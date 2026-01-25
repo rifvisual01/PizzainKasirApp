@@ -319,6 +319,15 @@ updateSyncIndicator();
         function parseRupiah(value) {
             return parseInt(value.replace(/\./g, '')) || 0;
         }
+
+   function safeISODate(value) {
+  if (!value) return null;
+
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return null;
+
+  return d.toISOString();
+}
    
 let appReady = false;
 
@@ -418,13 +427,20 @@ async function loadBackendData() {
   }
 
   if (currentView === 'admin') {
-    app.innerHTML = renderAdminScreen();
-    setTimeout(() => {
-      const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
-      const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
-      if (startDate !== endDate) createChart();
-    }, 100);
-  }
+  app.innerHTML = renderAdminScreen();
+
+  setTimeout(() => {
+    const todayISO = safeISODate(new Date())?.split('T')[0];
+
+    const startDate = selectedPeriodStart || todayISO;
+    const endDate = selectedPeriodEnd || todayISO;
+
+    if (startDate && endDate && startDate !== endDate) {
+      createChart();
+    }
+  }, 100);
+}
+
 }
 
 
@@ -435,7 +451,7 @@ async function loadBackendData() {
             const shift2Label = config.shift2_label || defaultConfig.shift2_label;
             const adminLabel = config.admin_label || defaultConfig.admin_label;
             
-            const today = new Date().toISOString().split('T')[0];
+           const today = safeISODate(new Date())?.split('T')[0];
 
 const shift1Expenses = expenses.filter(e =>
   e.shift === 'shift1' &&
@@ -596,7 +612,7 @@ const shift2Count = shift2Expenses.length;
                 return renderShiftLogin();
             }
             
-            const today = new Date().toISOString().split('T')[0];
+            const today = safeISODate(new Date())?.split('T')[0];
 
 const shiftExpenses = expenses.filter(e =>
   e.sessionId === shiftData[currentShift]?.sessionId
@@ -814,12 +830,12 @@ const shiftExpenses = expenses.filter(e =>
         function renderAdminScreen() {
             const config = window.elementSdk?.config || defaultConfig;
             
-            const today = new Date().toISOString().split('T')[0];
+           const today = safeISODate(new Date())?.split('T')[0];
             const startDate = selectedPeriodStart || today;
             const endDate = selectedPeriodEnd || today;
             
             const filteredExpenses = expenses.filter(exp => {
-                const expDate = new Date(exp.timestamp).toISOString().split('T')[0];
+                const expDate = safeISODate(new Date(exp.timestamp))?.split('T')[0];
                 const matchesPeriod = expDate >= startDate && expDate <= endDate;
                 const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
                 return matchesPeriod && matchesSearch;
@@ -839,7 +855,7 @@ const shiftExpenses = expenses.filter(e =>
             // Group by date
             const expensesByDate = {};
             filteredExpenses.forEach(exp => {
-                const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
+                const dateKey = safeISODate(new Date(exp.timestamp))?.split('T')[0];
                 if (!expensesByDate[dateKey]) expensesByDate[dateKey] = [];
                 expensesByDate[dateKey].push(exp);
             });
@@ -1130,7 +1146,7 @@ ${(() => {
                                     const categoryExpenses = filteredExpenses.filter(e => e.category === cat.category);
                                     const categoryByDate = {};
                                     categoryExpenses.forEach(exp => {
-                                        const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
+                                       const dateKey = safeISODate(new Date(exp.timestamp))?.split('T')[0];
                                         if (!categoryByDate[dateKey]) categoryByDate[dateKey] = [];
                                         categoryByDate[dateKey].push(exp);
                                     });
@@ -1561,7 +1577,7 @@ async function loginShift() {
       status: 'open',
       cashier: cashierName,
       startCash,
-      openedAt: new Date().toISOString(),
+      openedAt: safeISODate(new Date()),
       sessionId // 🔑 SIMPAN SESSION
     };
 
@@ -1603,7 +1619,7 @@ async function loginShift() {
     status: 'open',
     cashier: cashierName,
     startCash,
-    openedAt: new Date().toISOString(),
+    openedAt: safeISODate(new Date()),
     sessionId // 🔑 SIMPAN SESSION
   };
 
@@ -1789,7 +1805,7 @@ async function addExpense() {
     expense_name: name,
     category,
     amount,
-    createdAt: new Date().toISOString()
+    createdAt:  safeISODate(new Date()),
   };
 
   // =========================
@@ -2001,7 +2017,8 @@ async function finalizeCloseShift(endCash) {
     return;
   }
 
-  const closedAt = new Date().toISOString();
+  const closedAt = safeISODate(new Date());
+
 
   // ================================
   // 1️⃣ update state lokal (UI-FIRST)
@@ -2106,7 +2123,7 @@ async function finalizeCloseShift(endCash) {
     expense_name: name,
     category,
     amount,
-    timestamp: new Date().toISOString(),
+    timestamp: safeISODate(new Date());
     cashier_name: 'admin',
     _syncing: true
   };
@@ -2219,28 +2236,44 @@ function renderAdminPendingList() {
             updateChart();
         }
 
-        function createChart() {
-            const canvas = document.getElementById('expenseChart');
-            if (!canvas) return;
-            
-            const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
-            const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
-            
-            const filteredExpenses = expenses.filter(exp => {
-                const expDate = new Date(exp.timestamp).toISOString().split('T')[0];
-                const matchesPeriod = expDate >= startDate && expDate <= endDate;
-                const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
-                return matchesPeriod && matchesSearch;
-            });
-            
-            const expensesByDate = {};
-            filteredExpenses.forEach(exp => {
-                const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
-                if (!expensesByDate[dateKey]) {
-                    expensesByDate[dateKey] = { 'Bahan Baku': 0, 'Operasional': 0, 'Staff': 0 };
-                }
-                expensesByDate[dateKey][exp.category] += exp.amount;
-            });
+      function createChart() {
+  const canvas = document.getElementById('expenseChart');
+  if (!canvas) return;
+
+  const todayISO = safeISODate(new Date())?.split('T')[0];
+  if (!todayISO) return;
+
+  const startDate = selectedPeriodStart || todayISO;
+  const endDate = selectedPeriodEnd || todayISO;
+
+  const filteredExpenses = expenses.filter(exp => {
+    const iso = safeISODate(new Date(exp.timestamp));
+    if (!iso) return false;
+
+    const expDate = iso.split('T')[0];
+    const matchesPeriod = expDate >= startDate && expDate <= endDate;
+    const matchesSearch =
+      !searchQuery ||
+      exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesPeriod && matchesSearch;
+  });
+
+  const expensesByDate = {};
+  filteredExpenses.forEach(exp => {
+    const iso = safeISODate(new Date(exp.timestamp));
+    if (!iso) return;
+
+    const dateKey = iso.split('T')[0];
+    if (!expensesByDate[dateKey]) {
+      expensesByDate[dateKey] = {
+        'Bahan Baku': 0,
+        'Operasional': 0,
+        'Staff': 0
+      };
+    }
+    expensesByDate[dateKey][exp.category] += exp.amount;
+  });
             
             const sortedDates = Object.keys(expensesByDate).sort();
             const labels = sortedDates.map(date => new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
@@ -2380,25 +2413,44 @@ function formatTanggalBackend(dateStr) {
 }
 
         function updateChart() {
-            if (chartInstance) {
-                const startDate = selectedPeriodStart || new Date().toISOString().split('T')[0];
-                const endDate = selectedPeriodEnd || new Date().toISOString().split('T')[0];
-                
-                const filteredExpenses = expenses.filter(exp => {
-                    const expDate = new Date(exp.timestamp).toISOString().split('T')[0];
-                    const matchesPeriod = expDate >= startDate && expDate <= endDate;
-                    const matchesSearch = !searchQuery || exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
-                    return matchesPeriod && matchesSearch;
-                });
-                
-                const expensesByDate = {};
-                filteredExpenses.forEach(exp => {
-                    const dateKey = new Date(exp.timestamp).toISOString().split('T')[0];
-                    if (!expensesByDate[dateKey]) {
-                        expensesByDate[dateKey] = { 'Bahan Baku': 0, 'Operasional': 0, 'Staff': 0 };
-                    }
-                    expensesByDate[dateKey][exp.category] += exp.amount;
-                });
+  if (!chartInstance) return;
+
+  const todayISO = safeISODate(new Date())?.split('T')[0];
+  if (!todayISO) return;
+
+  const startDate = selectedPeriodStart || todayISO;
+  const endDate = selectedPeriodEnd || todayISO;
+
+  const filteredExpenses = expenses.filter(exp => {
+    const iso = safeISODate(new Date(exp.timestamp));
+    if (!iso) return false;
+
+    const expDate = iso.split('T')[0];
+    const matchesPeriod = expDate >= startDate && expDate <= endDate;
+    const matchesSearch =
+      !searchQuery ||
+      exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesPeriod && matchesSearch;
+  });
+
+  const expensesByDate = {};
+  filteredExpenses.forEach(exp => {
+    const iso = safeISODate(new Date(exp.timestamp));
+    if (!iso) return;
+
+    const dateKey = iso.split('T')[0];
+    if (!expensesByDate[dateKey]) {
+      expensesByDate[dateKey] = {
+        'Bahan Baku': 0,
+        'Operasional': 0,
+        'Staff': 0
+      };
+    }
+    expensesByDate[dateKey][exp.category] += exp.amount;
+  });
+
+
                 
                 const sortedDates = Object.keys(expensesByDate).sort();
                 
@@ -2530,6 +2582,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
