@@ -106,7 +106,6 @@
    let isConnectedToBackend = false;
         let expenses = [];
    let shiftHistory = [];
-   let isSyncing = false;
         let shiftData = {
             shift1: { status: 'available', startCash: 0, endCash: 0, cashier: null },
             shift2: { status: 'available', startCash: 0, endCash: 0, cashier: null }
@@ -116,8 +115,8 @@
         let searchQuery = '';
         let chartInstance = null;
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
-   let isProcessingQueue = false; // 🔒 lock in-memory
-let isSyncing = false;         // 🔄 indikator UI
+   let isProcessingQueue = false; 
+let isSyncing = false;        
 
 let db;
 
@@ -2468,6 +2467,7 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
 
 
 
