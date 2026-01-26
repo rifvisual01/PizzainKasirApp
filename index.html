@@ -869,8 +869,6 @@ const shiftExpenses = expenses.filter(e =>
   const endDate = selectedPeriodEnd || today;
 
   const filteredExpenses = expenses.filter(exp => {
-  if (!exp.createdAt) return false;
-
   const expDate = safeISODate(exp.createdAt)?.split('T')[0];
   if (!expDate) return false;
 
@@ -881,7 +879,8 @@ const shiftExpenses = expenses.filter(e =>
 
   return matchesPeriod && matchesSearch;
 });
-            
+
+console.log('ADMIN filteredExpenses:', filteredExpenses);
             const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
             const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
             const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
@@ -2630,6 +2629,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
