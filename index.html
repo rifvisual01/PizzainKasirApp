@@ -382,17 +382,22 @@ async function loadBackendData() {
     const json = await res.json();
 
     if (json.success) {
-      expenses = json.data.expenses || [];
-      cashiers = json.data.cashiers || [];
-     shiftHistory = json.data.shiftHistory || [];
 
-      // jangan overwrite shift yang sedang aktif
-      if (!currentShift) {
-        shiftData = json.data.shiftData || shiftData;
-      }
+  // 🔒 JANGAN TIMPA expenses SAAT MODE ADMIN
+  if (currentView !== 'admin') {
+    expenses = json.data.expenses || [];
+  }
 
-      renderCurrentView(); // update UI tanpa reload
-    }
+  cashiers = json.data.cashiers || [];
+  shiftHistory = json.data.shiftHistory || [];
+
+  // jangan overwrite shift yang sedang aktif
+  if (!currentShift) {
+    shiftData = json.data.shiftData || shiftData;
+  }
+
+  renderCurrentView(); // update UI tanpa reload
+}
   } catch (err) {
     console.error('Backend load failed', err);
   }
@@ -2629,6 +2634,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
