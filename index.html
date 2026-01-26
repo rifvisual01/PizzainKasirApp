@@ -121,15 +121,12 @@ let isSyncing = false;
 let db;
 
    function normalizeExpenses() {
-  expenses = expenses.map(e => {
-    if (!e.createdAt && e.timestamp) {
-      return {
-        ...e,
-        createdAt: e.timestamp
-      };
-    }
-    return e;
-  });
+  expenses = expenses
+    .map(e => ({
+      ...e,
+      createdAt: safeISODate(e.createdAt || e.timestamp)
+    }))
+    .filter(e => e.createdAt);
 }
 
    function getActiveCashiers() {
@@ -438,11 +435,8 @@ async function loadBackendData() {
     return;
   }
 if (currentView === 'admin') {
-  app.innerHTML = `<div class="p-6 text-center text-gray-400">Memuat laporan...</div>`;
-
   loadAllExpensesForAdmin().then(() => {
-    normalizeExpenses(); // 🔥 SETELAH DATA MASUK
-
+    normalizeExpenses(); // 🔥 WAJIB SETELAH LOAD
     app.innerHTML = renderAdminScreen();
 
     setTimeout(() => {
@@ -455,7 +449,6 @@ if (currentView === 'admin') {
       }
     }, 100);
   });
-
   return;
 }
 }
@@ -2637,6 +2630,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
