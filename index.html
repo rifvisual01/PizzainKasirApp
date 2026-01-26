@@ -836,17 +836,18 @@ const shiftExpenses = expenses.filter(e =>
   const endDate = selectedPeriodEnd || today;
 
   const filteredExpenses = expenses.filter(exp => {
-    const dateSource = exp.createdAt || exp.timestamp;   // 🔥 PENTING
-    const expDate = safeISODate(dateSource)?.split('T')[0];
-    if (!expDate) return false;
+  if (!exp.createdAt) return false;
 
-    const matchesPeriod = expDate >= startDate && expDate <= endDate;
-    const matchesSearch =
-      !searchQuery ||
-      (exp.expense_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+  const expDate = safeISODate(exp.createdAt)?.split('T')[0];
+  if (!expDate) return false;
 
-    return matchesPeriod && matchesSearch;
-  });
+  const matchesPeriod = expDate >= startDate && expDate <= endDate;
+  const matchesSearch =
+    !searchQuery ||
+    (exp.expense_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+  return matchesPeriod && matchesSearch;
+});
             
             const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
             const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
@@ -2596,6 +2597,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
