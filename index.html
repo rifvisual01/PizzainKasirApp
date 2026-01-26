@@ -437,20 +437,24 @@ async function loadBackendData() {
     app.innerHTML = renderHomeScreen();
     return;
   }
+if (currentView === 'admin') {
+  app.innerHTML = `<div class="p-6 text-center text-gray-400">Memuat laporan...</div>`;
 
-  if (currentView === 'admin') {
-  normalizeExpenses(); // 🔥 PENTING
-  app.innerHTML = renderAdminScreen();
+  loadAllExpensesForAdmin().then(() => {
+    normalizeExpenses(); // 🔥 SETELAH DATA MASUK
 
-  setTimeout(() => {
-    const todayISO = safeISODate(new Date())?.split('T')[0];
-    const startDate = selectedPeriodStart || todayISO;
-    const endDate = selectedPeriodEnd || todayISO;
+    app.innerHTML = renderAdminScreen();
 
-    if (startDate && endDate && startDate !== endDate) {
-      createChart();
-    }
-  }, 100);
+    setTimeout(() => {
+      const todayISO = safeISODate(new Date())?.split('T')[0];
+      const startDate = selectedPeriodStart || todayISO;
+      const endDate = selectedPeriodEnd || todayISO;
+
+      if (startDate && endDate && startDate !== endDate) {
+        createChart();
+      }
+    }, 100);
+  });
 
   return;
 }
@@ -839,6 +843,29 @@ const shiftExpenses = expenses.filter(e =>
                 </div>
             `;
         }
+
+   async function loadAllExpensesForAdmin() {
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getAllExpenses');
+
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
+
+    const json = await res.json();
+    if (!json.success) return;
+
+    expenses = (json.data || []).map(e => ({
+      ...e,
+      createdAt: e.createdAt || e.timestamp || null
+    }));
+
+  } catch (err) {
+    console.error('❌ Gagal load expenses admin', err);
+  }
+}
 
 
         function renderAdminScreen() {
@@ -2610,6 +2637,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
