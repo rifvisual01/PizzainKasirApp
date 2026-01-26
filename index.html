@@ -120,6 +120,18 @@ let isSyncing = false;
 
 let db;
 
+   function normalizeExpenses() {
+  expenses = expenses.map(e => {
+    if (!e.createdAt && e.timestamp) {
+      return {
+        ...e,
+        createdAt: e.timestamp
+      };
+    }
+    return e;
+  });
+}
+
    function getActiveCashiers() {
   if (Array.isArray(window.LOCAL_CASHIERS)) {
     return window.LOCAL_CASHIERS.filter(c => c.active);
@@ -427,20 +439,21 @@ async function loadBackendData() {
   }
 
   if (currentView === 'admin') {
-    app.innerHTML = renderAdminScreen();
+  normalizeExpenses(); // 🔥 PENTING
+  app.innerHTML = renderAdminScreen();
 
-    setTimeout(() => {
-      const todayISO = safeISODate(new Date())?.split('T')[0];
-      const startDate = selectedPeriodStart || todayISO;
-      const endDate = selectedPeriodEnd || todayISO;
+  setTimeout(() => {
+    const todayISO = safeISODate(new Date())?.split('T')[0];
+    const startDate = selectedPeriodStart || todayISO;
+    const endDate = selectedPeriodEnd || todayISO;
 
-      if (startDate && endDate && startDate !== endDate) {
-        createChart();
-      }
-    }, 100);
+    if (startDate && endDate && startDate !== endDate) {
+      createChart();
+    }
+  }, 100);
 
-    return;
-  }
+  return;
+}
 }
 
 
@@ -2597,6 +2610,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
