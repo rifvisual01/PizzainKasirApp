@@ -437,14 +437,17 @@ async function loadBackendData() {
     return;
   }
 if (currentView === 'admin') {
-  // 1️⃣ RENDER DULU (INSTANT)
+  // 1️⃣ render cepat (boleh data lama / kosong)
   app.innerHTML = renderAdminScreen();
 
-  // 2️⃣ LOAD DATA DI BELAKANG
-  loadAllExpensesForAdmin()
+  // 2️⃣ load SEMUA data yg admin butuhkan
+  Promise.all([
+    loadAllExpensesForAdmin(), // expenses
+    loadBackendData()          // 🔥 shiftHistory + shiftData
+  ])
     .then(() => {
-      normalizeExpenses(); // tetap WAJIB
-      app.innerHTML = renderAdminScreen(); // re-render setelah data masuk
+      normalizeExpenses();
+      app.innerHTML = renderAdminScreen(); // render final (lengkap)
 
       setTimeout(() => {
         const todayISO = safeISODate(new Date())?.split('T')[0];
@@ -460,6 +463,7 @@ if (currentView === 'admin') {
 
   return;
 }
+
   }
 
 
@@ -2628,6 +2632,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
