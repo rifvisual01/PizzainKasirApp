@@ -2234,16 +2234,19 @@ function logoutAdmin() {
         }
 
 function createChart() {
-if (!window.chartVisibleData) {
-  window.chartVisibleData = {};
-}
-
-CATEGORIES.forEach(cat => {
-  if (chartVisibleData[cat] === undefined) {
-    chartVisibleData[cat] = true;
+  // ===============================
+  // INIT VISIBILITY (WAJIB)
+  // ===============================
+  if (!window.chartVisibleData) {
+    window.chartVisibleData = {};
   }
-});
- 
+
+  CATEGORIES.forEach(cat => {
+    if (chartVisibleData[cat] === undefined) {
+      chartVisibleData[cat] = true;
+    }
+  });
+
   const canvas = document.getElementById('expenseChart');
   if (!canvas) return;
 
@@ -2254,13 +2257,14 @@ CATEGORIES.forEach(cat => {
   const endDate = selectedPeriodEnd || todayISO;
 
   // ===============================
-  // FILTER EXPENSES (ADMIN-AWARE)
+  // FILTER EXPENSES (FIXED)
   // ===============================
   const filteredExpenses = expenses.filter(exp => {
     const dateSource = exp.createdAt || exp.timestamp;
     if (!dateSource) return false;
 
-    const iso = safeISODate(new Date(dateSource));
+    // 🔥 FIX UTAMA (JANGAN new Date)
+    const iso = safeISODate(dateSource);
     if (!iso) return false;
 
     const expDate = iso.split('T')[0];
@@ -2275,30 +2279,33 @@ CATEGORIES.forEach(cat => {
   // ===============================
   // GROUP BY DATE + CATEGORY
   // ===============================
-const expensesByDate = {};
+  const expensesByDate = {};
 
-filteredExpenses.forEach(exp => {
-  const dateSource = exp.createdAt || exp.timestamp;
-  if (!dateSource) return;
+  filteredExpenses.forEach(exp => {
+    const dateSource = exp.createdAt || exp.timestamp;
+    if (!dateSource) return;
 
-  const iso = safeISODate(new Date(dateSource));
-  if (!iso) return;
+    // 🔥 FIX UTAMA (JANGAN new Date)
+    const iso = safeISODate(dateSource);
+    if (!iso) return;
 
-  const dateKey = iso.split('T')[0];
+    const dateKey = iso.split('T')[0];
 
-  if (!expensesByDate[dateKey]) {
-    expensesByDate[dateKey] = {};
-    CATEGORIES.forEach(cat => {
-      expensesByDate[dateKey][cat] = 0;
-    });
-  }
+    if (!expensesByDate[dateKey]) {
+      expensesByDate[dateKey] = {};
+      CATEGORIES.forEach(cat => {
+        expensesByDate[dateKey][cat] = 0;
+      });
+    }
 
-  if (expensesByDate[dateKey][exp.category] !== undefined) {
-    expensesByDate[dateKey][exp.category] += exp.amount;
-  }
-});
+    if (expensesByDate[dateKey][exp.category] !== undefined) {
+      expensesByDate[dateKey][exp.category] += exp.amount;
+    }
+  });
 
   const sortedDates = Object.keys(expensesByDate).sort();
+  if (sortedDates.length === 0) return; // 🔒 tidak ada data → jangan render
+
   const labels = sortedDates.map(date =>
     new Date(date).toLocaleDateString('id-ID', {
       day: 'numeric',
@@ -2306,32 +2313,34 @@ filteredExpenses.forEach(exp => {
     })
   );
 
+  // ===============================
+  // DATASETS (DINAMIS, TANPA DUPLIKASI)
+  // ===============================
   const datasets = [];
 
-CATEGORIES.forEach(cat => {
-  if (!chartVisibleData[cat]) return;
+  CATEGORIES.forEach(cat => {
+    if (!chartVisibleData[cat]) return;
 
-  datasets.push({
-    label: cat,
-    data: sortedDates.map(date => expensesByDate[date]?.[cat] || 0),
-    borderWidth: 0,
-    borderRadius: 8,
-    borderSkipped: false,
-    backgroundColor:
-      cat === 'Belanja Bahan Baku'
-        ? 'rgba(220, 38, 38, 0.85)'
-        : cat === 'Operasional'
-        ? 'rgba(245, 158, 11, 0.85)'
-        : 'rgba(59, 130, 246, 0.85)',
-    borderColor:
-      cat === 'Belanja Bahan Baku'
-        ? 'rgb(220, 38, 38)'
-        : cat === 'Operasional'
-        ? 'rgb(245, 158, 11)'
-        : 'rgb(59, 130, 246)'
+    datasets.push({
+      label: cat,
+      data: sortedDates.map(date => expensesByDate[date][cat] || 0),
+      borderWidth: 0,
+      borderRadius: 8,
+      borderSkipped: false,
+      backgroundColor:
+        cat === 'Belanja Bahan Baku'
+          ? 'rgba(220, 38, 38, 0.85)'
+          : cat === 'Operasional'
+          ? 'rgba(245, 158, 11, 0.85)'
+          : 'rgba(59, 130, 246, 0.85)',
+      borderColor:
+        cat === 'Belanja Bahan Baku'
+          ? 'rgb(220, 38, 38)'
+          : cat === 'Operasional'
+          ? 'rgb(245, 158, 11)'
+          : 'rgb(59, 130, 246)'
+    });
   });
-});
-
 
   if (chartVisibleData['Operasional']) {
     datasets.push({
@@ -2356,13 +2365,6 @@ CATEGORIES.forEach(cat => {
       borderSkipped: false
     });
   }
-
- // ===============================
-// 🔍 CEK CEPAT (LETakkan DI SINI)
-// ===============================
-console.log('labels:', labels);
-console.log('datasets:', datasets);
-console.log('chartVisibleData:', chartVisibleData);
 
  
   if (chartInstance) {
@@ -2636,6 +2638,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
