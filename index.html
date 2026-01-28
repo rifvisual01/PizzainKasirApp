@@ -447,40 +447,30 @@ function renderCurrentView() {
   // =====================
   // ADMIN (FINAL VERSION)
   // =====================
-  if (currentView === 'admin') {
-    // 1️⃣ Render cepat (sekali saja)
-    app.innerHTML = renderAdminScreen();
+ if (currentView === 'admin') {
+  // render sekali saja
+  app.innerHTML = renderAdminScreen();
 
-    // 2️⃣ Load data admin HANYA SEKALI
-    if (!adminDataReady) {
-      Promise.all([
-        loadAllExpensesForAdmin(), // isi expenses
-        loadBackendData()          // isi shiftHistory + shiftData
-      ])
-        .then(() => {
-          normalizeExpenses();
-          adminDataReady = true;
+  if (!adminDataReady) {
+    Promise.all([
+      loadAllExpensesForAdmin(),
+      loadBackendData()
+    ])
+      .then(() => {
+        normalizeExpenses();
+        adminDataReady = true;
 
-          // 3️⃣ Render final (lengkap & stabil)
-          app.innerHTML = renderAdminScreen();
-
-          // 4️⃣ Chart (jika range valid)
-          setTimeout(() => {
-            const todayISO = safeISODate(new Date())?.split('T')[0];
-            const startDate = selectedPeriodStart || todayISO;
-            const endDate = selectedPeriodEnd || todayISO;
-
-            if (startDate && endDate && startDate !== endDate) {
-              createChart();
-            }
-          }, 100);
-        })
-        .catch(() => {});
-    }
-
-    return;
+        // 🔥 JANGAN render ulang seluruh admin screen
+        // cukup update LIST & CHART
+        renderAdminExpenseList();
+        createChart();
+      })
+      .catch(() => {});
   }
+
+  return;
 }
+
 
 
 
@@ -2196,7 +2186,8 @@ async function finalizeCloseShift(endCash) {
 
   // 🔥 1. Tampilkan dulu di UI
   expenses.push(tempExpense);
-  renderCurrentView();
+renderAdminExpenseList(); // 🔥 INI KUNCI
+
 
   // reset form
   document.getElementById('adminExpenseName').value = '';
@@ -2649,6 +2640,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
