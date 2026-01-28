@@ -118,7 +118,7 @@
    let isProcessingQueue = false;
    let adminDataReady = false;
 let isSyncing = false;        
-
+let pendingAdminExpenses = [];
 let db;
 
    function normalizeExpenses() {
@@ -2162,10 +2162,14 @@ async function finalizeCloseShift(endCash) {
             if (dialog) dialog.remove();
         }
 
-        async function addPendingAdminExpense() {
-  const name = document.getElementById('adminExpenseName').value;
-  const amount = parseRupiah(document.getElementById('adminExpenseAmount').value);
-  const category = document.getElementById('adminExpenseCategory').value;
+async function addPendingAdminExpense() {
+  const nameEl = document.getElementById('adminExpenseName');
+  const amountEl = document.getElementById('adminExpenseAmount');
+  const categoryEl = document.getElementById('adminExpenseCategory');
+
+  const name = nameEl.value.trim();
+  const amount = parseRupiah(amountEl.value);
+  const category = categoryEl.value;
 
   if (!name || amount <= 0 || !category) {
     showNotification('Lengkapi semua data', 'warning');
@@ -2175,27 +2179,32 @@ async function finalizeCloseShift(endCash) {
   const tempId = 'temp-admin-' + Date.now();
 
   const tempExpense = {
-  id: tempId,
-  shift: 'admin',
-  expense_name: name,
-  category,
-  amount,
-  timestamp: safeISODate(new Date()),
-  cashier_name: 'admin',
-  _syncing: true
-};
+    id: tempId,
+    shift: 'admin',
+    expense_name: name,
+    category,
+    amount,
+    timestamp: safeISODate(new Date()),
+    cashier_name: 'admin',
+    _syncing: true
+  };
 
-  // 🔥 1. Tampilkan dulu di UI
+  // =========================
+  // 1️⃣ UI FIRST → MASUKKAN KE expenses
+  // =========================
   expenses.push(tempExpense);
-renderAdminExpenseList(); // 🔥 INI KUNCI
 
+  // 🔥 render ulang ADMIN SEKALI
+  renderCurrentView();
 
-  // reset form
-  document.getElementById('adminExpenseName').value = '';
-  document.getElementById('adminExpenseAmount').value = '';
-  document.getElementById('adminExpenseCategory').value = '';
+  // reset form (SETELAH render)
+  nameEl.value = '';
+  amountEl.value = '';
+  categoryEl.value = '';
 
-  // 🔥 2. Kirim ke server di background
+  // =========================
+  // 2️⃣ BACKEND (BACKGROUND)
+  // =========================
   const fd = new FormData();
   fd.append('action', 'addExpense');
   fd.append('shift', 'admin');
@@ -2213,24 +2222,26 @@ renderAdminExpenseList(); // 🔥 INI KUNCI
     const json = await res.json();
     if (!json.success) throw new Error(json.message);
 
-    // 🔁 Ganti temp dengan data dari server
+    // 🔁 ganti temp → data server
     const idx = expenses.findIndex(e => e.id === tempId);
     if (idx !== -1) {
       expenses[idx] = json.data;
     }
 
-    renderCurrentView();
+    renderCurrentView(); // render final
 
   } catch (err) {
     console.error(err);
 
-    // ❌ Gagal → hapus dari UI
+    // ❌ gagal → rollback
     expenses = expenses.filter(e => e.id !== tempId);
     renderCurrentView();
 
     showNotification('Gagal simpan ke server', 'error');
   }
 }
+
+
 
 function renderAdminPendingList() {
   const el = document.getElementById('adminPendingList');
@@ -2641,6 +2652,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
