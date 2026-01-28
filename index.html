@@ -437,23 +437,30 @@ async function loadBackendData() {
     return;
   }
 if (currentView === 'admin') {
-  loadAllExpensesForAdmin().then(() => {
-    normalizeExpenses(); // 🔥 WAJIB SETELAH LOAD
-    app.innerHTML = renderAdminScreen();
+  // 1️⃣ RENDER DULU (INSTANT)
+  app.innerHTML = renderAdminScreen();
 
-    setTimeout(() => {
-      const todayISO = safeISODate(new Date())?.split('T')[0];
-      const startDate = selectedPeriodStart || todayISO;
-      const endDate = selectedPeriodEnd || todayISO;
+  // 2️⃣ LOAD DATA DI BELAKANG
+  loadAllExpensesForAdmin()
+    .then(() => {
+      normalizeExpenses(); // tetap WAJIB
+      app.innerHTML = renderAdminScreen(); // re-render setelah data masuk
 
-      if (startDate && endDate && startDate !== endDate) {
-        createChart();
-      }
-    }, 100);
-  });
+      setTimeout(() => {
+        const todayISO = safeISODate(new Date())?.split('T')[0];
+        const startDate = selectedPeriodStart || todayISO;
+        const endDate = selectedPeriodEnd || todayISO;
+
+        if (startDate && endDate && startDate !== endDate) {
+          createChart();
+        }
+      }, 100);
+    })
+    .catch(() => {});
+
   return;
 }
-}
+
 
 
 
@@ -2620,6 +2627,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
