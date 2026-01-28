@@ -118,7 +118,6 @@
    let isProcessingQueue = false;
    let adminDataReady = false;
 let isSyncing = false;        
-let pendingAdminExpenses = [];
 let db;
 
    function normalizeExpenses() {
@@ -950,24 +949,24 @@ expensesByDate[dateKey].push(exp);
                             <div class="grid grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Item</label>
-                                    <input type="text" id="adminExpenseName" placeholder="listrik" class="input-modern w-full rounded-xl px-4 py-3">
+                                    <input type="text" id="expenseName" placeholder="listrik" class="input-modern w-full rounded-xl px-4 py-3">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Nominal</label>
                                     <div class="relative">
                                         <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-600">Rp</span>
-                                        <input type="text" id="adminExpenseAmount" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
+                                        <input type="text" id="expenseAmount" placeholder="0" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl pl-12 pr-4 py-3">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Kategori</label>
-                                    <select id="adminExpenseCategory" class="input-modern w-full rounded-xl px-4 py-3">
+                                    <select id="expenseCategory" class="input-modern w-full rounded-xl px-4 py-3">
                                         <option value="">Pilih Kategori</option>
                                         ${CATEGORIES.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
                                     </select>
                                 </div>
                             </div>
-                            <button onclick="addPendingAdminExpense()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                            <button onclick="addExpense()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
                                 ➕ Tambah Pengeluaran
                             </button>
                             ${adminExpenses.length > 0 ? `
@@ -1456,6 +1455,20 @@ async function loginAdmin() {
     showNotification('PIN admin salah', 'error');
     return;
   }
+
+ // ===========================
+// ADMIN = SHIFT VIRTUAL
+// ===========================
+currentShift = 'admin';
+
+currentSessionId = 'ADMIN-' + Date.now();
+
+shiftData.admin = {
+  status: 'open',
+  cashier: 'ADMIN',
+  sessionId: currentSessionId,
+  openedAt: new Date().toISOString()
+};
 
   // ===============================
   // 🚀 2️⃣ UI FIRST (INSTAN)
@@ -2162,119 +2175,16 @@ async function finalizeCloseShift(endCash) {
             if (dialog) dialog.remove();
         }
 
-async function addPendingAdminExpense() {
-  const nameEl = document.getElementById('adminExpenseName');
-  const amountEl = document.getElementById('adminExpenseAmount');
-  const categoryEl = document.getElementById('adminExpenseCategory');
-
-  const name = nameEl.value.trim();
-  const amount = parseRupiah(amountEl.value);
-  const category = categoryEl.value;
-
-  if (!name || amount <= 0 || !category) {
-    showNotification('Lengkapi semua data', 'warning');
-    return;
-  }
-
-  const tempId = 'temp-admin-' + Date.now();
-
-  const tempExpense = {
-    id: tempId,
-    shift: 'admin',
-    expense_name: name,
-    category,
-    amount,
-    timestamp: safeISODate(new Date()),
-    cashier_name: 'admin',
-    _syncing: true
-  };
-
-  // =========================
-  // 1️⃣ UI FIRST → MASUKKAN KE expenses
-  // =========================
-  expenses.push(tempExpense);
-
-  // 🔥 render ulang ADMIN SEKALI
-  renderCurrentView();
-
-  // reset form (SETELAH render)
-  nameEl.value = '';
-  amountEl.value = '';
-  categoryEl.value = '';
-
-  // =========================
-  // 2️⃣ BACKEND (BACKGROUND)
-  // =========================
-  const fd = new FormData();
-fd.append('action', 'addAdminExpense');
-fd.append('shift', 'admin');
-fd.append('cashier', 'ADMIN');
-fd.append('sessionId', 'ADMIN');
-fd.append('expense_name', name);
-fd.append('category', category);
-fd.append('amount', amount);
-fd.append('__sync', '1');
-
-
-  try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
-
-    const json = await res.json();
-    if (!json.success) throw new Error(json.message);
-
-    // 🔁 ganti temp → data server
-    const idx = expenses.findIndex(e => e.id === tempId);
-    if (idx !== -1) {
-      expenses[idx] = json.data;
-    }
-
-    renderCurrentView(); // render final
-
-  } catch (err) {
-    console.error(err);
-
-    // ❌ gagal → rollback
-    expenses = expenses.filter(e => e.id !== tempId);
-    renderCurrentView();
-
-    showNotification('Gagal simpan ke server', 'error');
-  }
-}
-
-
-
-function renderAdminPendingList() {
-  const el = document.getElementById('adminPendingList');
-  if (!el) return;
-
-  el.innerHTML = pendingAdminExpenses.map(e => `
-    <div class="flex justify-between bg-white p-4 rounded-xl shadow">
-      <div>
-        <p class="font-bold">${e.expense_name}</p>
-        <p class="text-sm text-gray-500">${e.category}</p>
-      </div>
-      <div class="flex items-center gap-4">
-        <p class="font-bold">Rp ${e.amount.toLocaleString('id-ID')}</p>
-        <button onclick="removeAdminPending('${e.id}')" class="text-red-500">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-        function removeAdminPending(id) {
-  pendingAdminExpenses = pendingAdminExpenses.filter(e => e.id !== id);
-  renderAdminPendingList();
-}
-
-
 function logoutAdmin() {
-  adminDataReady = false; // 🔥 RESET STATE ADMIN
+  delete shiftData.admin;
+  currentShift = null;
+  currentSessionId = null;
+
+  adminDataReady = false; // kalau masih dipakai
   currentView = 'home';
   renderCurrentView();
 }
+
 
         function applyFilters() {
             const startDate = document.getElementById('startDate').value;
@@ -2655,6 +2565,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
