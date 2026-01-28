@@ -2206,7 +2206,7 @@ async function addPendingAdminExpense() {
   // 2️⃣ BACKEND (BACKGROUND)
   // =========================
   const fd = new FormData();
-fd.append('action', 'addExpense');
+fd.append('action', 'addAdminExpense');
 fd.append('shift', 'admin');
 fd.append('cashier', 'ADMIN');
 fd.append('sessionId', 'ADMIN');
@@ -2655,6 +2655,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
