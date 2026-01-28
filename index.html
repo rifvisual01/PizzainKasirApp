@@ -2228,7 +2228,7 @@ function logoutAdmin() {
             updateChart();
         }
 
-      function createChart() {
+function createChart() {
   const canvas = document.getElementById('expenseChart');
   if (!canvas) return;
 
@@ -2238,25 +2238,39 @@ function logoutAdmin() {
   const startDate = selectedPeriodStart || todayISO;
   const endDate = selectedPeriodEnd || todayISO;
 
+  // ===============================
+  // FILTER EXPENSES (ADMIN-AWARE)
+  // ===============================
   const filteredExpenses = expenses.filter(exp => {
-    const iso = safeISODate(new Date(exp.timestamp));
+    const dateSource = exp.createdAt || exp.timestamp;
+    if (!dateSource) return false;
+
+    const iso = safeISODate(new Date(dateSource));
     if (!iso) return false;
 
     const expDate = iso.split('T')[0];
     const matchesPeriod = expDate >= startDate && expDate <= endDate;
     const matchesSearch =
       !searchQuery ||
-      exp.expense_name.toLowerCase().includes(searchQuery.toLowerCase());
+      (exp.expense_name || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesPeriod && matchesSearch;
   });
 
+  // ===============================
+  // GROUP BY DATE + CATEGORY
+  // ===============================
   const expensesByDate = {};
+
   filteredExpenses.forEach(exp => {
-    const iso = safeISODate(new Date(exp.timestamp));
+    const dateSource = exp.createdAt || exp.timestamp;
+    if (!dateSource) return;
+
+    const iso = safeISODate(new Date(dateSource));
     if (!iso) return;
 
     const dateKey = iso.split('T')[0];
+
     if (!expensesByDate[dateKey]) {
       expensesByDate[dateKey] = {
         'Bahan Baku': 0,
@@ -2264,138 +2278,151 @@ function logoutAdmin() {
         'Staff': 0
       };
     }
-    expensesByDate[dateKey][exp.category] += exp.amount;
-  });
-            
-            const sortedDates = Object.keys(expensesByDate).sort();
-            const labels = sortedDates.map(date => new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }));
-            
-            const datasets = [];
-            
-            if (chartVisibleData['Bahan Baku']) {
-                datasets.push({
-                    label: 'Bahan Baku',
-                    data: sortedDates.map(date => expensesByDate[date]['Bahan Baku']),
-                    backgroundColor: 'rgba(220, 38, 38, 0.85)',
-                    borderColor: 'rgb(220, 38, 38)',
-                    borderWidth: 0,
-                    borderRadius: 8,
-                    borderSkipped: false
-                });
-            }
-            
-            if (chartVisibleData['Operasional']) {
-                datasets.push({
-                    label: 'Operasional',
-                    data: sortedDates.map(date => expensesByDate[date]['Operasional']),
-                    backgroundColor: 'rgba(245, 158, 11, 0.85)',
-                    borderColor: 'rgb(245, 158, 11)',
-                    borderWidth: 0,
-                    borderRadius: 8,
-                    borderSkipped: false
-                });
-            }
-            
-            if (chartVisibleData['Staff']) {
-                datasets.push({
-                    label: 'Staff',
-                    data: sortedDates.map(date => expensesByDate[date]['Staff']),
-                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
-                    borderColor: 'rgb(59, 130, 246)',
-                    borderWidth: 0,
-                    borderRadius: 8,
-                    borderSkipped: false
-                });
-            }
-            
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-            
-            const ctx = canvas.getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: {
-                                size: 14,
-                                weight: 'bold'
-                            },
-                            bodyFont: {
-                                size: 13,
-                                weight: '600'
-                            },
-                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                            borderWidth: 1,
-                            displayColors: true,
-                            boxWidth: 12,
-                            boxHeight: 12,
-                            boxPadding: 6,
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            stacked: false,
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    size: 13,
-                                    weight: '700'
-                                },
-                                color: '#374151'
-                            }
-                        },
-                        y: {
-                            stacked: false,
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)',
-                                lineWidth: 1
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    if (value >= 1000000) {
-                                        return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
-                                    } else if (value >= 1000) {
-                                        return 'Rp ' + (value / 1000).toFixed(0) + 'rb';
-                                    }
-                                    return 'Rp ' + value.toLocaleString('id-ID');
-                                },
-                                font: {
-                                    size: 12,
-                                    weight: '600'
-                                },
-                                color: '#6b7280'
-                            }
-                        }
-                    }
-                }
-            });
-        }
 
+    if (expensesByDate[dateKey][exp.category] !== undefined) {
+      expensesByDate[dateKey][exp.category] += exp.amount;
+    }
+  });
+
+  const sortedDates = Object.keys(expensesByDate).sort();
+  const labels = sortedDates.map(date =>
+    new Date(date).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short'
+    })
+  );
+
+  const datasets = [];
+
+  if (chartVisibleData['Bahan Baku']) {
+    datasets.push({
+      label: 'Bahan Baku',
+      data: sortedDates.map(date => expensesByDate[date]['Bahan Baku']),
+      backgroundColor: 'rgba(220, 38, 38, 0.85)',
+      borderColor: 'rgb(220, 38, 38)',
+      borderWidth: 0,
+      borderRadius: 8,
+      borderSkipped: false
+    });
+  }
+
+  if (chartVisibleData['Operasional']) {
+    datasets.push({
+      label: 'Operasional',
+      data: sortedDates.map(date => expensesByDate[date]['Operasional']),
+      backgroundColor: 'rgba(245, 158, 11, 0.85)',
+      borderColor: 'rgb(245, 158, 11)',
+      borderWidth: 0,
+      borderRadius: 8,
+      borderSkipped: false
+    });
+  }
+
+  if (chartVisibleData['Staff']) {
+    datasets.push({
+      label: 'Staff',
+      data: sortedDates.map(date => expensesByDate[date]['Staff']),
+      backgroundColor: 'rgba(59, 130, 246, 0.85)',
+      borderColor: 'rgb(59, 130, 246)',
+      borderWidth: 0,
+      borderRadius: 8,
+      borderSkipped: false
+    });
+  }
+
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+
+  const ctx = canvas.getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13,
+            weight: '600'
+          },
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderWidth: 1,
+          displayColors: true,
+          boxWidth: 12,
+          boxHeight: 12,
+          boxPadding: 6,
+          callbacks: {
+            label: function(context) {
+              return (
+                context.dataset.label +
+                ': Rp ' +
+                context.parsed.y.toLocaleString('id-ID')
+              );
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: false,
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 13,
+              weight: '700'
+            },
+            color: '#374151'
+          }
+        },
+        y: {
+          stacked: false,
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)',
+            lineWidth: 1
+          },
+          ticks: {
+            callback: function(value) {
+              if (value >= 1000000) {
+                return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
+              } else if (value >= 1000) {
+                return 'Rp ' + (value / 1000).toFixed(0) + 'rb';
+              }
+              return 'Rp ' + value.toLocaleString('id-ID');
+            },
+            font: {
+              size: 12,
+              weight: '600'
+            },
+            color: '#6b7280'
+          }
+        }
+      }
+    }
+  });
+}
+
+   
 function formatTanggalBackend(dateStr) {
   const d = new Date(dateStr);
   const day = String(d.getDate()).padStart(2, '0');
@@ -2574,6 +2601,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
