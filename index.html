@@ -444,36 +444,41 @@ function renderCurrentView() {
   }
 
   // =====================
-  // ADMIN (FINAL VERSION)
+  // ADMIN (FINAL – STABIL)
   // =====================
- if (currentView === 'admin') {
-  // render sekali saja
-  app.innerHTML = renderAdminScreen();
+  if (currentView === 'admin') {
+    // 1️⃣ render awal (UI langsung tampil)
+    app.innerHTML = renderAdminScreen();
 
-  if (!adminDataReady) {
-    Promise.all([
-      loadAllExpensesForAdmin(),
-      loadBackendData()
-    ])
-      .then(() => {
-        normalizeExpenses();
-        adminDataReady = true;
+    if (!adminDataReady) {
+      Promise.all([
+        loadAllExpensesForAdmin(),
+        loadBackendData()
+      ])
+        .then(() => {
+          normalizeExpenses();
+          adminDataReady = true;
 
-        // 🔥 JANGAN render ulang seluruh admin screen
-        // cukup update LIST & CHART
-        renderAdminExpenseList();
-        createChart();
-      })
-      .catch(() => {});
+          // 2️⃣ render ulang admin screen SETELAH data siap
+          app.innerHTML = renderAdminScreen();
+
+          // 3️⃣ trigger grafik HANYA jika multi-day
+          const todayISO = safeISODate(new Date())?.split('T')[0];
+          const startDate = selectedPeriodStart || todayISO;
+          const endDate = selectedPeriodEnd || todayISO;
+
+          if (startDate && endDate && startDate !== endDate) {
+            requestAnimationFrame(() => {
+              createChart();
+            });
+          }
+        })
+        .catch(() => {});
+    }
+
+    return;
   }
-
-  return;
 }
-}
-
-
-
-
 
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -2631,6 +2636,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
