@@ -2229,6 +2229,16 @@ function logoutAdmin() {
         }
 
 function createChart() {
+if (!window.chartVisibleData) {
+  window.chartVisibleData = {};
+}
+
+CATEGORIES.forEach(cat => {
+  if (chartVisibleData[cat] === undefined) {
+    chartVisibleData[cat] = true;
+  }
+});
+ 
   const canvas = document.getElementById('expenseChart');
   if (!canvas) return;
 
@@ -2317,6 +2327,7 @@ CATEGORIES.forEach(cat => {
   });
 });
 
+
   if (chartVisibleData['Operasional']) {
     datasets.push({
       label: 'Operasional',
@@ -2341,6 +2352,14 @@ CATEGORIES.forEach(cat => {
     });
   }
 
+ // ===============================
+// 🔍 CEK CEPAT (LETakkan DI SINI)
+// ===============================
+console.log('labels:', labels);
+console.log('datasets:', datasets);
+console.log('chartVisibleData:', chartVisibleData);
+
+ 
   if (chartInstance) {
     chartInstance.destroy();
   }
@@ -2612,6 +2631,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
