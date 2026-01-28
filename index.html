@@ -2206,12 +2206,15 @@ async function addPendingAdminExpense() {
   // 2️⃣ BACKEND (BACKGROUND)
   // =========================
   const fd = new FormData();
-  fd.append('action', 'addExpense');
-  fd.append('shift', 'admin');
-  fd.append('cashier', 'admin');
-  fd.append('expense_name', name);
-  fd.append('category', category);
-  fd.append('amount', amount);
+fd.append('action', 'addExpense');
+fd.append('shift', 'admin');
+fd.append('cashier', 'ADMIN');
+fd.append('sessionId', 'ADMIN');
+fd.append('expense_name', name);
+fd.append('category', category);
+fd.append('amount', amount);
+fd.append('__sync', '1');
+
 
   try {
     const res = await fetch(API_BASE, {
@@ -2652,6 +2655,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
