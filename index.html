@@ -115,7 +115,8 @@
         let searchQuery = '';
         let chartInstance = null;
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
-   let isProcessingQueue = false; 
+   let isProcessingQueue = false;
+   let adminDataReady = false;
 let isSyncing = false;        
 
 let db;
@@ -419,14 +420,20 @@ async function loadBackendData() {
 }
 
 
-  function renderCurrentView() {
+function renderCurrentView() {
   const app = document.getElementById('app');
 
+  // =====================
+  // HOME
+  // =====================
   if (currentView === 'home') {
     app.innerHTML = renderHomeScreen();
     return;
   }
 
+  // =====================
+  // SHIFT
+  // =====================
   if (currentView === 'shift1' || currentView === 'shift2') {
     if (currentShift && shiftData[currentShift]) {
       app.innerHTML = renderShiftScreen();
@@ -436,35 +443,44 @@ async function loadBackendData() {
     app.innerHTML = renderHomeScreen();
     return;
   }
-if (currentView === 'admin') {
-  // 1️⃣ render cepat (boleh data lama / kosong)
-  app.innerHTML = renderAdminScreen();
 
-  // 2️⃣ load SEMUA data yg admin butuhkan
-  Promise.all([
-    loadAllExpensesForAdmin(), // expenses
-    loadBackendData()          // 🔥 shiftHistory + shiftData
-  ])
-    .then(() => {
-      normalizeExpenses();
-      app.innerHTML = renderAdminScreen(); // render final (lengkap)
+  // =====================
+  // ADMIN (FINAL VERSION)
+  // =====================
+  if (currentView === 'admin') {
+    // 1️⃣ Render cepat (sekali saja)
+    app.innerHTML = renderAdminScreen();
 
-      setTimeout(() => {
-        const todayISO = safeISODate(new Date())?.split('T')[0];
-        const startDate = selectedPeriodStart || todayISO;
-        const endDate = selectedPeriodEnd || todayISO;
+    // 2️⃣ Load data admin HANYA SEKALI
+    if (!adminDataReady) {
+      Promise.all([
+        loadAllExpensesForAdmin(), // isi expenses
+        loadBackendData()          // isi shiftHistory + shiftData
+      ])
+        .then(() => {
+          normalizeExpenses();
+          adminDataReady = true;
 
-        if (startDate && endDate && startDate !== endDate) {
-          createChart();
-        }
-      }, 100);
-    })
-    .catch(() => {});
+          // 3️⃣ Render final (lengkap & stabil)
+          app.innerHTML = renderAdminScreen();
 
-  return;
-}
+          // 4️⃣ Chart (jika range valid)
+          setTimeout(() => {
+            const todayISO = safeISODate(new Date())?.split('T')[0];
+            const startDate = selectedPeriodStart || todayISO;
+            const endDate = selectedPeriodEnd || todayISO;
 
+            if (startDate && endDate && startDate !== endDate) {
+              createChart();
+            }
+          }, 100);
+        })
+        .catch(() => {});
+    }
+
+    return;
   }
+}
 
 
 
@@ -2248,7 +2264,8 @@ function renderAdminPendingList() {
 }
 
 
-        function logoutAdmin() {
+function logoutAdmin() {
+  adminDataReady = false; // 🔥 RESET STATE ADMIN
   currentView = 'home';
   renderCurrentView();
 }
@@ -2632,6 +2649,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
