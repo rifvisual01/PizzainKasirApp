@@ -207,10 +207,7 @@ function saveToQueue(data) {
 async function processQueue() {
   if (!navigator.onLine) return;
   if (!db) return;
-  if (isProcessingQueue) {
-    console.warn('🔒 processQueue masih berjalan, skip');
-    return;
-  }
+  if (isProcessingQueue) return;
 
   isProcessingQueue = true;
  isSyncing = true;
@@ -885,7 +882,6 @@ const shiftExpenses = expenses.filter(e =>
   return matchesPeriod && matchesSearch;
 });
 
-console.log('ADMIN filteredExpenses:', filteredExpenses);
             const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
             const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
             const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
@@ -1452,24 +1448,14 @@ async function loginAdmin() {
   showNotification(`Selamat datang, ${admin.name}`, 'success');
   resetBtn();
 
-  // ===============================
-  // 🌐 3️⃣ BACKEND SYNC (NON-BLOCKING)
-  // ===============================
-  if (!navigator.onLine) return;
-
-  try {
+  // BACKEND FIRE & FORGET
+  if (navigator.onLine) {
     const fd = new FormData();
     fd.append('action', 'loginAdmin');
     fd.append('pin', pin);
     fd.append('__sync', '1');
 
-    await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
-  } catch (err) {
-    // ❗ tidak perlu apa-apa
-    console.warn('⚠️ Backend admin login gagal (diabaikan)');
+    fetch(API_BASE, { method: 'POST', body: fd }).catch(() => {});
   }
 
   function resetBtn() {
@@ -2634,6 +2620,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
