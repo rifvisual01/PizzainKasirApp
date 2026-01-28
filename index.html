@@ -2260,29 +2260,28 @@ function createChart() {
   // ===============================
   // GROUP BY DATE + CATEGORY
   // ===============================
-  const expensesByDate = {};
+const expensesByDate = {};
 
-  filteredExpenses.forEach(exp => {
-    const dateSource = exp.createdAt || exp.timestamp;
-    if (!dateSource) return;
+filteredExpenses.forEach(exp => {
+  const dateSource = exp.createdAt || exp.timestamp;
+  if (!dateSource) return;
 
-    const iso = safeISODate(new Date(dateSource));
-    if (!iso) return;
+  const iso = safeISODate(new Date(dateSource));
+  if (!iso) return;
 
-    const dateKey = iso.split('T')[0];
+  const dateKey = iso.split('T')[0];
 
-    if (!expensesByDate[dateKey]) {
-      expensesByDate[dateKey] = {
-        'Bahan Baku': 0,
-        'Operasional': 0,
-        'Staff': 0
-      };
-    }
+  if (!expensesByDate[dateKey]) {
+    expensesByDate[dateKey] = {};
+    CATEGORIES.forEach(cat => {
+      expensesByDate[dateKey][cat] = 0;
+    });
+  }
 
-    if (expensesByDate[dateKey][exp.category] !== undefined) {
-      expensesByDate[dateKey][exp.category] += exp.amount;
-    }
-  });
+  if (expensesByDate[dateKey][exp.category] !== undefined) {
+    expensesByDate[dateKey][exp.category] += exp.amount;
+  }
+});
 
   const sortedDates = Object.keys(expensesByDate).sort();
   const labels = sortedDates.map(date =>
@@ -2294,17 +2293,31 @@ function createChart() {
 
   const datasets = [];
 
-  if (chartVisibleData['Bahan Baku']) {
-    datasets.push({
-      label: 'Bahan Baku',
-      data: sortedDates.map(date => expensesByDate[date]['Bahan Baku']),
-      backgroundColor: 'rgba(220, 38, 38, 0.85)',
-      borderColor: 'rgb(220, 38, 38)',
-      borderWidth: 0,
-      borderRadius: 8,
-      borderSkipped: false
-    });
-  }
+const datasets = [];
+
+CATEGORIES.forEach(cat => {
+  if (!chartVisibleData[cat]) return;
+
+  datasets.push({
+    label: cat,
+    data: sortedDates.map(date => expensesByDate[date]?.[cat] || 0),
+    borderWidth: 0,
+    borderRadius: 8,
+    borderSkipped: false,
+    backgroundColor:
+      cat === 'Belanja Bahan Baku'
+        ? 'rgba(220, 38, 38, 0.85)'
+        : cat === 'Operasional'
+        ? 'rgba(245, 158, 11, 0.85)'
+        : 'rgba(59, 130, 246, 0.85)',
+    borderColor:
+      cat === 'Belanja Bahan Baku'
+        ? 'rgb(220, 38, 38)'
+        : cat === 'Operasional'
+        ? 'rgb(245, 158, 11)'
+        : 'rgb(59, 130, 246)'
+  });
+});
 
   if (chartVisibleData['Operasional']) {
     datasets.push({
@@ -2601,6 +2614,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
