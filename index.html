@@ -1716,11 +1716,11 @@ shiftData.admin = {
   // 🚀 2️⃣ UI FIRST (INSTAN)
   // ===============================
   closeAdminPinDialog();
-  currentView = 'admin';
-  renderCurrentView();
+currentView = 'admin';
+renderCurrentView();
 
-  showNotification(`Selamat datang, ${admin.name}`, 'success');
-  resetBtn();
+showNotification(`Selamat datang, ${admin.name}`, 'success');
+resetBtn();
 
   // BACKEND FIRE & FORGET
   if (navigator.onLine) {
@@ -1737,9 +1737,6 @@ shiftData.admin = {
     btn.disabled = false;
   }
 }
-
-
-
 
         function selectShift(shift) {
             if (shift === 'shift1' && shiftData.shift1.status === 'closed') {
@@ -2779,5 +2776,6 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
