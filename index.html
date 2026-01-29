@@ -493,10 +493,22 @@ function renderCurrentView() {
         const startDate = selectedPeriodStart || todayISO;
         const endDate = selectedPeriodEnd || todayISO;
 
-        if (start
+        if (startDate && endDate && startDate !== endDate) {
+          requestAnimationFrame(() => {
+            createChart();
+          });
+        }
+      })
+      .catch(() => {
+        // fallback aman (misal koneksi putus mendadak)
+        normalizeExpenses();
+        adminDataReady = true;
+      });
+  }
 
+  return;
 }
-
+}
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
             const appTitle = config.app_title || defaultConfig.app_title;
@@ -2612,6 +2624,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
