@@ -2250,6 +2250,8 @@ function toggleChartData(type) {
 
 
 function createChart() {
+  console.log('🚀 createChart() DIPANGGIL');
+
   // ===============================
   // INIT VISIBILITY
   // ===============================
@@ -2268,13 +2270,13 @@ function createChart() {
   const endDate = selectedPeriodEnd || todayISO;
 
   // ===============================
-  // FILTER EXPENSES
+  // FILTER EXPENSES (AMAN)
   // ===============================
   const filteredExpenses = expenses.filter(exp => {
     const dateSource = exp.createdAt || exp.timestamp;
     if (!dateSource) return false;
 
-    const iso = safeISODate(dateSource);
+    const iso = safeISODate(dateSource); // ⬅️ JANGAN new Date()
     if (!iso) return false;
 
     const expDate = iso.split('T')[0];
@@ -2291,6 +2293,9 @@ function createChart() {
 
     return true;
   });
+
+  console.log('📦 expenses total:', expenses.length);
+  console.log('📦 filteredExpenses:', filteredExpenses.length);
 
   if (filteredExpenses.length === 0) return;
 
@@ -2326,7 +2331,7 @@ function createChart() {
   );
 
   // ===============================
-  // DATASETS
+  // DATASETS (SATU SUMBER)
   // ===============================
   const datasets = [];
 
@@ -2372,7 +2377,6 @@ function createChart() {
     }
   });
 }
-
 
    
 function formatTanggalBackend(dateStr) {
@@ -2553,8 +2557,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
 
 
 
