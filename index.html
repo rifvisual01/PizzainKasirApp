@@ -893,6 +893,8 @@ function renderAdminScreen() {
   const endDate = selectedPeriodEnd || today;
 
   const isMultiDay = startDate !== endDate;
+ const isTodayOnly = startDate === today && endDate === today;
+
 
   // ===============================
   // FILTER EXPENSES (GLOBAL)
@@ -2592,6 +2594,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
