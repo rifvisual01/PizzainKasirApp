@@ -1454,10 +1454,11 @@ categoryExpenses.forEach(exp => {
                                                         const dateTotal = dateExpenses.reduce((sum, e) => sum + e.amount, 0);
                                                         return `
                                                             <div>
-                                                               <button onclick="toggleCategory('cat-${cat.category}-${dateKey}')"
-  class="rounded-xl px-4 py-3 flex items-center justify-between
+                                                              <button onclick="toggleCategory('cat-${cat.category}-${dateKey}')"
+  class="w-full rounded-xl px-4 py-3 flex items-center justify-between
          bg-red-500/30 text-red-900
          hover:bg-red-500/40 transition-all">
+
 
   <!-- KIRI -->
   <div class="flex flex-col gap-1 text-left">
@@ -2886,6 +2887,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
