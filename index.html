@@ -885,8 +885,7 @@ const shiftExpenses = expenses.filter(e =>
   }
 }
 
-
-       function renderAdminScreen() {
+function renderAdminScreen() {
   const config = window.elementSdk?.config || defaultConfig;
 
   const today = safeISODate(new Date())?.split('T')[0];
@@ -948,10 +947,6 @@ const shiftExpenses = expenses.filter(e =>
       .reduce((sum, e) => sum + e.amount, 0);
     return { category: cat, total };
   });
-
-  // ===============================
-  // RENDER
-  // ===============================
   return `
                 <div class="min-h-full p-6">
                     <div class="max-w-7xl mx-auto">
@@ -994,50 +989,36 @@ const shiftExpenses = expenses.filter(e =>
                             </button>
                             ${adminExpenses.length > 0 ? `
   <div class="mt-4 space-y-2">
-     ${
-        isTodayOnly && adminExpenses.length > 0
-          ? `
-        <div class="mt-4 space-y-2">
-          ${adminExpenses
-            .map(
-              exp => `
-            <div class="bg-white rounded-xl p-4 border border-gray-200">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3 flex-1">
-                  <span class="text-base font-bold text-gray-500">
-                    ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                  <span class="badge-modern bg-blue-100 text-blue-700">
-                    ${exp.category}
-                  </span>
-                  <p class="font-bold text-base text-gray-800">
-                    ${exp.expense_name}
-                  </p>
-                </div>
-                <div class="flex items-center gap-3">
-                  <p class="text-xl font-black text-blue-600">
-                    Rp ${exp.amount.toLocaleString('id-ID')}
-                  </p>
-                  <button
-                    onclick="deleteExpense('${exp.id}')"
-                    class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            </div>
-          `
-            )
-            .join('')}
+    ${adminExpenses.map(exp => `
+      <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 flex-1">
+            <span class="text-base font-bold text-gray-500">
+             ${new Date(exp.createdAt || exp.timestamp).toLocaleTimeString('id-ID', {
+  hour: '2-digit',
+  minute: '2-digit'
+})}
+            </span>
+            <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
+            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <p class="text-xl font-black text-blue-600">
+              Rp ${exp.amount.toLocaleString('id-ID')}
+            </p>
+            <button onclick="deleteExpense('${exp.id}')" class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">
+              ✕
+            </button>
+          </div>
         </div>
-      `
-          : ''
-      }
-    </div>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+
+</div>
+
+                        </div>
                         
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">🔍 Filter Laporan</h3>
@@ -2584,7 +2565,6 @@ setInterval(() => {
 
 </body>
 </html>
-
 
 
 
