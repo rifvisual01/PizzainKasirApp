@@ -2250,19 +2250,14 @@ function toggleChartData(type) {
 
 
 function createChart() {
- console.log('🚀 createChart() DIPANGGIL');
+  console.log('🚀 createChart() DIPANGGIL');
 
   // ===============================
-  // INIT VISIBILITY (WAJIB)
+  // INIT VISIBILITY
   // ===============================
-  if (!window.chartVisibleData) {
-    window.chartVisibleData = {};
-  }
-
+  if (!window.chartVisibleData) window.chartVisibleData = {};
   CATEGORIES.forEach(cat => {
-    if (chartVisibleData[cat] === undefined) {
-      chartVisibleData[cat] = true;
-    }
+    if (chartVisibleData[cat] === undefined) chartVisibleData[cat] = true;
   });
 
   const canvas = document.getElementById('expenseChart');
@@ -2275,27 +2270,34 @@ function createChart() {
   const endDate = selectedPeriodEnd || todayISO;
 
   // ===============================
-  // FILTER EXPENSES (FIXED)
+  // FILTER EXPENSES (AMAN)
   // ===============================
   const filteredExpenses = expenses.filter(exp => {
-   console.log('📦 expenses total:', expenses.length);
-console.log('📦 filteredExpenses:', filteredExpenses.length);
-
     const dateSource = exp.createdAt || exp.timestamp;
     if (!dateSource) return false;
 
-    // 🔥 FIX UTAMA (JANGAN new Date)
-    const iso = safeISODate(dateSource);
+    const iso = safeISODate(dateSource); // ⬅️ JANGAN new Date()
     if (!iso) return false;
 
     const expDate = iso.split('T')[0];
-    const matchesPeriod = expDate >= startDate && expDate <= endDate;
-    const matchesSearch =
-      !searchQuery ||
-      (exp.expense_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    if (expDate < startDate || expDate > endDate) return false;
 
-    return matchesPeriod && matchesSearch;
+    if (
+      searchQuery &&
+      !(exp.expense_name || '')
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    ) {
+      return false;
+    }
+
+    return true;
   });
+
+  console.log('📦 expenses total:', expenses.length);
+  console.log('📦 filteredExpenses:', filteredExpenses.length);
+
+  if (filteredExpenses.length === 0) return;
 
   // ===============================
   // GROUP BY DATE + CATEGORY
@@ -2303,20 +2305,14 @@ console.log('📦 filteredExpenses:', filteredExpenses.length);
   const expensesByDate = {};
 
   filteredExpenses.forEach(exp => {
-    const dateSource = exp.createdAt || exp.timestamp;
-    if (!dateSource) return;
-
-    // 🔥 FIX UTAMA (JANGAN new Date)
-    const iso = safeISODate(dateSource);
+    const iso = safeISODate(exp.createdAt || exp.timestamp);
     if (!iso) return;
 
     const dateKey = iso.split('T')[0];
 
     if (!expensesByDate[dateKey]) {
       expensesByDate[dateKey] = {};
-      CATEGORIES.forEach(cat => {
-        expensesByDate[dateKey][cat] = 0;
-      });
+      CATEGORIES.forEach(cat => (expensesByDate[dateKey][cat] = 0));
     }
 
     if (expensesByDate[dateKey][exp.category] !== undefined) {
@@ -2325,17 +2321,17 @@ console.log('📦 filteredExpenses:', filteredExpenses.length);
   });
 
   const sortedDates = Object.keys(expensesByDate).sort();
-  if (sortedDates.length === 0) return; // 🔒 tidak ada data → jangan render
+  if (sortedDates.length === 0) return;
 
-  const labels = sortedDates.map(date =>
-    new Date(date).toLocaleDateString('id-ID', {
+  const labels = sortedDates.map(d =>
+    new Date(d).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short'
     })
   );
 
   // ===============================
-  // DATASETS (DINAMIS, TANPA DUPLIKASI)
+  // DATASETS (SATU SUMBER)
   // ===============================
   const datasets = [];
 
@@ -2344,137 +2340,39 @@ console.log('📦 filteredExpenses:', filteredExpenses.length);
 
     datasets.push({
       label: cat,
-      data: sortedDates.map(date => expensesByDate[date][cat] || 0),
+      data: sortedDates.map(d => expensesByDate[d][cat] || 0),
       borderWidth: 0,
       borderRadius: 8,
       borderSkipped: false,
       backgroundColor:
         cat === 'Belanja Bahan Baku'
-          ? 'rgba(220, 38, 38, 0.85)'
+          ? 'rgba(220,38,38,.85)'
           : cat === 'Operasional'
-          ? 'rgba(245, 158, 11, 0.85)'
-          : 'rgba(59, 130, 246, 0.85)',
-      borderColor:
-        cat === 'Belanja Bahan Baku'
-          ? 'rgb(220, 38, 38)'
-          : cat === 'Operasional'
-          ? 'rgb(245, 158, 11)'
-          : 'rgb(59, 130, 246)'
+          ? 'rgba(245,158,11,.85)'
+          : 'rgba(59,130,246,.85)'
     });
   });
 
-  if (chartVisibleData['Operasional']) {
-    datasets.push({
-      label: 'Operasional',
-      data: sortedDates.map(date => expensesByDate[date]['Operasional']),
-      backgroundColor: 'rgba(245, 158, 11, 0.85)',
-      borderColor: 'rgb(245, 158, 11)',
-      borderWidth: 0,
-      borderRadius: 8,
-      borderSkipped: false
-    });
+  if (datasets.length === 0) return;
+
+  // ===============================
+  // RENDER CHART
+  // ===============================
+  if (window.chartInstance) {
+    window.chartInstance.destroy();
   }
 
-  if (chartVisibleData['Staff']) {
-    datasets.push({
-      label: 'Staff',
-      data: sortedDates.map(date => expensesByDate[date]['Staff']),
-      backgroundColor: 'rgba(59, 130, 246, 0.85)',
-      borderColor: 'rgb(59, 130, 246)',
-      borderWidth: 0,
-      borderRadius: 8,
-      borderSkipped: false
-    });
-  }
-
- 
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
-
-  const ctx = canvas.getContext('2d');
-  chartInstance = new Chart(ctx, {
+  window.chartInstance = new Chart(canvas.getContext('2d'), {
     type: 'bar',
-    data: {
-      labels: labels,
-      datasets: datasets
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false
-      },
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13,
-            weight: '600'
-          },
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          borderWidth: 1,
-          displayColors: true,
-          boxWidth: 12,
-          boxHeight: 12,
-          boxPadding: 6,
-          callbacks: {
-            label: function(context) {
-              return (
-                context.dataset.label +
-                ': Rp ' +
-                context.parsed.y.toLocaleString('id-ID')
-              );
-            }
-          }
-        }
-      },
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false } },
       scales: {
-        x: {
-          stacked: false,
-          grid: {
-            display: false
-          },
-          ticks: {
-            font: {
-              size: 13,
-              weight: '700'
-            },
-            color: '#374151'
-          }
-        },
-        y: {
-          stacked: false,
-          beginAtZero: true,
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)',
-            lineWidth: 1
-          },
-          ticks: {
-            callback: function(value) {
-              if (value >= 1000000) {
-                return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
-              } else if (value >= 1000) {
-                return 'Rp ' + (value / 1000).toFixed(0) + 'rb';
-              }
-              return 'Rp ' + value.toLocaleString('id-ID');
-            },
-            font: {
-              size: 12,
-              weight: '600'
-            },
-            color: '#6b7280'
-          }
-        }
+        x: { grid: { display: false } },
+        y: { beginAtZero: true }
       }
     }
   });
@@ -2659,6 +2557,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
