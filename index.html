@@ -1454,15 +1454,39 @@ categoryExpenses.forEach(exp => {
                                                         const dateTotal = dateExpenses.reduce((sum, e) => sum + e.amount, 0);
                                                         return `
                                                             <div>
-                                                                <button onclick="toggleCategory('cat-${cat.category}-${dateKey}')" class="w-full bg-white rounded-xl p-4 flex items-center justify-between hover:shadow-lg transition-all border-2 border-gray-200">
-                                                                    <p class="text-lg font-black text-gray-800">${new Date(dateKey).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
-                                                                    <div class="flex items-center gap-3">
-                                                                        <p class="text-xl font-black text-purple-600">Rp ${dateTotal.toLocaleString('id-ID')}</p>
-                                                                        <svg id="icon-cat-${cat.category}-${dateKey}" class="w-5 h-5 text-purple-600 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-                                                                        </svg>
-                                                                    </div>
-                                                                </button>
+                                                               <button onclick="toggleCategory('cat-${cat.category}-${dateKey}')"
+  class="rounded-xl px-4 py-3 flex items-center justify-between
+         bg-red-500/30 text-red-900
+         hover:bg-red-500/40 transition-all">
+
+  <!-- KIRI -->
+  <div class="flex flex-col gap-1 text-left">
+    <!-- TANGGAL -->
+    <p class="text-xs font-medium leading-tight opacity-90">
+      ${new Date(dateKey).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })}
+    </p>
+
+    <!-- TOTAL -->
+    <p class="text-base font-bold leading-tight">
+      Rp ${dateTotal.toLocaleString('id-ID')}
+    </p>
+  </div>
+
+  <!-- ICON -->
+  <svg id="icon-cat-${cat.category}-${dateKey}"
+    class="w-4 h-4 transition-transform opacity-80"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2.5"
+    viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+  </svg>
+</button>
+
                                                                 <div id="detail-cat-${cat.category}-${dateKey}" class="collapsible-content">
                                                                     <div class="mt-2 space-y-2">
                                                                         ${dateExpenses.map(exp => `
@@ -2862,6 +2886,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
