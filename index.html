@@ -1415,15 +1415,43 @@ categoryExpenses.forEach(exp => {
                                                                 <div id="detail-cat-${cat.category}-${dateKey}" class="collapsible-content">
                                                                     <div class="mt-2 space-y-2">
                                                                         ${dateExpenses.map(exp => `
-                                                                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                                                <div class="flex items-center justify-between">
-                                                                                    <div class="flex items-center gap-3 flex-1">
-                                                                                        <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                                                                        <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-                                                                                    </div>
-                                                                                    <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-                                                                                </div>
-                                                                            </div>
+                                                                            <div class="bg-white rounded-lg px-3 py-2 border border-gray-200">
+  <div class="flex items-start justify-between gap-3">
+
+    <!-- KIRI -->
+    <div class="flex flex-col gap-1 min-w-0">
+      <div class="flex items-center gap-2 text-xs text-gray-500">
+        <span class="font-semibold shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
+        </span>
+
+        <span class="px-2 py-0.5 rounded-full font-semibold
+          ${exp.shift === 'shift1'
+            ? 'bg-red-100 text-red-700'
+            : exp.shift === 'shift2'
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-blue-100 text-blue-700'}">
+          ${exp.category}
+        </span>
+      </div>
+
+      <p class="text-sm font-semibold text-gray-800 leading-tight break-words">
+        ${exp.expense_name}
+      </p>
+    </div>
+
+    <!-- KANAN -->
+    <p class="text-sm font-bold whitespace-nowrap
+      ${exp.shift === 'shift1'
+        ? 'text-purple-600'
+        : exp.shift === 'shift2'
+        ? 'text-pink-600'
+        : 'text-blue-600'}">
+      Rp ${exp.amount.toLocaleString('id-ID')}
+    </p>
+
+  </div>
+</div>
                                                                         `).join('')}
                                                                     </div>
                                                                 </div>
@@ -1457,16 +1485,43 @@ categoryExpenses.forEach(exp => {
                                             <div id="detail-cat-${cat.category}" class="collapsible-content">
                                                 <div class="mt-3 space-y-2">
                                                     ${categoryExpenses.map(exp => `
-                                                        <div class="bg-white rounded-xl p-4 border border-gray-200">
-                                                            <div class="flex items-center justify-between">
-                                                                <div class="flex items-center gap-3 flex-1">
-                                                                    <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                                                    <span class="badge-modern ${exp.shift === 'shift1' ? 'bg-red-100 text-red-700' : exp.shift === 'shift2' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">${exp.shift === 'admin' ? 'Admin' : exp.shift === 'shift1' ? 'Shift 1' : 'Shift 2'}</span>
-                                                                    <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-                                                                </div>
-                                                                <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-                                                            </div>
-                                                        </div>
+                                                        <div class="bg-white rounded-lg px-3 py-2 border border-gray-200">
+  <div class="flex items-start justify-between gap-3">
+
+    <!-- KIRI -->
+    <div class="flex flex-col gap-1 min-w-0">
+      <div class="flex items-center gap-2 text-xs text-gray-500">
+        <span class="font-semibold shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
+        </span>
+
+        <span class="px-2 py-0.5 rounded-full font-semibold
+          ${exp.shift === 'shift1'
+            ? 'bg-red-100 text-red-700'
+            : exp.shift === 'shift2'
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-blue-100 text-blue-700'}">
+          ${exp.category}
+        </span>
+      </div>
+
+      <p class="text-sm font-semibold text-gray-800 leading-tight break-words">
+        ${exp.expense_name}
+      </p>
+    </div>
+
+    <!-- KANAN -->
+    <p class="text-sm font-bold whitespace-nowrap
+      ${exp.shift === 'shift1'
+        ? 'text-purple-600'
+        : exp.shift === 'shift2'
+        ? 'text-pink-600'
+        : 'text-blue-600'}">
+      Rp ${exp.amount.toLocaleString('id-ID')}
+    </p>
+
+  </div>
+</div>
                                                     `).join('')}
                                                 </div>
                                             </div>
@@ -2756,6 +2811,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
