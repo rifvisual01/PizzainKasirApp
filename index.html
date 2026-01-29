@@ -892,6 +892,11 @@ function renderAdminScreen() {
   const startDate = selectedPeriodStart || today;
   const endDate = selectedPeriodEnd || today;
 
+  const isMultiDay = startDate !== endDate;
+
+  // ===============================
+  // FILTER EXPENSES (GLOBAL)
+  // ===============================
   const filteredExpenses = expenses.filter(exp => {
     const dateSource = exp.createdAt || exp.timestamp;
     const expDate = safeISODate(dateSource)?.split('T')[0];
@@ -907,19 +912,34 @@ function renderAdminScreen() {
     return matchesPeriod && matchesSearch;
   });
 
+  // ===============================
+  // PISAH PER SHIFT
+  // ===============================
   const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
   const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
-  const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
 
-  const totalShift1 = shift1Expenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalShift2 = shift2Expenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalAdmin = adminExpenses.reduce((sum, e) => sum + e.amount, 0);
+  // 🔑 ADMIN: HANYA INPUT HARI INI (BUKAN LAPORAN)
+  const adminExpenses = filteredExpenses.filter(e => {
+    if (e.shift !== 'admin') return false;
+
+    // ❌ jangan tampil di multi-day
+    if (isMultiDay) return false;
+
+    // ✅ hanya hari ini
+    const expDate = safeISODate(e.createdAt || e.timestamp)?.split('T')[0];
+    return expDate === today;
+  });
+
+  // ===============================
+  // TOTAL
+  // ===============================
+  const totalShift1 = shift1Expenses.reduce((s, e) => s + e.amount, 0);
+  const totalShift2 = shift2Expenses.reduce((s, e) => s + e.amount, 0);
+  const totalAdmin = filteredExpenses
+    .filter(e => e.shift === 'admin')
+    .reduce((s, e) => s + e.amount, 0);
+
   const totalPengeluaran = totalShift1 + totalShift2 + totalAdmin;
-
-  const isMultiDay = startDate !== endDate;
-
-  // 🔑 INI KUNCI PERILAKU YANG KAMU MINTA
-  const isTodayOnly = startDate === today && endDate === today;
 
   // ===============================
   // GROUP BY DATE (LAPORAN HARIAN)
@@ -947,6 +967,7 @@ function renderAdminScreen() {
       .reduce((sum, e) => sum + e.amount, 0);
     return { category: cat, total };
   });
+
   return `
                 <div class="min-h-full p-6">
                     <div class="max-w-7xl mx-auto">
@@ -2571,6 +2592,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
