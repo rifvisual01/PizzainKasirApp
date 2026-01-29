@@ -2234,6 +2234,8 @@ function logoutAdmin() {
         }
 
 function createChart() {
+ console.log('🚀 createChart() DIPANGGIL');
+
   // ===============================
   // INIT VISIBILITY (WAJIB)
   // ===============================
@@ -2260,6 +2262,9 @@ function createChart() {
   // FILTER EXPENSES (FIXED)
   // ===============================
   const filteredExpenses = expenses.filter(exp => {
+   console.log('📦 expenses total:', expenses.length);
+console.log('📦 filteredExpenses:', filteredExpenses.length);
+
     const dateSource = exp.createdAt || exp.timestamp;
     if (!dateSource) return false;
 
@@ -2638,6 +2643,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
