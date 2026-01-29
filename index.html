@@ -367,6 +367,7 @@ async function init() {
 }
 
 async function loadBackendData() {
+  if (!navigator.onLine) return;
   const fd = new FormData();
   fd.append('action', 'getData');
 
@@ -446,38 +447,54 @@ function renderCurrentView() {
   // =====================
   // ADMIN (FINAL – STABIL)
   // =====================
-  if (currentView === 'admin') {
-    // 1️⃣ render awal (UI langsung tampil)
-    app.innerHTML = renderAdminScreen();
+ if (currentView === 'admin') {
+  // 1️⃣ render awal (UI langsung tampil)
+  app.innerHTML = renderAdminScreen();
 
-    if (!adminDataReady) {
-      Promise.all([
-        loadAllExpensesForAdmin(),
-        loadBackendData()
-      ])
-        .then(() => {
-          normalizeExpenses();
-          adminDataReady = true;
+  if (!adminDataReady) {
 
-          // 2️⃣ render ulang admin screen SETELAH data siap
-          app.innerHTML = renderAdminScreen();
+    // ===============================
+    // 🔒 OFFLINE MODE → JANGAN FETCH
+    // ===============================
+    if (!navigator.onLine) {
+      normalizeExpenses();
+      adminDataReady = true;
 
-          // 3️⃣ trigger grafik HANYA jika multi-day
-          const todayISO = safeISODate(new Date())?.split('T')[0];
-          const startDate = selectedPeriodStart || todayISO;
-          const endDate = selectedPeriodEnd || todayISO;
+      // 🔥 grafik hanya muncul kalau multi-day
+      const todayISO = safeISODate(new Date())?.split('T')[0];
+      const startDate = selectedPeriodStart || todayISO;
+      const endDate = selectedPeriodEnd || todayISO;
 
-          if (startDate && endDate && startDate !== endDate) {
-            requestAnimationFrame(() => {
-              createChart();
-            });
-          }
-        })
-        .catch(() => {});
+      if (startDate && endDate && startDate !== endDate) {
+        requestAnimationFrame(() => {
+          createChart();
+        });
+      }
+
+      return;
     }
 
-    return;
-  }
+    // ===============================
+    // 🌐 ONLINE MODE → FETCH NORMAL
+    // ===============================
+    Promise.all([
+      loadAllExpensesForAdmin(),
+      loadBackendData()
+    ])
+      .then(() => {
+        normalizeExpenses();
+        adminDataReady = true;
+
+        // 2️⃣ render ulang admin screen SETELAH data siap
+        app.innerHTML = renderAdminScreen();
+
+        // 3️⃣ trigger grafik HANYA jika multi-day
+        const todayISO = safeISODate(new Date())?.split('T')[0];
+        const startDate = selectedPeriodStart || todayISO;
+        const endDate = selectedPeriodEnd || todayISO;
+
+        if (start
+
 }
 
         function renderHomeScreen() {
@@ -863,6 +880,7 @@ const shiftExpenses = expenses.filter(e =>
         }
 
    async function loadAllExpensesForAdmin() {
+  if (!navigator.onLine) return;
   try {
     const fd = new FormData();
     fd.append('action', 'getAllExpenses');
@@ -2594,6 +2612,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
