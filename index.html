@@ -765,11 +765,13 @@ const shiftExpenses = expenses.filter(e =>
                                         <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
                                             <div class="flex items-center justify-between gap-4">
                                                 <div class="flex items-center gap-3 flex-1">
-                                                    <span class="text-base font-bold text-gray-500">${new Date(exp.createdAt).toLocaleTimeString('id-ID', {
-  hour: '2-digit',
-  minute: '2-digit'
-})
-}</span>
+                                                    <span class="text-xs font-semibold text-gray-500 shrink-0">
+  ${new Date(exp.createdAt || exp.timestamp).toLocaleTimeString(
+    'id-ID',
+    { hour: '2-digit', minute: '2-digit' }
+  )}
+</span>
+
                                                     <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
                                                     <p class="font-bold text-lg text-gray-800">${exp.expense_name}</p>
                                                 </div>
@@ -793,17 +795,35 @@ const shiftExpenses = expenses.filter(e =>
                             <h3 class="text-2xl font-black text-gray-800 mb-6">👁️ Riwayat Shift 1 (Hanya Lihat)</h3>
                             <div class="space-y-3">
                                 ${prevShiftExpenses.map(exp => `
-                                    <div class="bg-white rounded-xl p-4 border border-gray-200">
-                                        <div class="flex items-center justify-between gap-4">
-                                            <div class="flex items-center gap-3 flex-1">
-                                                <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                                <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
-                                                <p class="font-bold text-lg text-gray-800">${exp.expense_name}</p>
-                                            </div>
-                                            <p class="text-xl font-black text-red-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-                                        </div>
-                                    </div>
-                                `).join('')}
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <span class="badge-modern bg-red-100 text-red-700 text-xs px-2 py-0.5 shrink-0">
+          ${exp.category}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
+      </div>
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-red-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
                             </div>
                         </div>
                         ` : ''}
@@ -1040,36 +1060,49 @@ function renderAdminScreen() {
                             <button onclick="addExpense()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
                                 ➕ Tambah Pengeluaran
                             </button>
-                           ${isTodayOnly && adminExpenses.length > 0 ? `
+                          ${isTodayOnly && adminExpenses.length > 0 ? `
   <div class="mt-4 space-y-2">
     ${adminExpenses.map(exp => `
-      <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3 flex-1">
-            <span class="text-base font-bold text-gray-500">
-              ${new Date(exp.createdAt || exp.timestamp).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+      <div data-expense-id="${exp.id}"
+        class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+
+        <div class="flex items-center justify-between gap-2">
+
+          <!-- KIRI -->
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="text-xs font-semibold text-gray-500 shrink-0">
+              ${new Date(exp.createdAt || exp.timestamp).toLocaleTimeString(
+                'id-ID',
+                { hour: '2-digit', minute: '2-digit' }
+              )}
             </span>
-            <span class="badge-modern bg-blue-100 text-blue-700">
+
+            <span class="badge-modern bg-blue-100 text-blue-700 text-xs px-2 py-0.5 shrink-0">
               ${exp.category}
             </span>
-            <p class="font-bold text-base text-gray-800">
+
+            <p class="text-sm font-semibold text-gray-800 truncate">
               ${exp.expense_name}
             </p>
           </div>
-          <div class="flex items-center gap-3">
-            <p class="text-xl font-black text-blue-600">
+
+          <!-- KANAN -->
+          <div class="flex items-center gap-2 shrink-0">
+            <p class="text-sm font-bold text-blue-600 whitespace-nowrap">
               Rp ${exp.amount.toLocaleString('id-ID')}
             </p>
+
             <button
               onclick="deleteExpense('${exp.id}')"
-              class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg"
+              class="w-7 h-7 flex items-center justify-center
+                     bg-red-50 hover:bg-red-100
+                     text-red-600 rounded-md text-sm"
+              title="Hapus"
             >
               ✕
             </button>
           </div>
+
         </div>
       </div>
     `).join('')}
@@ -1219,22 +1252,36 @@ ${(() => {
 })()}
 
     <div class="space-y-2">
-      ${shift1Items.map(exp => `
-        <div class="bg-white rounded-xl p-4 border border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3 flex-1">
-              <span class="text-base font-bold text-gray-500">
-                ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
-              </span>
-              <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
-              <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-            </div>
-            <p class="text-xl font-black text-purple-600">
-              Rp ${exp.amount.toLocaleString('id-ID')}
-            </p>
-          </div>
-        </div>
-      `).join('')}
+    ${shift1Items.map(exp => `
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <span class="badge-modern bg-red-100 text-red-700 text-xs px-2 py-0.5 shrink-0">
+          ${exp.category}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
+      </div>
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-purple-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
     </div>
 </div>
 ` : ''}
@@ -1259,21 +1306,35 @@ ${(() => {
 
     <div class="space-y-2">
       ${shift2Items.map(exp => `
-        <div class="bg-white rounded-xl p-4 border border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3 flex-1">
-              <span class="text-base font-bold text-gray-500">
-                ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
-              </span>
-              <span class="badge-modern bg-amber-100 text-amber-700">${exp.category}</span>
-              <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-            </div>
-            <p class="text-xl font-black text-pink-600">
-              Rp ${exp.amount.toLocaleString('id-ID')}
-            </p>
-          </div>
-        </div>
-      `).join('')}
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <span class="badge-modern bg-amber-100 text-amber-700 text-xs px-2 py-0.5 shrink-0">
+          ${exp.category}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
+      </div>
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-pink-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
     </div>
 </div>
 ` : ''}
@@ -1284,25 +1345,35 @@ ${(() => {
                                                         <h4 class="text-xl font-black text-gray-700 mb-3">Pengeluaran Admin</h4>
                                                         <div class="space-y-2">
                                                             ${adminItems.map(exp => `
-                                                                <div class="bg-white rounded-xl p-4 border border-gray-200">
-                                                                    <div class="flex items-center justify-between">
-                                                                        <div class="flex items-center gap-3 flex-1">
-                                                                            <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                                                            <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
-                                                                            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-                                                                        </div>
-                                                                        <p class="text-xl font-black text-blue-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-                                                                    </div>
-                                                                </div>
-                                                            `).join('')}
-                                                        </div>
-                                                    </div>
-                                                    ` : ''}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <span class="badge-modern bg-blue-100 text-blue-700 text-xs px-2 py-0.5 shrink-0">
+          ${exp.category}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
+      </div>
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-blue-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
                             </div>
                         </div>
 
@@ -1354,21 +1425,31 @@ categoryExpenses.forEach(exp => {
                                                                 <div id="detail-cat-${cat.category}-${dateKey}" class="collapsible-content">
                                                                     <div class="mt-2 space-y-2">
                                                                         ${dateExpenses.map(exp => `
-                                                                            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                                                <div class="flex items-center justify-between">
-                                                                                    <div class="flex items-center gap-3 flex-1">
-                                                                                        <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                                                                        <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-                                                                                    </div>
-                                                                                    <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                        `).join('')}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        `;
-                                                    }).join('')}
+  <div class="bg-gray-50 rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
+      </div>
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-purple-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
                                                 </div>
                                             </div>
                                         </div>
@@ -1396,22 +1477,48 @@ categoryExpenses.forEach(exp => {
                                             <div id="detail-cat-${cat.category}" class="collapsible-content">
                                                 <div class="mt-3 space-y-2">
                                                     ${categoryExpenses.map(exp => `
-                                                        <div class="bg-white rounded-xl p-4 border border-gray-200">
-                                                            <div class="flex items-center justify-between">
-                                                                <div class="flex items-center gap-3 flex-1">
-                                                                    <span class="text-base font-bold text-gray-500">${new Date(exp.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
-                                                                    <span class="badge-modern ${exp.shift === 'shift1' ? 'bg-red-100 text-red-700' : exp.shift === 'shift2' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">${exp.shift === 'admin' ? 'Admin' : exp.shift === 'shift1' ? 'Shift 1' : 'Shift 2'}</span>
-                                                                    <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-                                                                </div>
-                                                                <p class="text-xl font-black text-purple-600">Rp ${exp.amount.toLocaleString('id-ID')}</p>
-                                                            </div>
-                                                        </div>
-                                                    `).join('')}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+
+        <!-- JAM -->
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <!-- BADGE SHIFT -->
+        <span class="badge-modern text-xs px-2 py-0.5 shrink-0
+          ${exp.shift === 'shift1'
+            ? 'bg-red-100 text-red-700'
+            : exp.shift === 'shift2'
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-blue-100 text-blue-700'}">
+          ${exp.shift === 'admin'
+            ? 'Admin'
+            : exp.shift === 'shift1'
+            ? 'Shift 1'
+            : 'Shift 2'}
+        </span>
+
+        <!-- NAMA -->
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
+      </div>
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-purple-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
                             </div>
                         </div>
                         
@@ -1441,21 +1548,35 @@ ${shift1Expenses.length === 0 ? `
 ` : `
   <div class="space-y-2">
     ${shift1Expenses.map(exp => `
-      <div class="bg-white rounded-xl p-4 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3 flex-1">
-            <span class="text-base font-bold text-gray-500">
-              ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
-            </span>
-            <span class="badge-modern bg-red-100 text-red-700">${exp.category}</span>
-            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-          </div>
-          <p class="text-xl font-black text-purple-600">
-            Rp ${exp.amount.toLocaleString('id-ID')}
-          </p>
-        </div>
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <span class="badge-modern bg-red-100 text-red-700 text-xs px-2 py-0.5 shrink-0">
+          ${exp.category}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
       </div>
-    `).join('')}
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-purple-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
   </div>
 `}
 </div>
@@ -1484,21 +1605,35 @@ ${shift2Expenses.length === 0 ? `
 ` : `
   <div class="space-y-2">
     ${shift2Expenses.map(exp => `
-      <div class="bg-white rounded-xl p-4 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3 flex-1">
-            <span class="text-base font-bold text-gray-500">
-              ${new Date(exp.timestamp).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})}
-            </span>
-            <span class="badge-modern bg-amber-100 text-amber-700">${exp.category}</span>
-            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
-          </div>
-          <p class="text-xl font-black text-pink-600">
-            Rp ${exp.amount.toLocaleString('id-ID')}
-          </p>
-        </div>
+  <div class="bg-white rounded-xl px-3 py-2 border border-gray-200">
+    <div class="flex items-center justify-between gap-2">
+
+      <!-- KIRI -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-xs font-semibold text-gray-500 shrink-0">
+          ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+
+        <span class="badge-modern bg-amber-100 text-amber-700 text-xs px-2 py-0.5 shrink-0">
+          ${exp.category}
+        </span>
+
+        <p class="text-sm font-semibold text-gray-800 truncate">
+          ${exp.expense_name}
+        </p>
       </div>
-    `).join('')}
+
+      <!-- KANAN -->
+      <p class="text-sm font-bold text-pink-600 whitespace-nowrap shrink-0">
+        Rp ${exp.amount.toLocaleString('id-ID')}
+      </p>
+
+    </div>
+  </div>
+`).join('')}
   </div>
 `}
 </div>
@@ -1514,13 +1649,13 @@ ${shift2Expenses.length === 0 ? `
                                             <div class="bg-white rounded-xl p-4 border border-gray-200">
                                                 <div class="flex items-center justify-between">
                                                     <div class="flex items-center gap-3 flex-1">
-                                                        <span class="text-base font-bold text-gray-500">
-  ${
-    new Date(
-      exp.createdAt || exp.timestamp
-    ).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-  }
+                                                       <span class="text-xs font-semibold text-gray-500 shrink-0">
+  ${new Date(exp.createdAt || exp.timestamp).toLocaleTimeString(
+    'id-ID',
+    { hour: '2-digit', minute: '2-digit' }
+  )}
 </span>
+
                                                         <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
                                                         <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
                                                     </div>
@@ -2649,6 +2784,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
