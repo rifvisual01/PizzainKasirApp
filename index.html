@@ -2200,38 +2200,54 @@ function logoutAdmin() {
 }
 
 
-        function applyFilters() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const search = document.getElementById('searchInput').value;
-            
-            if (!startDate || !endDate) {
-                showNotification('⚠️ Pilih periode!', 'warning');
-                return;
-            }
-            
-            selectedPeriodStart = startDate;
-            selectedPeriodEnd = endDate;
-            searchQuery = search;
-            
-            showNotification('✅ Filter diterapkan!', 'success');
-            renderCurrentView();
-        }
+     function applyFilters() {
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const search = document.getElementById('searchInput').value;
 
-        function toggleChartData(type) {
-            chartVisibleData[type] = !chartVisibleData[type];
-            
-            const button = document.getElementById(`chart-toggle-${type}`);
-            if (chartVisibleData[type]) {
-                if (type === 'Bahan Baku') button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white';
-                else if (type === 'Operasional') button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white';
-                else button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white';
-            } else {
-                button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-md bg-gray-200 text-gray-400';
-            }
-            
-            updateChart();
-        }
+  if (!startDate || !endDate) {
+    showNotification('⚠️ Pilih periode!', 'warning');
+    return;
+  }
+
+  selectedPeriodStart = startDate;
+  selectedPeriodEnd = endDate;
+  searchQuery = search;
+
+  showNotification('✅ Filter diterapkan!', 'success');
+
+  // 1️⃣ Render ulang admin view
+  renderCurrentView();
+
+  // 2️⃣ TRIGGER CHART JIKA MULTI-DAY (INI KUNCI)
+  if (startDate !== endDate) {
+    requestAnimationFrame(() => {
+      createChart();
+    });
+  }
+}
+
+function toggleChartData(type) {
+  chartVisibleData[type] = !chartVisibleData[type];
+
+  const button = document.getElementById(`chart-toggle-${type}`);
+  if (chartVisibleData[type]) {
+    if (type === 'Belanja Bahan Baku')
+      button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white';
+    else if (type === 'Operasional')
+      button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white';
+    else
+      button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white';
+  } else {
+    button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-md bg-gray-200 text-gray-400';
+  }
+
+  // 🔥 JANGAN updateChart (tidak ada)
+  requestAnimationFrame(() => {
+    createChart();
+  });
+}
+
 
 function createChart() {
  console.log('🚀 createChart() DIPANGGIL');
@@ -2643,6 +2659,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
