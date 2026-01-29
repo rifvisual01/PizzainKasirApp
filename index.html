@@ -894,45 +894,60 @@ const shiftExpenses = expenses.filter(e =>
   const endDate = selectedPeriodEnd || today;
 
   const filteredExpenses = expenses.filter(exp => {
-  const expDate = safeISODate(exp.createdAt)?.split('T')[0];
-  if (!expDate) return false;
+    const dateSource = exp.createdAt || exp.timestamp;
+    const expDate = safeISODate(dateSource)?.split('T')[0];
+    if (!expDate) return false;
 
-  const matchesPeriod = expDate >= startDate && expDate <= endDate;
-  const matchesSearch =
-    !searchQuery ||
-    (exp.expense_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPeriod = expDate >= startDate && expDate <= endDate;
+    const matchesSearch =
+      !searchQuery ||
+      (exp.expense_name || '')
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
-  return matchesPeriod && matchesSearch;
-});
+    return matchesPeriod && matchesSearch;
+  });
 
-            const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
-            const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
-            const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
-            
-            const totalShift1 = shift1Expenses.reduce((sum, e) => sum + e.amount, 0);
-            const totalShift2 = shift2Expenses.reduce((sum, e) => sum + e.amount, 0);
-            const totalAdmin = adminExpenses.reduce((sum, e) => sum + e.amount, 0);
-            const totalPengeluaran = totalShift1 + totalShift2 + totalAdmin;
-            
-            const isMultiDay = startDate !== endDate;
-            
-            // Group by date
-            const expensesByDate = {};
-            filteredExpenses.forEach(exp => {
-                const dateSource = exp.createdAt || exp.timestamp;
-const dateKey = safeISODate(dateSource)?.split('T')[0];
-if (!dateKey) return;
+  const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
+  const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
+  const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
 
-if (!expensesByDate[dateKey]) expensesByDate[dateKey] = [];
-expensesByDate[dateKey].push(exp);
-            });
-            const sortedDates = Object.keys(expensesByDate).sort((a, b) => new Date(b) - new Date(a));
-            
-            // Group by category
-            const categoryTotals = CATEGORIES.map(cat => {
-                const total = filteredExpenses.filter(e => e.category === cat).reduce((sum, e) => sum + e.amount, 0);
-                return { category: cat, total };
-            });
+  const totalShift1 = shift1Expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalShift2 = shift2Expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalAdmin = adminExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalPengeluaran = totalShift1 + totalShift2 + totalAdmin;
+
+  const isMultiDay = startDate !== endDate;
+
+  // 🔑 INI KUNCI PERILAKU YANG KAMU MINTA
+  const isTodayOnly = startDate === today && endDate === today;
+
+  // ===============================
+  // GROUP BY DATE (LAPORAN HARIAN)
+  // ===============================
+  const expensesByDate = {};
+  filteredExpenses.forEach(exp => {
+    const dateSource = exp.createdAt || exp.timestamp;
+    const dateKey = safeISODate(dateSource)?.split('T')[0];
+    if (!dateKey) return;
+
+    if (!expensesByDate[dateKey]) expensesByDate[dateKey] = [];
+    expensesByDate[dateKey].push(exp);
+  });
+
+  const sortedDates = Object.keys(expensesByDate).sort(
+    (a, b) => new Date(b) - new Date(a)
+  );
+
+  // ===============================
+  // GROUP BY CATEGORY (SUMMARY)
+  // ===============================
+  const categoryTotals = CATEGORIES.map(cat => {
+    const total = filteredExpenses
+      .filter(e => e.category === cat)
+      .reduce((sum, e) => sum + e.amount, 0);
+    return { category: cat, total };
+  });
             
             return `
                 <div class="min-h-full p-6">
@@ -976,24 +991,31 @@ expensesByDate[dateKey].push(exp);
                             </button>
                             ${adminExpenses.length > 0 ? `
   <div class="mt-4 space-y-2">
+   ${isTodayOnly && adminExpenses.length > 0 ? `
+  <div class="space-y-2">
     ${adminExpenses.map(exp => `
-      <div data-expense-id="${exp.id}" class="bg-white rounded-xl p-4 border border-gray-200">
+      <div class="bg-white rounded-xl p-4 border border-gray-200">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3 flex-1">
             <span class="text-base font-bold text-gray-500">
-             ${new Date(exp.createdAt || exp.timestamp).toLocaleTimeString('id-ID', {
-  hour: '2-digit',
-  minute: '2-digit'
-})}
+              ${new Date(exp.timestamp).toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
             </span>
-            <span class="badge-modern bg-blue-100 text-blue-700">${exp.category}</span>
-            <p class="font-bold text-base text-gray-800">${exp.expense_name}</p>
+            <span class="badge-modern bg-blue-100 text-blue-700">
+              ${exp.category}
+            </span>
+            <p class="font-bold text-base text-gray-800">
+              ${exp.expense_name}
+            </p>
           </div>
           <div class="flex items-center gap-3">
             <p class="text-xl font-black text-blue-600">
               Rp ${exp.amount.toLocaleString('id-ID')}
             </p>
-            <button onclick="deleteExpense('${exp.id}')" class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">
+            <button onclick="deleteExpense('${exp.id}')"
+              class="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg">
               ✕
             </button>
           </div>
@@ -1002,6 +1024,7 @@ expensesByDate[dateKey].push(exp);
     `).join('')}
   </div>
 ` : ''}
+
 
 </div>
 
@@ -2552,6 +2575,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
