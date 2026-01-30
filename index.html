@@ -1001,19 +1001,31 @@ function renderAdminScreen() {
   });
 
   return `
-                <div class="min-h-full p-6">
-                    <div class="max-w-7xl mx-auto">
-                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <h2 class="text-2xl font-black text-gray-800 mb-2">📊 ${config.admin_label || defaultConfig.admin_label}</h2>
-                                    <p class="text-lg text-gray-600 font-semibold">Ringkasan & Laporan Pengeluaran</p>
-                                </div>
-                                <button onclick="logoutAdmin()" class="gradient-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
-                                    Logout & Save
-                                </button>
-                            </div>
-                        </div>
+                <div class="glass-effect card-modern rounded-3xl p-6 mb-6">
+
+  <!-- BARIS 1 : JUDUL -->
+  <div class="flex items-start gap-3 mb-4">
+    <span class="text-3xl">📊</span>
+    <div>
+      <h2 class="text-3xl font-black text-gray-800 leading-tight">
+        Laporan Admin
+      </h2>
+      <p class="text-sm font-semibold text-gray-600">
+        Ringkasan & Laporan Pengeluaran
+      </p>
+    </div>
+  </div>
+
+  <button
+  onclick="logoutAdmin()"
+  class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
+>
+  Logout & Save
+</button>
+
+
+</div>
+
                         
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">➕ Pengeluaran Admin</h3>
@@ -1135,62 +1147,69 @@ function renderAdminScreen() {
 
                         
                         ${!isMultiDay ? `
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+<div class="px-4 md:px-6 mb-8">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
 
     <div class="gradient-primary rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 1</p>
-        <p class="text-3xl font-black">Rp ${totalShift1.toLocaleString('id-ID')}</p>
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
+        📊 Total Shift 1
+      </p>
+      <p class="text-3xl font-black">
+        Rp ${totalShift1.toLocaleString('id-ID')}
+      </p>
     </div>
 
     <div class="gradient-primary rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 2</p>
-        <p class="text-3xl font-black">Rp ${totalShift2.toLocaleString('id-ID')}</p>
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
+        📊 Total Shift 2
+      </p>
+      <p class="text-3xl font-black">
+        Rp ${totalShift2.toLocaleString('id-ID')}
+      </p>
     </div>
 
     <div class="gradient-primary rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Admin</p>
-        <p class="text-3xl font-black">Rp ${totalAdmin.toLocaleString('id-ID')}</p>
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
+        📊 Total Admin
+      </p>
+      <p class="text-3xl font-black">
+        Rp ${totalAdmin.toLocaleString('id-ID')}
+      </p>
     </div>
 
     <div class="bg-red-900 rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">💸 Total Pengeluaran</p>
-        <p class="text-3xl font-black">Rp ${totalPengeluaran.toLocaleString('id-ID')}</p>
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
+        💸 Total Pengeluaran
+      </p>
+      <p class="text-3xl font-black">
+        Rp ${totalPengeluaran.toLocaleString('id-ID')}
+      </p>
     </div>
 
+  </div>
 </div>
+
+
 ` : `
 
-                        <!-- ========================= -->
-<!-- 📊 GRAFIK PENGELUARAN -->
-<!-- ========================= -->
-<div class="glass-effect card-modern rounded-3xl p-6 mb-8">
-
-  <!-- HEADER -->
-  <h3 class="text-xl font-black text-gray-800 mb-4 flex items-center gap-2">
-    📊 Grafik Pengeluaran
-  </h3>
-
-  <!-- FILTER KATEGORI -->
-  <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
-    <button class="px-4 py-2 rounded-full text-sm font-bold bg-red-600 text-white">
-      🍕 Bahan Baku
-    </button>
-    <button class="px-4 py-2 rounded-full text-sm font-bold bg-orange-500 text-white">
-      ⚙️ Operasional
-    </button>
-    <button class="px-4 py-2 rounded-full text-sm font-bold bg-blue-600 text-white">
-      👥 Staff
-    </button>
-  </div>
-
-  <!-- CHART WRAPPER (DIBATASI) -->
-  <div class="relative w-full h-[360px] sm:h-[420px] md:h-[480px] lg:h-[520px]">
-    <canvas id="expenseChart"></canvas>
-  </div>
-
-</div>
-<!-- ⛔ CARD GRAFIK BERAKHIR DI SINI -->
-
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran</h3>
+                            <div class="mb-6 flex gap-3 flex-wrap">
+                                <button onclick="toggleChartData('Bahan Baku')" id="chart-toggle-Bahan Baku" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white">
+                                    🥘 Bahan Baku
+                                </button>
+                                <button onclick="toggleChartData('Operasional')" id="chart-toggle-Operasional" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white">
+                                    ⚙️ Operasional
+                                </button>
+                                <button onclick="toggleChartData('Staff')" id="chart-toggle-Staff" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                    👥 Staff
+                                </button>
+                            </div>
+                            <div class="relative bg-white rounded-2xl p-6 shadow-inner" style="height: 450px;">
+                                <canvas id="expenseChart"></canvas>
+                            </div>
+                        </div>
+                        `}
                         
                         ${isMultiDay ? `
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
@@ -1824,10 +1843,10 @@ ${shift2Expenses.length === 0 ? `
                             <div class="mb-4">
 
   <!-- HEADER ADMIN -->
-  <div class="rounded-xl p-4 mb-3 bg-red-300 border border-red-300">
+  <div class="rounded-xl p-4 mb-3 bg-blue-300 border border-red-300">
     <div class="flex items-center justify-between">
-      <span class="text-2xl font-black text-red-800 tracking-tight">
-        Pengeluaran Admin
+      <span class="text-xl font-black text-red-800 tracking-tight">
+        Admin
       </span>
       <span class="text-sm font-semibold text-red-900/80">
         📋 Admin
@@ -2995,6 +3014,9 @@ setInterval(() => {
 
 </body>
 </html>
+
+
+
 
 
 
