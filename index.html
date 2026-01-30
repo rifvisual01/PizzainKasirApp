@@ -117,7 +117,8 @@
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
    let isProcessingQueue = false;
    let adminDataReady = false;
-   let adminLoading = false;
+let adminRendering = false;
+
 let isSyncing = false;        
 let db;
 
@@ -450,22 +451,19 @@ function renderCurrentView() {
 // =====================
 if (currentView === 'admin') {
 
-  // ⛔ JANGAN render ulang kalau admin sudah tampil
-  if (!adminRendering) {
-    app.innerHTML = renderAdminScreen(true); // true = loading
-    adminRendering = true;
-  }
+  // ⛔ cegah render dobel
+  if (adminRendering) return;
+  adminRendering = true;
+
+  // render awal
+  app.innerHTML = renderAdminScreen();
 
   if (!adminDataReady) {
 
-    // ===============================
-    // 🔒 OFFLINE MODE → TANPA FETCH
-    // ===============================
+    // OFFLINE MODE
     if (!navigator.onLine) {
       normalizeExpenses();
       adminDataReady = true;
-
-      app.innerHTML = renderAdminScreen(false);
 
       const todayISO = safeISODate(new Date())?.split('T')[0];
       const startDate = selectedPeriodStart || todayISO;
@@ -475,12 +473,11 @@ if (currentView === 'admin') {
         requestAnimationFrame(createChart);
       }
 
+      adminRendering = false;
       return;
     }
 
-    // ===============================
-    // 🌐 ONLINE MODE → FETCH
-    // ===============================
+    // ONLINE MODE
     Promise.all([
       loadAllExpensesForAdmin(),
       loadBackendData()
@@ -488,9 +485,7 @@ if (currentView === 'admin') {
       .then(() => {
         normalizeExpenses();
         adminDataReady = true;
-
-        // 🔥 RENDER ULANG SEKALI SETELAH DATA SIAP
-        app.innerHTML = renderAdminScreen(false);
+        app.innerHTML = renderAdminScreen();
 
         const todayISO = safeISODate(new Date())?.split('T')[0];
         const startDate = selectedPeriodStart || todayISO;
@@ -500,12 +495,12 @@ if (currentView === 'admin') {
           requestAnimationFrame(createChart);
         }
       })
-      .catch(() => {
-        // fallback aman
-        normalizeExpenses();
-        adminDataReady = true;
-        app.innerHTML = renderAdminScreen(false);
+      .finally(() => {
+        adminRendering = false;
       });
+
+  } else {
+    adminRendering = false;
   }
 
   return;
@@ -3017,6 +3012,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
