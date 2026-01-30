@@ -602,7 +602,7 @@ const shift2Count = shift2Expenses.length;
                                     `}
                                 </div>
                                 <h3 class="text-3xl font-black text-gray-800 mb-2">${shift1Label}</h3>
-                                <p class="text-base text-gray-500 mb-6 font-medium">Laman input pengeluaran shift pertama</p>
+                                <p class="text-base text-gray-500 mb-6 font-medium">13.00 - 18.30 WIB</p>
                                 <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
                                     <span class="text-sm font-bold text-gray-600">Transaksi</span>
                                     <span class="text-2xl font-black text-red-600">${shift1Count}</span>
@@ -633,7 +633,7 @@ const shift2Count = shift2Expenses.length;
                                     `}
                                 </div>
                                 <h3 class="text-3xl font-black text-gray-800 mb-2">${shift2Label}</h3>
-                                <p class="text-base text-gray-500 mb-6 font-medium">Laman input pengeluaran shift kedua</p>
+                                <p class="text-base text-gray-500 mb-6 font-medium">18.30 - 23.00 WIB</p>
                                 <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
                                     <span class="text-sm font-bold text-gray-600">Transaksi</span>
                                     <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
@@ -731,7 +731,7 @@ const shiftExpenses = expenses.filter(e =>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Nama Pengeluaran</label>
-                                    <input type="text" id="expenseName" placeholder="Cth: Pembelian bahan" class="input-modern w-full rounded-xl px-4 py-3">
+                                    <input type="text" id="expenseName" placeholder="Cth: Air RO, Gas" class="input-modern w-full rounded-xl px-4 py-3">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Nominal</label>
@@ -754,7 +754,7 @@ const shiftExpenses = expenses.filter(e =>
                         </div>
                         
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
-                            <h3 class="text-2xl font-black text-gray-800 mb-6">📋 Riwayat Pengeluaran ${shiftLabel}</h3>
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📋 Pengeluaran ${shiftLabel}</h3>
                             ${shiftExpenses.length === 0 ? `
                                 <div class="text-center py-12">
                                     <p class="text-lg font-semibold text-gray-400">Belum ada pengeluaran</p>
@@ -1006,7 +1006,7 @@ function renderAdminScreen() {
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <h2 class="text-4xl font-black text-gray-800 mb-2">📊 ${config.admin_label || defaultConfig.admin_label}</h2>
+                                    <h2 class="text-2xl font-black text-gray-800 mb-2">📊 ${config.admin_label || defaultConfig.admin_label}</h2>
                                     <p class="text-lg text-gray-600 font-semibold">Ringkasan & Laporan Pengeluaran</p>
                                 </div>
                                 <button onclick="logoutAdmin()" class="gradient-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
@@ -1161,7 +1161,7 @@ function renderAdminScreen() {
 ` : `
 
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
-                            <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran per Hari</h3>
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran</h3>
                             <div class="mb-6 flex gap-3 flex-wrap">
                                 <button onclick="toggleChartData('Bahan Baku')" id="chart-toggle-Bahan Baku" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white">
                                     🥘 Bahan Baku
@@ -1181,7 +1181,7 @@ function renderAdminScreen() {
                         
                         ${isMultiDay ? `
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
-                            <h3 class="text-2xl font-black text-gray-800 mb-6">📅 Pengeluaran per Hari</h3>
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">📅 Pengeluaran Harian</h3>
                             <div class="space-y-3">
                                 ${sortedDates.map(dateKey => {
                                     const dateExpenses = expensesByDate[dateKey];
@@ -1401,7 +1401,7 @@ ${(() => {
                         </div>
 
                          <div class="glass-effect card-modern rounded-3xl p-8">
-                            <h3 class="text-2xl font-black text-gray-800 mb-6">🏷️ Pengeluaran per Kategori</h3>
+                            <h3 class="text-2xl font-black text-gray-800 mb-6">🏷️ Kategori Pengeluaran</h3>
                             <div class="space-y-3">
                                 ${categoryTotals.map(cat => {
                                     const categoryExpenses = filteredExpenses.filter(e => e.category === cat.category);
@@ -2887,6 +2887,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
