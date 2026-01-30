@@ -117,8 +117,6 @@
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
    let isProcessingQueue = false;
    let adminDataReady = false;
-let adminRendering = false;
-
 let isSyncing = false;        
 let db;
 
@@ -446,38 +444,39 @@ function renderCurrentView() {
     return;
   }
 
-// =====================
-// ADMIN (FINAL – STABIL)
-// =====================
-if (currentView === 'admin') {
-
-  // ⛔ cegah render dobel
-  if (adminRendering) return;
-  adminRendering = true;
-
-  // render awal
+  // =====================
+  // ADMIN (FINAL – STABIL)
+  // =====================
+ if (currentView === 'admin') {
+  // 1️⃣ render awal (UI langsung tampil)
   app.innerHTML = renderAdminScreen();
 
   if (!adminDataReady) {
 
-    // OFFLINE MODE
+    // ===============================
+    // 🔒 OFFLINE MODE → JANGAN FETCH
+    // ===============================
     if (!navigator.onLine) {
       normalizeExpenses();
       adminDataReady = true;
 
+      // 🔥 grafik hanya muncul kalau multi-day
       const todayISO = safeISODate(new Date())?.split('T')[0];
       const startDate = selectedPeriodStart || todayISO;
       const endDate = selectedPeriodEnd || todayISO;
 
-      if (startDate !== endDate) {
-        requestAnimationFrame(createChart);
+      if (startDate && endDate && startDate !== endDate) {
+        requestAnimationFrame(() => {
+          createChart();
+        });
       }
 
-      adminRendering = false;
       return;
     }
 
-    // ONLINE MODE
+    // ===============================
+    // 🌐 ONLINE MODE → FETCH NORMAL
+    // ===============================
     Promise.all([
       loadAllExpensesForAdmin(),
       loadBackendData()
@@ -485,27 +484,30 @@ if (currentView === 'admin') {
       .then(() => {
         normalizeExpenses();
         adminDataReady = true;
+
+        // 2️⃣ render ulang admin screen SETELAH data siap
         app.innerHTML = renderAdminScreen();
 
+        // 3️⃣ trigger grafik HANYA jika multi-day
         const todayISO = safeISODate(new Date())?.split('T')[0];
         const startDate = selectedPeriodStart || todayISO;
         const endDate = selectedPeriodEnd || todayISO;
 
-        if (startDate !== endDate) {
-          requestAnimationFrame(createChart);
+        if (startDate && endDate && startDate !== endDate) {
+          requestAnimationFrame(() => {
+            createChart();
+          });
         }
       })
-      .finally(() => {
-        adminRendering = false;
+      .catch(() => {
+        // fallback aman (misal koneksi putus mendadak)
+        normalizeExpenses();
+        adminDataReady = true;
       });
-
-  } else {
-    adminRendering = false;
   }
 
   return;
 }
-
 }
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -913,7 +915,7 @@ const shiftExpenses = expenses.filter(e =>
   }
 }
 
-function renderAdminScreen(isLoading = false) {
+function renderAdminScreen() {
   const config = window.elementSdk?.config || defaultConfig;
 
   const today = safeISODate(new Date())?.split('T')[0];
@@ -999,31 +1001,19 @@ function renderAdminScreen(isLoading = false) {
   });
 
   return `
-                <div class="glass-effect card-modern rounded-3xl p-6 mb-6">
-
-  <!-- BARIS 1 : JUDUL -->
-  <div class="flex items-start gap-3 mb-4">
-    <span class="text-3xl">📊</span>
-    <div>
-      <h2 class="text-3xl font-black text-gray-800 leading-tight">
-        Laporan Admin
-      </h2>
-      <p class="text-sm font-semibold text-gray-600">
-        Ringkasan & Laporan Pengeluaran
-      </p>
-    </div>
-  </div>
-
-  <button
-  onclick="logoutAdmin()"
-  class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
->
-  Logout & Save
-</button>
-
-
-</div>
-
+                <div class="min-h-full p-6">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h2 class="text-2xl font-black text-gray-800 mb-2">📊 ${config.admin_label || defaultConfig.admin_label}</h2>
+                                    <p class="text-lg text-gray-600 font-semibold">Ringkasan & Laporan Pengeluaran</p>
+                                </div>
+                                <button onclick="logoutAdmin()" class="gradient-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
+                                    Logout & Save
+                                </button>
+                            </div>
+                        </div>
                         
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">➕ Pengeluaran Admin</h3>
@@ -1145,87 +1135,49 @@ function renderAdminScreen(isLoading = false) {
 
                         
                         ${!isMultiDay ? `
-<div class="px-4 md:px-6 mb-8">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-center">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
     <div class="gradient-primary rounded-2xl p-6 text-white">
-      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
-        📊 Total Shift 1
-      </p>
-      <p class="text-3xl font-black">
-        Rp ${totalShift1.toLocaleString('id-ID')}
-      </p>
+        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 1</p>
+        <p class="text-3xl font-black">Rp ${totalShift1.toLocaleString('id-ID')}</p>
     </div>
 
     <div class="gradient-primary rounded-2xl p-6 text-white">
-      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
-        📊 Total Shift 2
-      </p>
-      <p class="text-3xl font-black">
-        Rp ${totalShift2.toLocaleString('id-ID')}
-      </p>
+        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 2</p>
+        <p class="text-3xl font-black">Rp ${totalShift2.toLocaleString('id-ID')}</p>
     </div>
 
     <div class="gradient-primary rounded-2xl p-6 text-white">
-      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
-        📊 Total Admin
-      </p>
-      <p class="text-3xl font-black">
-        Rp ${totalAdmin.toLocaleString('id-ID')}
-      </p>
+        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Admin</p>
+        <p class="text-3xl font-black">Rp ${totalAdmin.toLocaleString('id-ID')}</p>
     </div>
 
     <div class="bg-red-900 rounded-2xl p-6 text-white">
-      <p class="text-sm opacity-90 mb-2 font-bold flex items-center justify-center gap-2">
-        💸 Total Pengeluaran
-      </p>
-      <p class="text-3xl font-black">
-        Rp ${totalPengeluaran.toLocaleString('id-ID')}
-      </p>
+        <p class="text-sm opacity-90 mb-2 font-bold">💸 Total Pengeluaran</p>
+        <p class="text-3xl font-black">Rp ${totalPengeluaran.toLocaleString('id-ID')}</p>
     </div>
 
-  </div>
 </div>
-
-
 ` : `
 
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran</h3>
                             <div class="mb-6 flex gap-3 flex-wrap">
-                               <button
-  id="chart-toggle-Bahan Baku"
-  onclick="toggleChartData('Bahan Baku')"
-  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
-         bg-gradient-to-r from-red-600 to-red-700 text-white
-         shadow-md shrink-0">
-  🍜 Bahan Baku
-</button>
-
-                                <button
-  id="chart-toggle-Operasional"
-  onclick="toggleChartData('Operasional')"
-  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
-         bg-gradient-to-r from-amber-600 to-amber-700 text-white
-         shadow-md shrink-0">
-  ⚙️ Operasional
-</button>
-
-                                <button
-  id="chart-toggle-Staff"
-  onclick="toggleChartData('Staff')"
-  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
-         bg-gradient-to-r from-blue-600 to-blue-700 text-white
-         shadow-md shrink-0">
-  👥 Staff
-</button>
-
+                                <button onclick="toggleChartData('Bahan Baku')" id="chart-toggle-Bahan Baku" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white">
+                                    🥘 Bahan Baku
+                                </button>
+                                <button onclick="toggleChartData('Operasional')" id="chart-toggle-Operasional" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white">
+                                    ⚙️ Operasional
+                                </button>
+                                <button onclick="toggleChartData('Staff')" id="chart-toggle-Staff" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                    👥 Staff
+                                </button>
                             </div>
-                           <div class="relative w-full h-[360px] sm:h-[420px] md:h-[480px] lg:h-[520px]">
-  <canvas id="expenseChart"></canvas>
-</div>
-
-                        
+                            <div class="relative bg-white rounded-2xl p-6 shadow-inner" style="height: 450px;">
+                                <canvas id="expenseChart"></canvas>
+                            </div>
+                        </div>
+                        `}
                         
                         ${isMultiDay ? `
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
@@ -1707,17 +1659,17 @@ categoryExpenses.forEach(exp => {
                             
                             <div class="mb-6">
 ${(() => {
-  const s1 = getLastShift(startDate, 'shift1'); // startDate = tanggal laporan
+  const s1 = getLastShift(dateKey, 'shift1');
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
 
       <!-- BARIS 1 : SHIFT + IDENTITAS -->
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xl font-black text-red-800 tracking-tight">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xl font-black text-red-700">
           Shift 1
         </span>
-        <span class="text-sm font-semibold text-red-900/80">
+        <span class="text-sm font-semibold text-gray-600">
           👤 ${s1?.cashier || '-'} • 🕒 ${
             s1?.openedAt
               ? new Date(s1.openedAt).toLocaleTimeString('id-ID', {
@@ -1730,7 +1682,7 @@ ${(() => {
       </div>
 
       <!-- BARIS 2 : INFO KAS -->
-      <div class="flex items-center justify-between text-sm font-semibold text-red-900">
+      <div class="flex items-center justify-between text-sm font-semibold text-gray-700">
         <span>📥 Rp ${(s1?.startCash || 0).toLocaleString('id-ID')}</span>
         <span>📤 Rp ${(s1?.endCash || 0).toLocaleString('id-ID')}</span>
       </div>
@@ -1738,7 +1690,6 @@ ${(() => {
     </div>
   `;
 })()}
-
 
 ${shift1Expenses.length === 0 ? `
   <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
@@ -1782,39 +1733,7 @@ ${shift1Expenses.length === 0 ? `
 
 
 <div class="mb-6">
-${(() => {
-  const s2 = getLastShift(startDate, 'shift2'); // startDate = tanggal laporan
-
-  return `
-    <div class="rounded-xl p-4 mb-4 bg-amber-300 border border-red-300">
-
-      <!-- BARIS 1 : SHIFT + IDENTITAS -->
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xl font-black text-amber-800 tracking-tight">
-          Shift 2
-        </span>
-        <span class="text-sm font-semibold text-amber-900/80">
-          👤 ${s2?.cashier || '-'} • 🕒 ${
-            s2?.openedAt
-              ? new Date(s2.openedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
-              : '-'
-          }
-        </span>
-      </div>
-
-      <!-- BARIS 2 : INFO KAS -->
-      <div class="flex items-center justify-between text-sm font-semibold text-amber-900">
-        <span>📥 Rp ${(s2?.startCash || 0).toLocaleString('id-ID')}</span>
-        <span>📤 Rp ${(s2?.endCash || 0).toLocaleString('id-ID')}</span>
-      </div>
-
-    </div>
-  `;
-})()}
-
+👤
 
 ${shift2Expenses.length === 0 ? `
   <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
@@ -2817,7 +2736,6 @@ function createChart() {
       borderRadius: 8,
       borderSkipped: false,
       bbackgroundColor:
-
   cat === 'Belanja Bahan Baku'
     ? 'rgba(220, 38, 38, 0.85)'
     : cat === 'Operasional'
@@ -3031,14 +2949,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
 
 
 
