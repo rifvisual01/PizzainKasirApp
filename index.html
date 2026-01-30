@@ -1007,7 +1007,7 @@ function renderAdminScreen() {
   <div class="flex items-start gap-3 mb-4">
     <span class="text-3xl">📊</span>
     <div>
-      <h2 class="text-2xl font-black text-gray-800 leading-tight">
+      <h2 class="text-3xl font-black text-gray-800 leading-tight">
         Laporan Admin
       </h2>
       <p class="text-sm font-semibold text-gray-600">
@@ -1016,13 +1016,13 @@ function renderAdminScreen() {
     </div>
   </div>
 
-  <!-- BARIS 2 : TOMBOL -->
   <button
-    onclick="logoutAndSave()"
-    class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
-  >
-    Logout & Save
-  </button>
+  onclick="logoutAdmin()"
+  class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
+>
+  Logout & Save
+</button>
+
 
 </div>
 
@@ -1149,27 +1149,44 @@ function renderAdminScreen() {
                         ${!isMultiDay ? `
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
-    <div class="gradient-primary rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 1</p>
-        <p class="text-3xl font-black">Rp ${totalShift1.toLocaleString('id-ID')}</p>
-    </div>
+  <div class="gradient-primary rounded-2xl p-6 text-white text-center">
+    <p class="text-sm opacity-90 mb-2 font-bold">
+      📊 Total Shift 1
+    </p>
+    <p class="text-3xl font-black">
+      Rp ${totalShift1.toLocaleString('id-ID')}
+    </p>
+  </div>
 
-    <div class="gradient-primary rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Shift 2</p>
-        <p class="text-3xl font-black">Rp ${totalShift2.toLocaleString('id-ID')}</p>
-    </div>
+  <div class="gradient-primary rounded-2xl p-6 text-white text-center">
+    <p class="text-sm opacity-90 mb-2 font-bold">
+      📊 Total Shift 2
+    </p>
+    <p class="text-3xl font-black">
+      Rp ${totalShift2.toLocaleString('id-ID')}
+    </p>
+  </div>
 
-    <div class="gradient-primary rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">📊 Total Admin</p>
-        <p class="text-3xl font-black">Rp ${totalAdmin.toLocaleString('id-ID')}</p>
-    </div>
+  <div class="gradient-primary rounded-2xl p-6 text-white text-center">
+    <p class="text-sm opacity-90 mb-2 font-bold">
+      📊 Total Admin
+    </p>
+    <p class="text-3xl font-black">
+      Rp ${totalAdmin.toLocaleString('id-ID')}
+    </p>
+  </div>
 
-    <div class="bg-red-900 rounded-2xl p-6 text-white">
-        <p class="text-sm opacity-90 mb-2 font-bold">💸 Total Pengeluaran</p>
-        <p class="text-3xl font-black">Rp ${totalPengeluaran.toLocaleString('id-ID')}</p>
-    </div>
+  <div class="bg-red-900 rounded-2xl p-6 text-white text-center">
+    <p class="text-sm opacity-90 mb-2 font-bold">
+      💸 Total Pengeluaran
+    </p>
+    <p class="text-3xl font-black">
+      Rp ${totalPengeluaran.toLocaleString('id-ID')}
+    </p>
+  </div>
 
 </div>
+
 ` : `
 
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
@@ -2994,6 +3011,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
