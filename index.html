@@ -1193,20 +1193,38 @@ function renderAdminScreen(isLoading = false) {
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran</h3>
                             <div class="mb-6 flex gap-3 flex-wrap">
-                                <button onclick="toggleChartData('Bahan Baku')" id="chart-toggle-Bahan Baku" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white">
-                                    🥘 Bahan Baku
-                                </button>
-                                <button onclick="toggleChartData('Operasional')" id="chart-toggle-Operasional" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white">
-                                    ⚙️ Operasional
-                                </button>
-                                <button onclick="toggleChartData('Staff')" id="chart-toggle-Staff" class="px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                                    👥 Staff
-                                </button>
+                               <button
+  id="chart-toggle-Bahan Baku"
+  onclick="toggleChartData('Bahan Baku')"
+  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
+         bg-gradient-to-r from-red-600 to-red-700 text-white
+         shadow-md shrink-0">
+  🍜 Bahan Baku
+</button>
+
+                                <button
+  id="chart-toggle-Operasional"
+  onclick="toggleChartData('Operasional')"
+  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
+         bg-gradient-to-r from-amber-600 to-amber-700 text-white
+         shadow-md shrink-0">
+  ⚙️ Operasional
+</button>
+
+                                <button
+  id="chart-toggle-Staff"
+  onclick="toggleChartData('Staff')"
+  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
+         bg-gradient-to-r from-blue-600 to-blue-700 text-white
+         shadow-md shrink-0">
+  👥 Staff
+</button>
+
                             </div>
-                            <div class="relative bg-white rounded-2xl p-6 shadow-inner" style="height: 450px;">
-                                <canvas id="expenseChart"></canvas>
-                            </div>
-                        </div>
+                           <div class="relative w-full h-[360px] sm:h-[420px] md:h-[480px] lg:h-[520px]">
+  <canvas id="expenseChart"></canvas>
+</div>
+
                         `}
                         
                         ${isMultiDay ? `
@@ -2799,6 +2817,9 @@ function createChart() {
       borderRadius: 8,
       borderSkipped: false,
       bbackgroundColor:
+       barPercentage: 0.55,
+categoryPercentage: 0.6,
+
   cat === 'Belanja Bahan Baku'
     ? 'rgba(220, 38, 38, 0.85)'
     : cat === 'Operasional'
@@ -3012,6 +3033,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
