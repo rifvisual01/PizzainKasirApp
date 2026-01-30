@@ -1659,17 +1659,17 @@ categoryExpenses.forEach(exp => {
                             
                             <div class="mb-6">
 ${(() => {
-  const s1 = getLastShift(dateKey, 'shift1');
+  const s1 = getLastShift(startDate, 'shift1'); // startDate = tanggal laporan
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
 
       <!-- BARIS 1 : SHIFT + IDENTITAS -->
-      <div class="flex items-center justify-between mb-1">
-        <span class="text-xl font-black text-red-700">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xl font-black text-red-800 tracking-tight">
           Shift 1
         </span>
-        <span class="text-sm font-semibold text-gray-600">
+        <span class="text-sm font-semibold text-red-900/80">
           👤 ${s1?.cashier || '-'} • 🕒 ${
             s1?.openedAt
               ? new Date(s1.openedAt).toLocaleTimeString('id-ID', {
@@ -1682,7 +1682,7 @@ ${(() => {
       </div>
 
       <!-- BARIS 2 : INFO KAS -->
-      <div class="flex items-center justify-between text-sm font-semibold text-gray-700">
+      <div class="flex items-center justify-between text-sm font-semibold text-red-900">
         <span>📥 Rp ${(s1?.startCash || 0).toLocaleString('id-ID')}</span>
         <span>📤 Rp ${(s1?.endCash || 0).toLocaleString('id-ID')}</span>
       </div>
@@ -1690,6 +1690,7 @@ ${(() => {
     </div>
   `;
 })()}
+
 
 ${shift1Expenses.length === 0 ? `
   <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
@@ -1733,7 +1734,39 @@ ${shift1Expenses.length === 0 ? `
 
 
 <div class="mb-6">
-👤
+${(() => {
+  const s2 = getLastShift(startDate, 'shift2'); // startDate = tanggal laporan
+
+  return `
+    <div class="rounded-xl p-4 mb-4 bg-amber-300 border border-red-300">
+
+      <!-- BARIS 1 : SHIFT + IDENTITAS -->
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xl font-black text-amber-800 tracking-tight">
+          Shift 2
+        </span>
+        <span class="text-sm font-semibold text-amber-900/80">
+          👤 ${s2?.cashier || '-'} • 🕒 ${
+            s2?.openedAt
+              ? new Date(s2.openedAt).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : '-'
+          }
+        </span>
+      </div>
+
+      <!-- BARIS 2 : INFO KAS -->
+      <div class="flex items-center justify-between text-sm font-semibold text-amber-900">
+        <span>📥 Rp ${(s2?.startCash || 0).toLocaleString('id-ID')}</span>
+        <span>📤 Rp ${(s2?.endCash || 0).toLocaleString('id-ID')}</span>
+      </div>
+
+    </div>
+  `;
+})()}
+
 
 ${shift2Expenses.length === 0 ? `
   <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
@@ -1778,10 +1811,10 @@ ${shift2Expenses.length === 0 ? `
                             <div class="mb-4">
 
   <!-- HEADER ADMIN -->
-  <div class="rounded-xl p-4 mb-3 bg-blue-300 border border-red-300">
+  <div class="rounded-xl p-4 mb-3 bg-red-300 border border-red-300">
     <div class="flex items-center justify-between">
-      <span class="text-xl font-black text-red-800 tracking-tight">
-        Admin
+      <span class="text-2xl font-black text-red-800 tracking-tight">
+        Pengeluaran Admin
       </span>
       <span class="text-sm font-semibold text-red-900/80">
         📋 Admin
@@ -2949,8 +2982,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
 
 
 
