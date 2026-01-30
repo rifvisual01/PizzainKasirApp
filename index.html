@@ -117,6 +117,7 @@
         let chartVisibleData = { 'Bahan Baku': true, 'Operasional': true, 'Staff': true };
    let isProcessingQueue = false;
    let adminDataReady = false;
+   let adminLoading = false;
 let isSyncing = false;        
 let db;
 
@@ -444,38 +445,41 @@ function renderCurrentView() {
     return;
   }
 
-  // =====================
-  // ADMIN (FINAL – STABIL)
-  // =====================
- if (currentView === 'admin') {
-  // 1️⃣ render awal (UI langsung tampil)
-  app.innerHTML = renderAdminScreen();
+// =====================
+// ADMIN (FINAL – STABIL)
+// =====================
+if (currentView === 'admin') {
+
+  // ⛔ JANGAN render ulang kalau admin sudah tampil
+  if (!adminRendering) {
+    app.innerHTML = renderAdminScreen(true); // true = loading
+    adminRendering = true;
+  }
 
   if (!adminDataReady) {
 
     // ===============================
-    // 🔒 OFFLINE MODE → JANGAN FETCH
+    // 🔒 OFFLINE MODE → TANPA FETCH
     // ===============================
     if (!navigator.onLine) {
       normalizeExpenses();
       adminDataReady = true;
 
-      // 🔥 grafik hanya muncul kalau multi-day
+      app.innerHTML = renderAdminScreen(false);
+
       const todayISO = safeISODate(new Date())?.split('T')[0];
       const startDate = selectedPeriodStart || todayISO;
       const endDate = selectedPeriodEnd || todayISO;
 
-      if (startDate && endDate && startDate !== endDate) {
-        requestAnimationFrame(() => {
-          createChart();
-        });
+      if (startDate !== endDate) {
+        requestAnimationFrame(createChart);
       }
 
       return;
     }
 
     // ===============================
-    // 🌐 ONLINE MODE → FETCH NORMAL
+    // 🌐 ONLINE MODE → FETCH
     // ===============================
     Promise.all([
       loadAllExpensesForAdmin(),
@@ -485,29 +489,28 @@ function renderCurrentView() {
         normalizeExpenses();
         adminDataReady = true;
 
-        // 2️⃣ render ulang admin screen SETELAH data siap
-        app.innerHTML = renderAdminScreen();
+        // 🔥 RENDER ULANG SEKALI SETELAH DATA SIAP
+        app.innerHTML = renderAdminScreen(false);
 
-        // 3️⃣ trigger grafik HANYA jika multi-day
         const todayISO = safeISODate(new Date())?.split('T')[0];
         const startDate = selectedPeriodStart || todayISO;
         const endDate = selectedPeriodEnd || todayISO;
 
-        if (startDate && endDate && startDate !== endDate) {
-          requestAnimationFrame(() => {
-            createChart();
-          });
+        if (startDate !== endDate) {
+          requestAnimationFrame(createChart);
         }
       })
       .catch(() => {
-        // fallback aman (misal koneksi putus mendadak)
+        // fallback aman
         normalizeExpenses();
         adminDataReady = true;
+        app.innerHTML = renderAdminScreen(false);
       });
   }
 
   return;
 }
+
 }
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -915,7 +918,7 @@ const shiftExpenses = expenses.filter(e =>
   }
 }
 
-function renderAdminScreen() {
+function renderAdminScreen(isLoading = false) {
   const config = window.elementSdk?.config || defaultConfig;
 
   const today = safeISODate(new Date())?.split('T')[0];
@@ -3014,6 +3017,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
