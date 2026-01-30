@@ -1147,44 +1147,38 @@ function renderAdminScreen() {
 
                         
                         ${!isMultiDay ? `
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+<div class="px-4 md:px-6 mb-8">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-  <div class="gradient-primary rounded-2xl p-6 text-white text-center">
-    <p class="text-sm opacity-90 mb-2 font-bold">
-      📊 Total Shift 1
-    </p>
-    <p class="text-3xl font-black">
-      Rp ${totalShift1.toLocaleString('id-ID')}
-    </p>
+    <div class="gradient-primary rounded-2xl p-6 text-white">
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center gap-2">
+        📊 Total Shift 1
+      </p>
+      <p class="text-3xl font-black">Rp ${totalShift1.toLocaleString('id-ID')}</p>
+    </div>
+
+    <div class="gradient-primary rounded-2xl p-6 text-white">
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center gap-2">
+        📊 Total Shift 2
+      </p>
+      <p class="text-3xl font-black">Rp ${totalShift2.toLocaleString('id-ID')}</p>
+    </div>
+
+    <div class="gradient-primary rounded-2xl p-6 text-white">
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center gap-2">
+        📊 Total Admin
+      </p>
+      <p class="text-3xl font-black">Rp ${totalAdmin.toLocaleString('id-ID')}</p>
+    </div>
+
+    <div class="bg-red-900 rounded-2xl p-6 text-white">
+      <p class="text-sm opacity-90 mb-2 font-bold flex items-center gap-2">
+        💸 Total Pengeluaran
+      </p>
+      <p class="text-3xl font-black">Rp ${totalPengeluaran.toLocaleString('id-ID')}</p>
+    </div>
+
   </div>
-
-  <div class="gradient-primary rounded-2xl p-6 text-white text-center">
-    <p class="text-sm opacity-90 mb-2 font-bold">
-      📊 Total Shift 2
-    </p>
-    <p class="text-3xl font-black">
-      Rp ${totalShift2.toLocaleString('id-ID')}
-    </p>
-  </div>
-
-  <div class="gradient-primary rounded-2xl p-6 text-white text-center">
-    <p class="text-sm opacity-90 mb-2 font-bold">
-      📊 Total Admin
-    </p>
-    <p class="text-3xl font-black">
-      Rp ${totalAdmin.toLocaleString('id-ID')}
-    </p>
-  </div>
-
-  <div class="bg-red-900 rounded-2xl p-6 text-white text-center">
-    <p class="text-sm opacity-90 mb-2 font-bold">
-      💸 Total Pengeluaran
-    </p>
-    <p class="text-3xl font-black">
-      Rp ${totalPengeluaran.toLocaleString('id-ID')}
-    </p>
-  </div>
-
 </div>
 
 ` : `
@@ -3011,6 +3005,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
