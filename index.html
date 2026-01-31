@@ -541,31 +541,57 @@ const shift2Count = shift2Expenses.length;
             const shift2Closed = shift2Status === 'closed';
             
             return `
-                <div class="min-h-screen flex justify-start p-4 md:p-6 lg:p-8">
-                    <div class="w-full max-w-7xl mx-auto animate-slide-in flex flex-col gap-8">
-                        <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
-                            <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
-                            <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
-                            <div class="relative">
-                                <div class="flex items-center justify-center gap-4 mb-4">
-                                    <div class="text-center">
-                                        <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
-                                            ${appTitle}
-                                        </h1>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-center gap-3 flex-wrap">
-                                    <div class="inline-flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-30">
-                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        <p class="text-base text-white font-bold">Pizzain Indonesia</p>
-                                    </div>
-                                    <div id="syncStatus"
-     class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
-  <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-  <span>Online</span>
+                <!-- ROOT HOME -->
+<div class="min-h-screen bg-red-300">
+
+  <!-- ================= HEADER (FULL WIDTH) ================= -->
+  <div class="w-full px-4 md:px-6 lg:px-8 pt-6">
+    <div
+      class="glass-effect card-modern rounded-3xl p-6 relative overflow-hidden"
+      style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);"
+    >
+      <!-- dekor -->
+      <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
+      <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
+
+      <!-- isi header -->
+      <div class="relative">
+        <div class="flex items-center justify-center gap-4 mb-4">
+          <div class="text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
+              ${appTitle}
+            </h1>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-center gap-3 flex-wrap">
+          <div class="inline-flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-30">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <p class="text-base text-white font-bold">Pizzain Indonesia</p>
+          </div>
+
+          <div
+            id="syncStatus"
+            class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm"
+          >
+            <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+            <span>Online</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= KONTEN (MAX WIDTH) ================= -->
+  <div class="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 mt-8 animate-slide-in">
+    <!-- DI SINI: GRID CARD SHIFT & ADMIN (TIDAK DIUBAH) -->
+  </div>
+
 </div>
+
 
                                     <div class="text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
                                         ${new Date().toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
@@ -3011,6 +3037,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
