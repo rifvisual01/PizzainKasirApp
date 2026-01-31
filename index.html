@@ -85,7 +85,7 @@
     </style>
   <style>@view-transition { navigation: auto; }</style>
  </head>
- <body class="h-full bg-gradient-to-br from-red-600/50 via-red-500/40 to-red-600/50 overflow-auto">
+ <body class="h-full bg-red-600/50 overflow-auto">
   <div id="app" class="min-h-full"></div>
   <script>
    
@@ -542,7 +542,7 @@ const shift2Count = shift2Expenses.length;
             
             return `
                 <div class="min-h-full flex items-center justify-center p-6">
-                    <div class="w-full max-w-4xl animate-slide-in">
+                    <div class="w-full animate-slide-in">
                         <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
                             <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
                             <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
@@ -692,7 +692,7 @@ const shiftExpenses = expenses.filter(e =>
             
             return `
                 <div class="min-h-full p-6">
-                    <div class="max-w-6xl mx-auto">
+                   <div class="w-full max-w-screen-xl mx-auto px-4 lg:px-12">
                         <div class="gradient-primary card-modern rounded-3xl p-6 mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <div class="flex items-center gap-4">
@@ -3011,6 +3011,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
