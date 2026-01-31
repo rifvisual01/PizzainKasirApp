@@ -85,8 +85,9 @@
     </style>
   <style>@view-transition { navigation: auto; }</style>
  </head>
- <body class="bg-red-300 overflow-x-hidden min-h-screen">
-  <div id="app" class="flex flex-col min-h-screen"></div>
+ <body class="bg-red-300 overflow-x-hidden">
+  <div id="app" class="flex flex-col">
+  </div>
   <script>
    
         const defaultConfig = {
@@ -342,7 +343,7 @@ let appReady = false;
   if (!app) return;
 
   app.innerHTML = `
-   <div class="min-h-screen flex justify-start p-4 md:p-6 lg:p-8">
+    <div class="min-h-full flex items-center justify-center">
       <div class="text-center">
         <div class="w-14 h-14 border-4 border-red-300 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
         <p class="font-bold text-red-700">Memuat aplikasi…</p>
@@ -541,8 +542,8 @@ const shift2Count = shift2Expenses.length;
             const shift2Closed = shift2Status === 'closed';
             
             return `
-                <div class="min-h-screen flex justify-start p-4 md:p-6 lg:p-8">
-                    <div class="w-full max-w-7xl mx-auto animate-slide-in flex flex-col gap-8">
+                <div class="min-h-full flex items-center justify-center p-6">
+                    <div class="w-full animate-slide-in">
                         <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
                             <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
                             <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
@@ -3011,8 +3012,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
 
 
 
