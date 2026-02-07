@@ -574,7 +574,8 @@ const shift2Count = shift2Expenses.length;
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                       <div class="flex-grow flex items-center">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                             <button onclick="selectShift('shift1')" class="glass-effect card-modern rounded-3xl p-8 text-left group hover:shadow-2xl transition-all">
                                 <div class="flex items-start justify-between mb-6">
                                     <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -691,8 +692,8 @@ const shiftExpenses = expenses.filter(e =>
 
             
             return `
-                <div class="min-h-screen w-full p-6">
-  <div class="max-w-7xl mx-auto w-full">
+                <div class="min-h-screen w-full p-6 flex flex-col">
+  <div class="w-full max-w-7xl mx-auto flex flex-col flex-grow animate-slide-in">
                         <div class="gradient-primary card-modern rounded-3xl p-6 mb-6">
                             <div class="flex justify-between items-center mb-4">
                                 <div class="flex items-center gap-4">
@@ -3011,6 +3012,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
