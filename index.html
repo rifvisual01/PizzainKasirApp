@@ -542,8 +542,8 @@ const shift2Count = shift2Expenses.length;
             const shift2Closed = shift2Status === 'closed';
             
             return `
-                <div class="w-full animate-slide-in">
-  <div class="max-w-7xl mx-auto">
+                <div class="min-h-screen flex items-center justify-center p-6">
+                    <div class="w-full animate-slide-in">
                         <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
                             <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
                             <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
@@ -815,7 +815,7 @@ const shiftExpenses = expenses.filter(e =>
             const shiftLabel = currentShift === 'shift1' ? (config.shift1_label || defaultConfig.shift1_label) : (config.shift2_label || defaultConfig.shift2_label);
             
             return `
-                <div class="min-h-screen w-full p-6">
+                <div class="min-h-screen flex items-center justify-center p-6">
                     <div class="w-full px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto animate-slide-in">
                         <button onclick="backToHome()" class="mb-6 text-base font-bold flex items-center gap-2 text-red-600 hover:text-red-700">
                             ← Kembali
@@ -3012,8 +3012,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
 
 
 
