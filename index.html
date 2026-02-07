@@ -85,8 +85,9 @@
     </style>
   <style>@view-transition { navigation: auto; }</style>
  </head>
- <body class="bg-red-300 overflow-x-hidden min-h-screen">
-  <div id="app" class="flex flex-col min-h-screen"></div>
+ <body class="bg-red-300 overflow-x-hidden">
+  <div id="app" class="flex flex-col">
+  </div>
   <script>
    
         const defaultConfig = {
@@ -342,7 +343,7 @@ let appReady = false;
   if (!app) return;
 
   app.innerHTML = `
-   <div class="min-h-screen flex justify-start p-4 md:p-6 lg:p-8">
+    <div class="min-h-full flex items-center justify-center">
       <div class="text-center">
         <div class="w-14 h-14 border-4 border-red-300 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
         <p class="font-bold text-red-700">Memuat aplikasi…</p>
@@ -541,129 +542,127 @@ const shift2Count = shift2Expenses.length;
             const shift2Closed = shift2Status === 'closed';
             
             return `
-                return `
-  <!-- ROOT -->
-  <div class="min-h-screen bg-red-300">
+                <div class="min-h-full flex items-center justify-center p-6">
+                    <div class="w-full animate-slide-in">
+                        <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                            <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
+                            <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
+                            <div class="relative">
+                                <div class="flex items-center justify-center gap-4 mb-4">
+                                    <div class="text-center">
+                                        <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
+                                            ${appTitle}
+                                        </h1>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-center gap-3 flex-wrap">
+                                    <div class="inline-flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-30">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                        <p class="text-base text-white font-bold">Pizzain Indonesia</p>
+                                    </div>
+                                    <div id="syncStatus"
+     class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
+  <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+  <span>Online</span>
+</div>
 
-    <!-- ================= HEADER : FULL WIDTH ================= -->
-    <div class="w-full px-4 md:px-6 lg:px-8 pt-4 md:pt-6">
-      <div class="glass-effect card-modern rounded-3xl p-6 relative overflow-hidden"
-           style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
-
-        <!-- dekor -->
-        <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
-        <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
-
-        <div class="relative">
-          <div class="flex items-center justify-center gap-4 mb-4">
-            <div class="text-center">
-              <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
-                ${appTitle}
-              </h1>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-center gap-3 flex-wrap">
-            <div class="inline-flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-30">
-              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-              </svg>
-              <p class="text-base text-white font-bold">Pizzain Indonesia</p>
-            </div>
-
-            <div id="syncStatus"
-              class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
-              <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-              <span>Online</span>
-            </div>
-
-            <div class="text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
-              ${new Date().toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= KONTEN : MAX WIDTH ================= -->
-    <div class="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 mt-6 md:mt-8 animate-slide-in">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        <!-- === SHIFT 1 === -->
-        <button onclick="selectShift('shift1')" class="glass-effect card-modern rounded-3xl p-8 text-left group hover:shadow-2xl transition-all">
-          <div class="flex items-start justify-between mb-6">
-            <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-              </svg>
-            </div>
-            ${shift1Closed ? `
-              <span class="badge-modern bg-gray-200 text-gray-700">Ditutup</span>
-            ` : `
-              <span class="badge-modern bg-green-100 text-green-700">
-                ${shift1Status === 'open' ? 'Aktif' : 'Tersedia'}
-              </span>
-            `}
-          </div>
-          <h3 class="text-3xl font-black text-gray-800 mb-2">${shift1Label}</h3>
-          <p class="text-base text-gray-500 mb-6 font-medium">13.00 - 18.30 WIB</p>
-          <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-            <span class="text-sm font-bold text-gray-600">Transaksi</span>
-            <span class="text-2xl font-black text-red-600">${shift1Count}</span>
-          </div>
-        </button>
-
-        <!-- === SHIFT 2 === -->
-        <button onclick="selectShift('shift2')" class="glass-effect card-modern rounded-3xl p-8 text-left group">
-          <div class="flex items-start justify-between mb-6">
-            <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-              </svg>
-            </div>
-            ${shift2Closed ? `
-              <span class="badge-modern bg-gray-200 text-gray-700">Ditutup</span>
-            ` : `
-              <span class="badge-modern bg-green-100 text-green-700">
-                ${shift2Status === 'open' ? 'Aktif' : 'Tersedia'}
-              </span>
-            `}
-          </div>
-          <h3 class="text-3xl font-black text-gray-800 mb-2">${shift2Label}</h3>
-          <p class="text-base text-gray-500 mb-6 font-medium">18.30 - 23.00 WIB</p>
-          <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-            <span class="text-sm font-bold text-gray-600">Transaksi</span>
-            <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
-          </div>
-        </button>
-
-        <!-- === ADMIN === -->
-        <button onclick="showAdminPinDialog()" class="glass-effect card-modern rounded-3xl p-8 text-left group">
-          <div class="flex items-start justify-between mb-6">
-            <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-              </svg>
-            </div>
-            <span class="badge-modern bg-blue-100 text-blue-700">PIN</span>
-          </div>
-          <h3 class="text-3xl font-black text-gray-800 mb-2">${adminLabel}</h3>
-          <p class="text-base text-gray-500 mb-6 font-medium">Laporan & Statistik</p>
-          <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-            <span class="text-sm font-bold text-gray-600">Akses</span>
-            <span class="text-base font-black text-red-600">Admin</span>
-          </div>
-        </button>
-
-      </div>
-    </div>
-  </div>
-`;
-
+                                    <div class="text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
+                                        ${new Date().toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <button onclick="selectShift('shift1')" class="glass-effect card-modern rounded-3xl p-8 text-left group hover:shadow-2xl transition-all">
+                                <div class="flex items-start justify-between mb-6">
+                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                        </svg>
+                                    </div>
+                                    ${shift1Closed ? `
+                                        <span class="badge-modern bg-gray-200 text-gray-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                            Ditutup
+                                        </span>
+                                    ` : `
+                                        <span class="badge-modern bg-green-100 text-green-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            ${shift1Status === 'open' ? 'Aktif' : 'Tersedia'}
+                                        </span>
+                                    `}
+                                </div>
+                                <h3 class="text-3xl font-black text-gray-800 mb-2">${shift1Label}</h3>
+                                <p class="text-base text-gray-500 mb-6 font-medium">13.00 - 18.30 WIB</p>
+                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">Transaksi</span>
+                                    <span class="text-2xl font-black text-red-600">${shift1Count}</span>
+                                </div>
+                            </button>
+                            
+                            <button onclick="selectShift('shift2')" class="glass-effect card-modern rounded-3xl p-8 text-left group">
+                                <div class="flex items-start justify-between mb-6">
+                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                                        </svg>
+                                    </div>
+                                    ${shift2Closed ? `
+                                        <span class="badge-modern bg-gray-200 text-gray-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                            </svg>
+                                            Ditutup
+                                        </span>
+                                    ` : `
+                                        <span class="badge-modern bg-green-100 text-green-700">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            ${shift2Status === 'open' ? 'Aktif' : 'Tersedia'}
+                                        </span>
+                                    `}
+                                </div>
+                                <h3 class="text-3xl font-black text-gray-800 mb-2">${shift2Label}</h3>
+                                <p class="text-base text-gray-500 mb-6 font-medium">18.30 - 23.00 WIB</p>
+                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">Transaksi</span>
+                                    <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
+                                </div>
+                            </button>
+                            
+                            <button onclick="showAdminPinDialog()" class="glass-effect card-modern rounded-3xl p-8 text-left group">
+                                <div class="flex items-start justify-between mb-6">
+                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                        </svg>
+                                    </div>
+                                    <span class="badge-modern bg-blue-100 text-blue-700">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                                        </svg>
+                                        PIN
+                                    </span>
+                                </div>
+                                <h3 class="text-3xl font-black text-gray-800 mb-2">${adminLabel}</h3>
+                                <p class="text-base text-gray-500 mb-6 font-medium">Laporan & Statistik</p>
+                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
+                                    <span class="text-sm font-bold text-gray-600">Akses</span>
+                                    <span class="text-base font-black text-red-600">Admin</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
 
@@ -3013,11 +3012,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
-
-
-
 
 
 
