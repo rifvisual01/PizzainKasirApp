@@ -86,8 +86,7 @@
   <style>@view-transition { navigation: auto; }</style>
  </head>
 <body class="bg-red-300 overflow-x-hidden min-h-screen">
-  <div id="app" class="flex flex-col min-h-screen w-full">
-  </div>
+  <div id="app" class="min-h-screen w-full grid grid-rows-[auto,1fr]"></div>
   <script>
    
         const defaultConfig = {
@@ -542,8 +541,8 @@ const shift2Count = shift2Expenses.length;
             const shift2Closed = shift2Status === 'closed';
             
             return `
-                <div class="min-h-screen w-full p-6 flex flex-col">
-  <div class="w-full max-w-7xl mx-auto animate-slide-in flex flex-col flex-grow">
+                <div class="w-full h-full p-6">
+  <div class="w-full max-w-7xl mx-auto h-full flex flex-col animate-slide-in">
                         <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
                             <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
                             <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
@@ -3012,6 +3011,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
