@@ -76,6 +76,66 @@
   }
 }
 
+/* =========================
+   📱 PORTRAIT HEADER — COMPACT 1 BARIS
+   ========================= */
+@media (orientation: portrait) {
+
+  /* HEADER CARD */
+  .home-adaptive-zoom .glass-effect.card-modern {
+    padding: 1.25rem !important;
+  }
+
+  /* ===== BARIS 1: ICON + JUDUL (1 BARIS) ===== */
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-4 {
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+  }
+
+  /* ICON */
+  .home-adaptive-zoom svg.w-12.h-12 {
+    width: 2rem !important;
+    height: 2rem !important;
+    flex-shrink: 0;
+  }
+
+  /* JUDUL */
+  .home-adaptive-zoom h1 {
+    font-size: 1.35rem !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* ===== BARIS 2: BADGE (PAKSA 1 BARIS) ===== */
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-3.flex-wrap {
+    flex-wrap: nowrap !important;
+    gap: 0.4rem !important;
+  }
+
+  /* BADGE UMUM */
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-3.flex-wrap > div {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.65rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 1;
+  }
+
+  /* ICON DALAM BADGE */
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-3.flex-wrap svg {
+    width: 0.75rem !important;
+    height: 0.75rem !important;
+  }
+}
 
         body {
             box-sizing: border-box;
@@ -3078,6 +3138,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
