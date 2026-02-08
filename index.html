@@ -422,15 +422,34 @@ updateSyncIndicator();
   }
 }
 
+   async function checkRealConnection() {
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 3000);
+
+    await fetch(API_BASE, {
+      method: 'POST',
+      body: new FormData(),
+      signal: controller.signal
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // 🔥 SATU-SATUNYA PEMANGGIL
 window.addEventListener("online", processQueue);
 
-   function updateSyncIndicator() {
+  async function updateSyncIndicator() {
   const el = document.getElementById('syncStatus');
   if (!el) return;
 
+  const realOnline = navigator.onLine && await checkRealConnection();
+
   // 🔴 OFFLINE
-  if (!navigator.onLine) {
+  if (!realOnline) {
     el.innerHTML = `
       <span class="w-2 h-2 bg-red-500 rounded-full"></span>
       <span>Offline</span>
@@ -440,7 +459,7 @@ window.addEventListener("online", processQueue);
     return;
   }
 
-  // 🔄 MENYINKRONKAN
+  // 🔄 SYNC
   if (isSyncing) {
     el.innerHTML = `
       <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
@@ -462,6 +481,7 @@ window.addEventListener("online", processQueue);
   el.className =
     'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
 }
+
 window.addEventListener('online', updateSyncIndicator);
 window.addEventListener('offline', updateSyncIndicator);
 updateSyncIndicator();
@@ -3166,6 +3186,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
