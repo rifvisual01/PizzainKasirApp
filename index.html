@@ -317,27 +317,32 @@ function buildExpenseNameCache() {
   } catch {}
 }
 
-   function renderExpenseNameDropdown(keyword = '') {
+   function renderExpenseNameDropdown(keyword) {
+  const input = document.getElementById('expenseName');
   const list = document.getElementById('expenseNameList');
-  if (!list) return;
+  if (!input || !list) return;
 
   list.innerHTML = '';
 
-  // ⛔ belum mengetik → tidak ada dropdown
   if (!keyword) return;
 
   const q = keyword.toLowerCase();
 
-  const items = expenseNameCache
-    .filter(name => name.toLowerCase().includes(q))
-    .slice(0, 4);
+  expenseNameCache
+    .filter(n => n.toLowerCase().includes(q))
+    .slice(0, 4)
+    .forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      list.appendChild(opt);
+    });
 
-  items.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    list.appendChild(opt);
-  });
+  // 🔑 trigger ulang agar Chrome refresh
+  const v = input.value;
+  input.value = '';
+  input.value = v;
 }
+
 
 
 
@@ -396,16 +401,14 @@ function attachExpenseSuggestion() {
   const input = document.getElementById('expenseName');
   if (!input) return;
 
-  if (input.dataset.dropdownAttached === '1') return;
-  input.dataset.dropdownAttached = '1';
+  if (input.dataset.bound === '1') return;
+  input.dataset.bound = '1';
 
-  // ✅ dropdown muncul SAAT MENGETIK
-  input.addEventListener('input', () => {
-    renderExpenseNameDropdown(input.value.trim());
+  input.addEventListener('input', e => {
+    renderExpenseNameDropdown(e.target.value);
   });
-
-  // ❌ TIDAK ADA focus handler
 }
+
 
 
 
@@ -420,7 +423,7 @@ function attachExpenseSuggestion() {
    function refreshExpenseSuggestionCache() {
   buildExpenseNameCache();
 }
-   async function loadExpenseNameSuggestions() {
+ async function loadExpenseNameSuggestions() {
   if (!navigator.onLine) return;
 
   const fd = new FormData();
@@ -434,11 +437,11 @@ function attachExpenseSuggestion() {
 
     const json = await res.json();
     if (json.success && Array.isArray(json.data)) {
-      expenseSuggestionSource = json.data;
-      buildExpenseNameCache(); // pakai engine yang sudah ada
+      expenseNameCache = json.data;
+      console.log('✅ expenseNameCache loaded:', expenseNameCache.length);
     }
   } catch (e) {
-    console.warn('Gagal load suggestion names');
+    console.warn('❌ gagal load expenseNameSuggestions');
   }
 }
 
@@ -3365,6 +3368,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
