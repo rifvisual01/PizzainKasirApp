@@ -77,63 +77,73 @@
 }
 
 /* =========================
-   📱 PORTRAIT HEADER — COMPACT 1 BARIS
+   📱 PORTRAIT HEADER — FINAL POLISH
    ========================= */
 @media (orientation: portrait) {
 
-  /* HEADER CARD */
+  /* Header card lebih ramping */
   .home-adaptive-zoom .glass-effect.card-modern {
-    padding: 1.25rem !important;
+    padding: 1.4rem !important;
   }
 
-  /* ===== BARIS 1: ICON + JUDUL (1 BARIS) ===== */
+  /* ======================
+     BARIS 1: ICON + JUDUL
+     ====================== */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-4 {
     flex-wrap: nowrap !important;
-    gap: 0.5rem !important;
+    gap: 0.6rem !important;
   }
 
-  /* ICON */
+  /* Icon aplikasi — diperbesar */
   .home-adaptive-zoom svg.w-12.h-12 {
-    width: 2rem !important;
-    height: 2rem !important;
+    width: 2.6rem !important;
+    height: 2.6rem !important;
     flex-shrink: 0;
   }
 
-  /* JUDUL */
+  /* Judul aplikasi — diperbesar */
   .home-adaptive-zoom h1 {
-    font-size: 1.35rem !important;
+    font-size: 1.55rem !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
 
-  /* ===== BARIS 2: BADGE (PAKSA 1 BARIS) ===== */
+  /* ======================
+     BARIS 2: BADGE (1 BARIS)
+     ====================== */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-3.flex-wrap {
     flex-wrap: nowrap !important;
     gap: 0.4rem !important;
+    margin-top: 0.4rem !important;
   }
 
-  /* BADGE UMUM */
+  /* Semua badge → ukuran SAMA */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-3.flex-wrap > div {
-    padding: 0.35rem 0.6rem !important;
+    height: 1.6rem !important;
+    padding: 0 0.55rem !important;
     font-size: 0.65rem !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     white-space: nowrap !important;
     flex-shrink: 1;
   }
 
-  /* ICON DALAM BADGE */
+  /* Icon di dalam badge → seragam */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-3.flex-wrap svg {
-    width: 0.75rem !important;
-    height: 0.75rem !important;
+    width: 0.7rem !important;
+    height: 0.7rem !important;
   }
 }
 
@@ -3138,6 +3148,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
