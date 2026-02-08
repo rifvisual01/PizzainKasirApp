@@ -272,6 +272,99 @@
 let isSyncing = false;        
 let db;
 
+/* ============================
+   🔍 EXPENSE NAME SUGGESTION
+   ============================ */
+
+let expenseNameCache = [];
+
+/* Bangun cache unik dari expenses */
+function buildExpenseNameCache() {
+  const map = new Map();
+
+  (expenses || []).forEach(e => {
+    if (!e || !e.expense_name) return;
+    const key = e.expense_name.trim().toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, e.expense_name.trim());
+    }
+  });
+
+  expenseNameCache = Array.from(map.values());
+}
+
+/* Cari suggestion */
+function getExpenseSuggestions(keyword) {
+  if (!keyword) return [];
+
+  const q = keyword.toLowerCase();
+
+  return expenseNameCache
+    .filter(name => name.toLowerCase().includes(q))
+    .slice(0, 4);
+}
+
+/* Hapus suggestion box */
+function removeExpenseSuggestionBox() {
+  const box = document.getElementById('expenseSuggestionBox');
+  if (box) box.remove();
+}
+   function showExpenseSuggestions(inputEl, suggestions) {
+  removeExpenseSuggestionBox();
+
+  if (!suggestions.length) return;
+
+  const rect = inputEl.getBoundingClientRect();
+
+  const box = document.createElement('div');
+  box.id = 'expenseSuggestionBox';
+  box.className =
+    'absolute z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden';
+
+  box.style.width = rect.width + 'px';
+  box.style.left = rect.left + window.scrollX + 'px';
+  box.style.top = rect.bottom + window.scrollY + 6 + 'px';
+
+  box.innerHTML = suggestions.map(text => `
+    <div
+      class="px-4 py-3 cursor-pointer text-sm font-semibold text-gray-700 hover:bg-red-50"
+      data-value="${text.replace(/"/g, '&quot;')}"
+    >
+      ${text}
+    </div>
+  `).join('');
+
+  document.body.appendChild(box);
+
+  box.querySelectorAll('[data-value]').forEach(item => {
+    item.addEventListener('mousedown', () => {
+      inputEl.value = item.dataset.value;
+      removeExpenseSuggestionBox();
+    });
+  });
+}
+
+   function attachExpenseSuggestion() {
+  const input = document.getElementById('expenseName');
+  if (!input) return;
+
+  input.addEventListener('input', () => {
+    const value = input.value.trim();
+
+    if (!value) {
+      removeExpenseSuggestionBox();
+      return;
+    }
+
+    const suggestions = getExpenseSuggestions(value);
+    showExpenseSuggestions(input, suggestions);
+  });
+
+  input.addEventListener('blur', () => {
+    setTimeout(removeExpenseSuggestionBox, 150);
+  });
+}
+
    function normalizeExpenses() {
   expenses = expenses
     .map(e => ({
@@ -661,6 +754,17 @@ function renderCurrentView() {
   return;
 }
 }
+   const _renderCurrentView = renderCurrentView;
+
+renderCurrentView = function () {
+  _renderCurrentView();
+
+  // rebuild cache setiap render (aman & ringan)
+  buildExpenseNameCache();
+
+  // attach suggestion ke input yang aktif
+  setTimeout(attachExpenseSuggestion, 0);
+};
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
             const appTitle = config.app_title || defaultConfig.app_title;
@@ -3166,6 +3270,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
