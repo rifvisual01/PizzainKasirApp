@@ -422,27 +422,27 @@ updateSyncIndicator();
   }
 }
 
-   async function checkRealConnection() {
+async function checkRealConnection() {
   try {
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 3000);
+    setTimeout(() => controller.abort(), 4000);
 
-    // ENDPOINT KHUSUS CEK INTERNET ANDROID
-    const res = await fetch(
-      'https://clients3.google.com/generate_204',
-      {
-        method: 'GET',
-        cache: 'no-store',
-        signal: controller.signal
-      }
-    );
+    const fd = new FormData();
+    fd.append('action', 'ping'); // backend bebas abaikan
 
-    // hanya 204 = benar-benar online
-    return res.status === 204;
-  } catch (e) {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd,
+      cache: 'no-store',
+      signal: controller.signal
+    });
+
+    return res.ok;
+  } catch {
     return false;
   }
 }
+
 
 
 // 🔥 SATU-SATUNYA PEMANGGIL
@@ -452,42 +452,9 @@ async function updateSyncIndicator() {
   const el = document.getElementById('syncStatus');
   if (!el) return;
 
-  // 🔴 PAKSA OFFLINE (INI KUNCI)
-  if (!navigator.onLine) {
-    connectionState = 'offline';
-    stableOnlineCount = 0;
-    stableOfflineCount = 0;
+  const online = await checkRealConnection();
 
-    el.innerHTML = `
-      <span class="w-2 h-2 bg-red-500 rounded-full"></span>
-      <span>Offline</span>
-    `;
-    el.className =
-      'flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full font-bold';
-    return;
-  }
-
-  // 🌐 CEK INTERNET REAL
-  const isOnlineNow = await checkRealConnection();
-
-  if (isOnlineNow) {
-    stableOnlineCount++;
-    stableOfflineCount = 0;
-  } else {
-    stableOfflineCount++;
-    stableOnlineCount = 0;
-  }
-
-  if (stableOfflineCount >= OFFLINE_THRESHOLD) {
-    connectionState = 'offline';
-  }
-
-  if (stableOnlineCount >= ONLINE_THRESHOLD) {
-    connectionState = 'online';
-  }
-
-  // ================= UI =================
-  if (connectionState === 'offline') {
+  if (!online) {
     el.innerHTML = `
       <span class="w-2 h-2 bg-red-500 rounded-full"></span>
       <span>Offline</span>
@@ -510,18 +477,17 @@ async function updateSyncIndicator() {
     return;
   }
 
-  if (connectionState === 'online') {
-    el.innerHTML = `
-      <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-      <span>Online</span>
-    `;
-    el.className =
-      'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
-  }
+  el.innerHTML = `
+    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+    <span>Online</span>
+  `;
+  el.className =
+    'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
 }
 
 
-setInterval(updateSyncIndicator, 4000);
+
+setInterval(updateSyncIndicator, 5000);
 updateSyncIndicator();
 
 window.addEventListener('online', updateSyncIndicator);
@@ -3228,6 +3194,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
