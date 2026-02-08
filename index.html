@@ -452,9 +452,32 @@ async function updateSyncIndicator() {
   const el = document.getElementById('syncStatus');
   if (!el) return;
 
-  const realOnline = await checkRealConnection();
+  const isOnlineNow = await checkRealConnection();
 
-  if (!realOnline) {
+  if (isOnlineNow) {
+    stableOnlineCount++;
+    stableOfflineCount = 0;
+  } else {
+    stableOfflineCount++;
+    stableOnlineCount = 0;
+  }
+
+  // 🟢 ONLINE (harus stabil)
+  if (stableOnlineCount >= ONLINE_THRESHOLD) {
+    if (connectionState !== 'online') {
+      connectionState = 'online';
+    }
+  }
+
+  // 🔴 OFFLINE (harus benar-benar gagal)
+  if (stableOfflineCount >= OFFLINE_THRESHOLD) {
+    if (connectionState !== 'offline') {
+      connectionState = 'offline';
+    }
+  }
+
+  // ================= UI =================
+  if (connectionState === 'offline') {
     el.innerHTML = `
       <span class="w-2 h-2 bg-red-500 rounded-full"></span>
       <span>Offline</span>
@@ -477,13 +500,16 @@ async function updateSyncIndicator() {
     return;
   }
 
-  el.innerHTML = `
-    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-    <span>Online</span>
-  `;
-  el.className =
-    'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
+  if (connectionState === 'online') {
+    el.innerHTML = `
+      <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+      <span>Online</span>
+    `;
+    el.className =
+      'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
+  }
 }
+
 
 setInterval(updateSyncIndicator, 4000);
 updateSyncIndicator();
@@ -3192,6 +3218,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
