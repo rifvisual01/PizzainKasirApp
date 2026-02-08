@@ -452,6 +452,22 @@ async function updateSyncIndicator() {
   const el = document.getElementById('syncStatus');
   if (!el) return;
 
+  // 🔴 PAKSA OFFLINE (INI KUNCI)
+  if (!navigator.onLine) {
+    connectionState = 'offline';
+    stableOnlineCount = 0;
+    stableOfflineCount = 0;
+
+    el.innerHTML = `
+      <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+      <span>Offline</span>
+    `;
+    el.className =
+      'flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full font-bold';
+    return;
+  }
+
+  // 🌐 CEK INTERNET REAL
   const isOnlineNow = await checkRealConnection();
 
   if (isOnlineNow) {
@@ -462,18 +478,12 @@ async function updateSyncIndicator() {
     stableOnlineCount = 0;
   }
 
-  // 🟢 ONLINE (harus stabil)
-  if (stableOnlineCount >= ONLINE_THRESHOLD) {
-    if (connectionState !== 'online') {
-      connectionState = 'online';
-    }
+  if (stableOfflineCount >= OFFLINE_THRESHOLD) {
+    connectionState = 'offline';
   }
 
-  // 🔴 OFFLINE (harus benar-benar gagal)
-  if (stableOfflineCount >= OFFLINE_THRESHOLD) {
-    if (connectionState !== 'offline') {
-      connectionState = 'offline';
-    }
+  if (stableOnlineCount >= ONLINE_THRESHOLD) {
+    connectionState = 'online';
   }
 
   // ================= UI =================
@@ -3218,6 +3228,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
