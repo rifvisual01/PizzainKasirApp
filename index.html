@@ -864,13 +864,15 @@ const shiftExpenses = expenses.filter(e =>
 );
 
             const totalExpense = shiftExpenses.reduce((sum, e) => sum + e.amount, 0);
-            const prevShiftExpenses = currentShift === 'shift2'
-  ? expenses.filter(e =>
-      e.shift === 'shift1' &&
-      e.timestamp &&
-      e.timestamp.startsWith(today)
-    )
+ const prevShiftExpenses = currentShift === 'shift2'
+  ? expenses.filter(e => {
+      if (e.shift !== 'shift1') return false;
+      if (!e.createdAt) return false;
+
+      return e.createdAt.startsWith(today);
+    })
   : [];
+
 
             
             return `
@@ -3194,6 +3196,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
