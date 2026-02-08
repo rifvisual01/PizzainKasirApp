@@ -284,38 +284,39 @@ let expenseNameCache = [];
 function buildExpenseNameCache() {
   const map = new Map();
 
-  // 1️⃣ ambil dari expenses (kalau ada)
-    (expenseSuggestionSource || []).forEach(name => {
+  // 1️⃣ ISI LANGSUNG DARI BACKEND (SINKRON)
+  (expenseSuggestionSource || []).forEach(name => {
     const key = name.trim().toLowerCase();
     if (!map.has(key)) {
       map.set(key, name.trim());
     }
   });
 
-  // 2️⃣ ambil dari IndexedDB queue (offline history)
-  if (db) {
-    try {
-      const tx = db.transaction(['queue'], 'readonly');
-      const store = tx.objectStore('queue');
-      const req = store.getAll();
+  // 🔥 SET SEKARANG, JANGAN NUNGGU IDB
+  expenseNameCache = Array.from(map.values());
 
-      req.onsuccess = () => {
-        (req.result || []).forEach(item => {
-          const name = item?.payload?.expense_name;
-          if (!name) return;
-          const key = name.trim().toLowerCase();
-          map.set(key, name.trim());
-        });
+  // 2️⃣ TAMBAHKAN DARI INDEXED DB (ASYNC, OPTIONAL)
+  if (!db) return;
 
-        expenseNameCache = Array.from(map.values());
-      };
-    } catch (e) {
+  try {
+    const tx = db.transaction(['queue'], 'readonly');
+    const store = tx.objectStore('queue');
+    const req = store.getAll();
+
+    req.onsuccess = () => {
+      (req.result || []).forEach(item => {
+        const name = item?.payload?.expense_name;
+        if (!name) return;
+        const key = name.trim().toLowerCase();
+        map.set(key, name.trim());
+      });
+
+      // update ulang cache (menambah, bukan menghapus)
       expenseNameCache = Array.from(map.values());
-    }
-  } else {
-    expenseNameCache = Array.from(map.values());
-  }
+    };
+  } catch {}
 }
+
 
 
 /* Cari suggestion */
@@ -369,13 +370,15 @@ function removeExpenseSuggestionBox() {
   });
 }
 
-   function attachExpenseSuggestion() {
+function attachExpenseSuggestion() {
   const input = document.getElementById('expenseName');
   if (!input) return;
 
+  if (input.dataset.suggestAttached === '1') return;
+  input.dataset.suggestAttached = '1';
+
   input.addEventListener('input', () => {
     const value = input.value.trim();
-
     if (!value) {
       removeExpenseSuggestionBox();
       return;
@@ -389,6 +392,7 @@ function removeExpenseSuggestionBox() {
     setTimeout(removeExpenseSuggestionBox, 150);
   });
 }
+
 
    function normalizeExpenses() {
   expenses = expenses
@@ -3328,6 +3332,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
