@@ -373,6 +373,9 @@ function removeExpenseSuggestionBox() {
     }))
     .filter(e => e.createdAt);
 }
+   function refreshExpenseSuggestionCache() {
+  buildExpenseNameCache();
+}
 
    function getActiveCashiers() {
   if (Array.isArray(window.LOCAL_CASHIERS)) {
@@ -629,6 +632,7 @@ async function loadBackendData() {
   // 🔒 JANGAN TIMPA expenses SAAT MODE ADMIN
   if (currentView !== 'admin') {
     expenses = json.data.expenses || [];
+refreshExpenseSuggestionCache();
   }
 
   cashiers = json.data.cashiers || [];
@@ -1165,6 +1169,7 @@ const shiftExpenses = expenses.filter(e =>
       ...e,
       createdAt: e.createdAt || e.timestamp || null
     }));
+   refreshExpenseSuggestionCache();
 
   } catch (err) {
     console.error('❌ Gagal load expenses admin', err);
@@ -2615,6 +2620,7 @@ async function addExpense() {
   // =========================
   expenses.push(expense);
   renderCurrentView();
+ refreshExpenseSuggestionCache();
 
   // reset form
   document.getElementById('expenseName').value = '';
@@ -3270,6 +3276,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
