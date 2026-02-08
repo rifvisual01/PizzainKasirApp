@@ -271,133 +271,6 @@
    let adminDataReady = false;
 let isSyncing = false;        
 let db;
-   let expenseSuggestionSource = [];
-
-
-/* ============================
-   🔍 EXPENSE NAME SUGGESTION
-   ============================ */
-
-let expenseNameCache = [];
-
-/* Bangun cache unik dari expenses */
-function buildExpenseNameCache() {
-  const map = new Map();
-
-  // 1️⃣ ISI LANGSUNG DARI BACKEND (SINKRON)
-  (expenseSuggestionSource || []).forEach(name => {
-    const key = name.trim().toLowerCase();
-    if (!map.has(key)) {
-      map.set(key, name.trim());
-    }
-  });
-
-  // 🔥 SET SEKARANG, JANGAN NUNGGU IDB
-  expenseNameCache = Array.from(map.values());
-
-  // 2️⃣ TAMBAHKAN DARI INDEXED DB (ASYNC, OPTIONAL)
-  if (!db) return;
-
-  try {
-    const tx = db.transaction(['queue'], 'readonly');
-    const store = tx.objectStore('queue');
-    const req = store.getAll();
-
-    req.onsuccess = () => {
-      (req.result || []).forEach(item => {
-        const name = item?.payload?.expense_name;
-        if (!name) return;
-        const key = name.trim().toLowerCase();
-        map.set(key, name.trim());
-      });
-
-      // update ulang cache (menambah, bukan menghapus)
-      expenseNameCache = Array.from(map.values());
-    };
-  } catch {}
-}
-
-function renderExpenseNameDropdown(keyword) {
-  const list = document.getElementById('expenseNameList');
-  const input = document.getElementById('expenseName');
-  if (!list || !input) return;
-
-  list.innerHTML = '';
-
-  if (!keyword) return;
-
-  const q = keyword.toLowerCase();
-
-  expenseNameCache
-    .filter(name => name.toLowerCase().includes(q))
-    .slice(0, 4)
-    .forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      list.appendChild(opt);
-    });
-
-  // trigger ulang datalist (Chrome quirk)
-  const v = input.value;
-  input.value = '';
-  input.value = v;
-}
-
-
-
-
-
-
-/* Cari suggestion */
-function getExpenseSuggestions(keyword) {
-  if (!keyword) return [];
-
-  const q = keyword.toLowerCase();
-
-  return expenseNameCache
-    .filter(name => name.toLowerCase().includes(q))
-    .slice(0, 4);
-}
-
-/* Hapus suggestion box */
-function removeExpenseSuggestionBox() {
-  const box = document.getElementById('expenseSuggestionBox');
-  if (box) box.remove();
-}
-   function showExpenseSuggestions(inputEl, suggestions) {
-  removeExpenseSuggestionBox();
-
-  if (!suggestions.length) return;
-
-  const rect = inputEl.getBoundingClientRect();
-
-  const box = document.createElement('div');
-  box.id = 'expenseSuggestionBox';
-  box.className =
-    'absolute z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden';
-
-  box.style.width = rect.width + 'px';
-  box.style.left = rect.left + window.scrollX + 'px';
-  box.style.top = rect.bottom + window.scrollY + 6 + 'px';
-
-  box.innerHTML = suggestions.map(text => `
-    <div
-      class="px-4 py-3 cursor-pointer text-sm font-semibold text-gray-700 hover:bg-red-50"
-      data-value="${text.replace(/"/g, '&quot;')}"
-    >
-      ${text}
-    </div>
-  `).join('');
-
-  document.body.appendChild(box);
-
-  box.querySelectorAll('[data-value]').forEach(item => {
-    item.addEventListener('mousedown', () => {
-      inputEl.value = item.dataset.value;
-      removeExpenseSuggestionBox();
-    });
-  });
-}
 
    function normalizeExpenses() {
   expenses = expenses
@@ -407,31 +280,6 @@ function removeExpenseSuggestionBox() {
     }))
     .filter(e => e.createdAt);
 }
-   function refreshExpenseSuggestionCache() {
-  buildExpenseNameCache();
-}
- async function loadExpenseNameSuggestions() {
-  if (!navigator.onLine) return;
-
-  const fd = new FormData();
-  fd.append('action', 'getExpenseNameSuggestions');
-
-  try {
-    const res = await fetch(API_BASE, {
-      method: 'POST',
-      body: fd
-    });
-
-    const json = await res.json();
-    if (json.success && Array.isArray(json.data)) {
-      expenseNameCache = json.data;
-      console.log('✅ expenseNameCache loaded:', expenseNameCache.length);
-    }
-  } catch (e) {
-    console.warn('❌ gagal load expenseNameSuggestions');
-  }
-}
-
 
    function getActiveCashiers() {
   if (Array.isArray(window.LOCAL_CASHIERS)) {
@@ -660,7 +508,6 @@ async function init() {
   await initLocalDB();
 
   if (navigator.onLine) {
-    await loadExpenseNameSuggestions();
     loadBackendData()
       .then(() => renderCurrentView())
       .catch(() => {
@@ -686,14 +533,9 @@ async function loadBackendData() {
 
     if (json.success) {
 
-     if (Array.isArray(json.data.expenseNames)) {
-  expenseSuggestionSource = json.data.expenseNames;
-}
-
   // 🔒 JANGAN TIMPA expenses SAAT MODE ADMIN
   if (currentView !== 'admin') {
     expenses = json.data.expenses || [];
-refreshExpenseSuggestionCache();
   }
 
   cashiers = json.data.cashiers || [];
@@ -819,33 +661,6 @@ function renderCurrentView() {
   return;
 }
 }
-
-   function attachExpenseSuggestion() {
-  const input = document.getElementById('expenseName');
-  if (!input) return;
-
-  if (input.dataset.bound === '1') return;
-  input.dataset.bound = '1';
-
-document.addEventListener('input', e => {
-  if (e.target && e.target.id === 'expenseName') {
-    renderExpenseNameDropdown(e.target.value);
-  }
-});
-}
-
-   
-   const _renderCurrentView = renderCurrentView;
-
-renderCurrentView = function () {
-  _renderCurrentView();
-
-  // rebuild cache setiap render (aman & ringan)
-  buildExpenseNameCache();
-
-  // attach suggestion ke input yang aktif
-  attachExpenseSuggestion();
-};
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
             const appTitle = config.app_title || defaultConfig.app_title;
@@ -1068,17 +883,8 @@ const shiftExpenses = expenses.filter(e =>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Nama Pengeluaran</label>
-                                   <input
-  type="text"
-  id="expenseName"
-  list="expenseNameList"
-  placeholder="Cth: Air RO, Gas"
-  autocomplete="off"
-  class="input-modern w-full rounded-xl px-4 py-3"
-/>
-<datalist id="expenseNameList"></datalist>
+                                    <input type="text" id="expenseName" placeholder="Cth: Air RO, Gas" class="input-modern w-full rounded-xl px-4 py-3">
                                 </div>
-                                
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Nominal</label>
                                     <div class="relative">
@@ -1255,7 +1061,6 @@ const shiftExpenses = expenses.filter(e =>
       ...e,
       createdAt: e.createdAt || e.timestamp || null
     }));
-   refreshExpenseSuggestionCache();
 
   } catch (err) {
     console.error('❌ Gagal load expenses admin', err);
@@ -1379,17 +1184,8 @@ function renderAdminScreen() {
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Item</label>
-                                    <input
-  type="text"
-  id="expenseName"
-  list="expenseNameList"
-  placeholder="listrik"
-  autocomplete="off"
-  class="input-modern w-full rounded-xl px-4 py-3"
-/>
-<datalist id="expenseNameList"></datalist>
+                                    <input type="text" id="expenseName" placeholder="listrik" class="input-modern w-full rounded-xl px-4 py-3">
                                 </div>
-                                
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Nominal</label>
                                     <div class="relative">
@@ -2715,7 +2511,6 @@ async function addExpense() {
   // =========================
   expenses.push(expense);
   renderCurrentView();
- refreshExpenseSuggestionCache();
 
   // reset form
   document.getElementById('expenseName').value = '';
@@ -3371,19 +3166,6 @@ setInterval(() => {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
