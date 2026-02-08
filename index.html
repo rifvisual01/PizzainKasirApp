@@ -427,28 +427,33 @@ updateSyncIndicator();
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 3000);
 
-    await fetch(API_BASE, {
-      method: 'POST',
-      body: new FormData(),
-      signal: controller.signal
-    });
+    // ENDPOINT KHUSUS CEK INTERNET ANDROID
+    const res = await fetch(
+      'https://clients3.google.com/generate_204',
+      {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal
+      }
+    );
 
-    return true;
-  } catch {
+    // hanya 204 = benar-benar online
+    return res.status === 204;
+  } catch (e) {
     return false;
   }
 }
 
+
 // 🔥 SATU-SATUNYA PEMANGGIL
 window.addEventListener("online", processQueue);
 
-  async function updateSyncIndicator() {
+async function updateSyncIndicator() {
   const el = document.getElementById('syncStatus');
   if (!el) return;
 
-  const realOnline = navigator.onLine && await checkRealConnection();
+  const realOnline = await checkRealConnection();
 
-  // 🔴 OFFLINE
   if (!realOnline) {
     el.innerHTML = `
       <span class="w-2 h-2 bg-red-500 rounded-full"></span>
@@ -459,7 +464,6 @@ window.addEventListener("online", processQueue);
     return;
   }
 
-  // 🔄 SYNC
   if (isSyncing) {
     el.innerHTML = `
       <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
@@ -473,7 +477,6 @@ window.addEventListener("online", processQueue);
     return;
   }
 
-  // 🟢 ONLINE
   el.innerHTML = `
     <span class="w-2 h-2 bg-green-500 rounded-full"></span>
     <span>Online</span>
@@ -481,6 +484,9 @@ window.addEventListener("online", processQueue);
   el.className =
     'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
 }
+
+setInterval(updateSyncIndicator, 4000);
+updateSyncIndicator();
 
 window.addEventListener('online', updateSyncIndicator);
 window.addEventListener('offline', updateSyncIndicator);
@@ -3186,6 +3192,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
