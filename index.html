@@ -317,7 +317,7 @@ function buildExpenseNameCache() {
   } catch {}
 }
 
-   function renderExpenseNameDropdown(keyword) {
+function renderExpenseNameDropdown(keyword) {
   const input = document.getElementById('expenseName');
   const list = document.getElementById('expenseNameList');
   if (!input || !list) return;
@@ -337,11 +337,12 @@ function buildExpenseNameCache() {
       list.appendChild(opt);
     });
 
-  // 🔑 trigger ulang agar Chrome refresh
+  // paksa Chrome refresh datalist
   const v = input.value;
   input.value = '';
   input.value = v;
 }
+
 
 
 
@@ -396,21 +397,6 @@ function removeExpenseSuggestionBox() {
     });
   });
 }
-
-function attachExpenseSuggestion() {
-  const input = document.getElementById('expenseName');
-  if (!input) return;
-
-  if (input.dataset.bound === '1') return;
-  input.dataset.bound = '1';
-
-  input.addEventListener('input', e => {
-    renderExpenseNameDropdown(e.target.value);
-  });
-}
-
-
-
 
    function normalizeExpenses() {
   expenses = expenses
@@ -832,6 +818,20 @@ function renderCurrentView() {
   return;
 }
 }
+
+   function attachExpenseSuggestion() {
+  const input = document.getElementById('expenseName');
+  if (!input) return;
+
+  if (input.dataset.bound === '1') return;
+  input.dataset.bound = '1';
+
+  input.addEventListener('input', e => {
+    renderExpenseNameDropdown(e.target.value);
+  });
+}
+
+   
    const _renderCurrentView = renderCurrentView;
 
 renderCurrentView = function () {
@@ -841,7 +841,7 @@ renderCurrentView = function () {
   buildExpenseNameCache();
 
   // attach suggestion ke input yang aktif
-  setTimeout(attachExpenseSuggestion, 0);
+  attachExpenseSuggestion();
 };
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -3368,6 +3368,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
