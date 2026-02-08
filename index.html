@@ -285,10 +285,11 @@ function buildExpenseNameCache() {
   const map = new Map();
 
   // 1️⃣ ambil dari expenses (kalau ada)
-  (expenses || []).forEach(e => {
-    if (!e || !e.expense_name) return;
-    const key = e.expense_name.trim().toLowerCase();
-    map.set(key, e.expense_name.trim());
+    (expenseSuggestionSource || []).forEach(name => {
+    const key = name.trim().toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, name.trim());
+    }
   });
 
   // 2️⃣ ambil dari IndexedDB queue (offline history)
@@ -400,6 +401,28 @@ function removeExpenseSuggestionBox() {
    function refreshExpenseSuggestionCache() {
   buildExpenseNameCache();
 }
+   async function loadExpenseNameSuggestions() {
+  if (!navigator.onLine) return;
+
+  const fd = new FormData();
+  fd.append('action', 'getExpenseNameSuggestions');
+
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd
+    });
+
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      expenseSuggestionSource = json.data;
+      buildExpenseNameCache(); // pakai engine yang sudah ada
+    }
+  } catch (e) {
+    console.warn('Gagal load suggestion names');
+  }
+}
+
 
    function getActiveCashiers() {
   if (Array.isArray(window.LOCAL_CASHIERS)) {
@@ -629,6 +652,7 @@ async function init() {
 
   if (navigator.onLine) {
     loadBackendData()
+     await loadExpenseNameSuggestions();
       .then(() => renderCurrentView())
       .catch(() => {
         console.warn('⏳ Backend belum bisa diakses');
@@ -3304,6 +3328,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
