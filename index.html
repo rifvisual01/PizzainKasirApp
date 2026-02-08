@@ -271,6 +271,8 @@
    let adminDataReady = false;
 let isSyncing = false;        
 let db;
+   let expenseSuggestionSource = [];
+
 
 /* ============================
    🔍 EXPENSE NAME SUGGESTION
@@ -282,16 +284,38 @@ let expenseNameCache = [];
 function buildExpenseNameCache() {
   const map = new Map();
 
+  // 1️⃣ ambil dari expenses (kalau ada)
   (expenses || []).forEach(e => {
     if (!e || !e.expense_name) return;
     const key = e.expense_name.trim().toLowerCase();
-    if (!map.has(key)) {
-      map.set(key, e.expense_name.trim());
-    }
+    map.set(key, e.expense_name.trim());
   });
 
-  expenseNameCache = Array.from(map.values());
+  // 2️⃣ ambil dari IndexedDB queue (offline history)
+  if (db) {
+    try {
+      const tx = db.transaction(['queue'], 'readonly');
+      const store = tx.objectStore('queue');
+      const req = store.getAll();
+
+      req.onsuccess = () => {
+        (req.result || []).forEach(item => {
+          const name = item?.payload?.expense_name;
+          if (!name) return;
+          const key = name.trim().toLowerCase();
+          map.set(key, name.trim());
+        });
+
+        expenseNameCache = Array.from(map.values());
+      };
+    } catch (e) {
+      expenseNameCache = Array.from(map.values());
+    }
+  } else {
+    expenseNameCache = Array.from(map.values());
+  }
 }
+
 
 /* Cari suggestion */
 function getExpenseSuggestions(keyword) {
@@ -628,6 +652,10 @@ async function loadBackendData() {
     const json = await res.json();
 
     if (json.success) {
+
+     if (Array.isArray(json.data.expenseNames)) {
+  expenseSuggestionSource = json.data.expenseNames;
+}
 
   // 🔒 JANGAN TIMPA expenses SAAT MODE ADMIN
   if (currentView !== 'admin') {
@@ -3276,6 +3304,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
