@@ -317,6 +317,28 @@ function buildExpenseNameCache() {
   } catch {}
 }
 
+   function renderExpenseNameDropdown(keyword = '') {
+  const list = document.getElementById('expenseNameList');
+  if (!list) return;
+
+  list.innerHTML = '';
+
+  // ⛔ belum mengetik → tidak ada dropdown
+  if (!keyword) return;
+
+  const q = keyword.toLowerCase();
+
+  const items = expenseNameCache
+    .filter(name => name.toLowerCase().includes(q))
+    .slice(0, 4);
+
+  items.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    list.appendChild(opt);
+  });
+}
+
 
 
 /* Cari suggestion */
@@ -3325,6 +3347,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
