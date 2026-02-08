@@ -651,8 +651,8 @@ async function init() {
   await initLocalDB();
 
   if (navigator.onLine) {
+    await loadExpenseNameSuggestions();
     loadBackendData()
-     await loadExpenseNameSuggestions();
       .then(() => renderCurrentView())
       .catch(() => {
         console.warn('⏳ Backend belum bisa diakses');
@@ -3328,6 +3328,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
