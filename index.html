@@ -318,9 +318,9 @@ function buildExpenseNameCache() {
 }
 
 function renderExpenseNameDropdown(keyword) {
-  const input = document.getElementById('expenseName');
   const list = document.getElementById('expenseNameList');
-  if (!input || !list) return;
+  const input = document.getElementById('expenseName');
+  if (!list || !input) return;
 
   list.innerHTML = '';
 
@@ -329,7 +329,7 @@ function renderExpenseNameDropdown(keyword) {
   const q = keyword.toLowerCase();
 
   expenseNameCache
-    .filter(n => n.toLowerCase().includes(q))
+    .filter(name => name.toLowerCase().includes(q))
     .slice(0, 4)
     .forEach(name => {
       const opt = document.createElement('option');
@@ -337,11 +337,12 @@ function renderExpenseNameDropdown(keyword) {
       list.appendChild(opt);
     });
 
-  // paksa Chrome refresh datalist
+  // trigger ulang datalist (Chrome quirk)
   const v = input.value;
   input.value = '';
   input.value = v;
 }
+
 
 
 
@@ -826,9 +827,11 @@ function renderCurrentView() {
   if (input.dataset.bound === '1') return;
   input.dataset.bound = '1';
 
-  input.addEventListener('input', e => {
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'expenseName') {
     renderExpenseNameDropdown(e.target.value);
-  });
+  }
+});
 }
 
    
@@ -3368,6 +3371,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
