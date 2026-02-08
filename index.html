@@ -374,24 +374,17 @@ function attachExpenseSuggestion() {
   const input = document.getElementById('expenseName');
   if (!input) return;
 
-  if (input.dataset.suggestAttached === '1') return;
-  input.dataset.suggestAttached = '1';
+  if (input.dataset.dropdownAttached === '1') return;
+  input.dataset.dropdownAttached = '1';
 
+  // ✅ dropdown muncul SAAT MENGETIK
   input.addEventListener('input', () => {
-    const value = input.value.trim();
-    if (!value) {
-      removeExpenseSuggestionBox();
-      return;
-    }
-
-    const suggestions = getExpenseSuggestions(value);
-    showExpenseSuggestions(input, suggestions);
+    renderExpenseNameDropdown(input.value.trim());
   });
 
-  input.addEventListener('blur', () => {
-    setTimeout(removeExpenseSuggestionBox, 150);
-  });
+  // ❌ TIDAK ADA focus handler
 }
+
 
 
    function normalizeExpenses() {
@@ -3332,6 +3325,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
