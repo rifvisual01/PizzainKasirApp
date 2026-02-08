@@ -77,13 +77,13 @@
 }
 
 /* =========================
-   📱 PORTRAIT HEADER — FINAL POLISH
+   📱 PORTRAIT HEADER — 3 BARIS RAPI
    ========================= */
 @media (orientation: portrait) {
 
-  /* Header card lebih ramping */
+  /* Header card */
   .home-adaptive-zoom .glass-effect.card-modern {
-    padding: 1.4rem !important;
+    padding: 1.5rem !important;
   }
 
   /* ======================
@@ -96,49 +96,66 @@
     gap: 0.6rem !important;
   }
 
-  /* Icon aplikasi — diperbesar */
   .home-adaptive-zoom svg.w-12.h-12 {
     width: 2.6rem !important;
     height: 2.6rem !important;
     flex-shrink: 0;
   }
 
-  /* Judul aplikasi — diperbesar */
   .home-adaptive-zoom h1 {
     font-size: 1.55rem !important;
     line-height: 1.1 !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
   }
 
   /* ======================
-     BARIS 2: BADGE (1 BARIS)
+     BARIS 2 & 3: BADGE
      ====================== */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-3.flex-wrap {
-    flex-wrap: nowrap !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
     gap: 0.4rem !important;
-    margin-top: 0.4rem !important;
+    margin-top: 0.6rem !important;
   }
 
-  /* Semua badge → ukuran SAMA */
+  /* BADGE UMUM */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-3.flex-wrap > div {
-    height: 1.6rem !important;
-    padding: 0 0.55rem !important;
+    height: 1.7rem !important;
+    padding: 0 0.7rem !important;
     font-size: 0.65rem !important;
-    line-height: 1 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     white-space: nowrap !important;
-    flex-shrink: 1;
   }
 
-  /* Icon di dalam badge → seragam */
+  /* ======================
+     BARIS 2: Pizzain Indonesia (sendiri, center)
+     ====================== */
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-3.flex-wrap > div:nth-child(1) {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* ======================
+     BARIS 3: Online + Tanggal
+     ====================== */
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-3.flex-wrap > div:nth-child(2),
+  .home-adaptive-zoom
+  .glass-effect.card-modern
+  .flex.items-center.justify-center.gap-3.flex-wrap > div:nth-child(3) {
+    width: auto;
+  }
+
+  /* Icon di dalam badge */
   .home-adaptive-zoom
   .glass-effect.card-modern
   .flex.items-center.justify-center.gap-3.flex-wrap svg {
@@ -146,6 +163,7 @@
     height: 0.7rem !important;
   }
 }
+
 
         body {
             box-sizing: border-box;
@@ -3148,6 +3166,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
