@@ -275,14 +275,26 @@ let db;
  function normalizeExpenses() {
   expenses = expenses
     .map(e => {
+      let raw = e.createdAt || e.timestamp;
       let iso = null;
 
-      if (e.createdAt) {
-        iso = safeISODate(e.createdAt);
-      } else if (e.timestamp) {
-        iso = safeISODate(e.timestamp);
-      } else if (e.id) {
-        // fallback TERAKHIR (pakai waktu lokal)
+      // sudah ISO
+      if (typeof raw === 'string' && raw.includes('T')) {
+        iso = safeISODate(raw);
+      }
+
+      // format "YYYY-MM-DD HH:mm:ss"
+      if (!iso && typeof raw === 'string' && raw.includes(' ')) {
+        iso = safeISODate(raw.replace(' ', 'T'));
+      }
+
+      // number timestamp
+      if (!iso && typeof raw === 'number') {
+        iso = safeISODate(new Date(raw).toISOString());
+      }
+
+      // fallback terakhir (JANGAN kosong)
+      if (!iso) {
         iso = new Date().toISOString();
       }
 
@@ -293,6 +305,7 @@ let db;
     })
     .filter(e => e.createdAt);
 }
+
 
 
 
@@ -865,6 +878,7 @@ const shift2Count = shift2Expenses.length;
 
 
         function renderShiftScreen() {
+         normalizeExpenses();
             const config = window.elementSdk?.config || defaultConfig;
             const shiftLabel = currentShift === 'shift1' ? (config.shift1_label || defaultConfig.shift1_label) : (config.shift2_label || defaultConfig.shift2_label);
             const shiftInfo = shiftData[currentShift];
@@ -876,7 +890,8 @@ const shift2Count = shift2Expenses.length;
             const today = safeISODate(new Date())?.split('T')[0];
 
 const shiftExpenses = expenses.filter(e =>
-  e.sessionId === shiftData[currentShift]?.sessionId
+  e.sessionId === shiftData[currentShift]?.sessionId &&
+  e.createdAt
 );
 
             const totalExpense = shiftExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -3212,6 +3227,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
