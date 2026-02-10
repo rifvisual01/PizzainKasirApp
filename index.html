@@ -272,39 +272,51 @@
 let isSyncing = false;        
 let db;
 
- function normalizeExpenses() {
-  expenses = expenses
-    .map(e => {
-      let raw = e.createdAt || e.timestamp;
-      let iso = null;
+function normalizeExpenses() {
+  expenses = expenses.map(e => {
+    let raw = e.createdAt || e.timestamp;
+    let iso = null;
 
-      // sudah ISO
-      if (typeof raw === 'string' && raw.includes('T')) {
-        iso = safeISODate(raw);
+    if (typeof raw === 'string') {
+      let v = raw.trim();
+
+      // "YYYY-MM-DD HH:mm:ss" → ISO UTC
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)) {
+        v = v.replace(' ', 'T') + 'Z';
       }
 
-      // format "YYYY-MM-DD HH:mm:ss"
-      if (!iso && typeof raw === 'string' && raw.includes(' ')) {
-        iso = safeISODate(raw.replace(' ', 'T'));
+      // "YYYY-MM-DDTHH:mm:ss" → paksa UTC
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(v)) {
+        v = v + 'Z';
       }
 
-      // number timestamp
-      if (!iso && typeof raw === 'number') {
-        iso = safeISODate(new Date(raw).toISOString());
+      const d = new Date(v);
+      if (!isNaN(d.getTime())) {
+        iso = d.toISOString();
       }
+    }
 
-      // fallback terakhir (JANGAN kosong)
-      if (!iso) {
-        iso = new Date().toISOString();
+    // number timestamp
+    if (!iso && typeof raw === 'number') {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        iso = d.toISOString();
       }
+    }
 
-      return {
-        ...e,
-        createdAt: iso
-      };
-    })
-    .filter(e => e.createdAt);
+    // fallback terakhir
+    if (!iso) {
+      iso = new Date().toISOString();
+    }
+
+    return {
+      ...e,
+      createdAt: iso,
+      timestamp: iso   // 🔑 INI KUNCI UTAMA
+    };
+  });
 }
+
 
 
 
@@ -3227,6 +3239,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
