@@ -272,14 +272,29 @@
 let isSyncing = false;        
 let db;
 
-   function normalizeExpenses() {
+ function normalizeExpenses() {
   expenses = expenses
-    .map(e => ({
-      ...e,
-      createdAt: safeISODate(e.createdAt || e.timestamp)
-    }))
+    .map(e => {
+      let iso = null;
+
+      if (e.createdAt) {
+        iso = safeISODate(e.createdAt);
+      } else if (e.timestamp) {
+        iso = safeISODate(e.timestamp);
+      } else if (e.id) {
+        // fallback TERAKHIR (pakai waktu lokal)
+        iso = new Date().toISOString();
+      }
+
+      return {
+        ...e,
+        createdAt: iso
+      };
+    })
     .filter(e => e.createdAt);
 }
+
+
 
    function getActiveCashiers() {
   if (Array.isArray(window.LOCAL_CASHIERS)) {
@@ -514,6 +529,7 @@ updateSyncIndicator();
 
   return d.toISOString();
 }
+
    
 let appReady = false;
 
@@ -3196,6 +3212,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
