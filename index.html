@@ -2920,12 +2920,18 @@ function initExpenseSuggestion() {
         return;
       }
 
-      // Ambil nama unik
       const uniqueNames = [...new Set(
-        expenses
-          .map(e => e.expense_name)
-          .filter(Boolean)
-      )];
+  expenses
+    .map(e => {
+      // Paksa ambil hanya expense_name
+      if (typeof e.expense_name === 'string') {
+        return e.expense_name.trim();
+      }
+      return null;
+    })
+    .filter(name => name && name.length > 0)
+)];
+
 
       // 🔎 Cari di awal / tengah / akhir
       const results = uniqueNames.filter(name =>
@@ -3335,6 +3341,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
