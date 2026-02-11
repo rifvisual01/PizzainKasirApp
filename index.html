@@ -656,10 +656,16 @@ function renderCurrentView() {
   // SHIFT
   // =====================
   if (currentView === 'shift1' || currentView === 'shift2') {
-    if (currentShift && shiftData[currentShift]) {
-      app.innerHTML = renderShiftScreen();
-      return;
-    }
+  if (currentShift && shiftData[currentShift]) {
+    app.innerHTML = renderShiftScreen();
+
+    requestAnimationFrame(() => {
+      initExpenseSuggestion();
+    });
+
+    return;
+  }
+
     currentView = 'home';
     app.innerHTML = renderHomeScreen();
     return;
@@ -671,6 +677,9 @@ function renderCurrentView() {
  if (currentView === 'admin') {
   // 1️⃣ render awal (UI langsung tampil)
   app.innerHTML = renderAdminScreen();
+requestAnimationFrame(() => {
+  initExpenseSuggestion();
+});
 
   if (!adminDataReady) {
 
@@ -729,10 +738,6 @@ function renderCurrentView() {
 
   return;
 }
-   setTimeout(() => {
-  initExpenseSuggestion();
-}, 50);
-
 }
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -3330,6 +3335,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
