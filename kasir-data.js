@@ -2,21 +2,21 @@
 window.LOCAL_CASHIERS = [
   {
     name: 'Arzha',
-    pin: '604020',
+    pin: '190405',
     role: 'kasir',
     active: true
   },
   
    {
     name: 'Izza',
-    pin: '482412',
+    pin: '122485',
     role: 'kasir',
     active: true
   },
   
    {
     name: 'Afdhal',
-    pin: '120160',
+    pin: '246810',
     role: 'kasir',
     active: true
   },
