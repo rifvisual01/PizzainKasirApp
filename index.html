@@ -729,6 +729,10 @@ function renderCurrentView() {
 
   return;
 }
+   setTimeout(() => {
+  initExpenseSuggestion();
+}, 50);
+
 }
         function renderHomeScreen() {
             const config = window.elementSdk?.config || defaultConfig;
@@ -2869,6 +2873,93 @@ async function finalizeCloseShift(endCash) {
 }
 
 
+// ===============================
+// 🔽 DROPDOWN SUGGESTION EXPENSE
+// ===============================
+
+function initExpenseSuggestion() {
+  const inputs = document.querySelectorAll('#expenseName');
+
+  inputs.forEach(input => {
+
+    // Hindari double init
+    if (input.dataset.suggestInit === "true") return;
+    input.dataset.suggestInit = "true";
+
+    // Pastikan wrapper relative
+    if (!input.parentElement.classList.contains('suggest-wrapper')) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'relative suggest-wrapper';
+      input.parentNode.insertBefore(wrapper, input);
+      wrapper.appendChild(input);
+    }
+
+    const wrapper = input.parentElement;
+
+    // Buat dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className =
+      'absolute left-0 top-full z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-60 overflow-y-auto hidden';
+    wrapper.appendChild(dropdown);
+
+    input.addEventListener('input', function () {
+      const keyword = this.value.trim().toLowerCase();
+
+      if (!keyword) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+
+      if (!expenses || !expenses.length) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+
+      // Ambil nama unik
+      const uniqueNames = [...new Set(
+        expenses
+          .map(e => e.expense_name)
+          .filter(Boolean)
+      )];
+
+      // 🔎 Cari di awal / tengah / akhir
+      const results = uniqueNames.filter(name =>
+        name.toLowerCase().includes(keyword)
+      );
+
+      if (results.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+
+      dropdown.innerHTML = results
+        .slice(0, 10)
+        .map(name => `
+          <div class="px-4 py-2 hover:bg-red-50 cursor-pointer text-sm font-semibold border-b border-gray-100 last:border-none">
+            ${name}
+          </div>
+        `).join('');
+
+      dropdown.classList.remove('hidden');
+
+      dropdown.querySelectorAll('div').forEach(item => {
+        item.addEventListener('click', function () {
+          input.value = this.textContent.trim();
+          dropdown.classList.add('hidden');
+        });
+      });
+    });
+
+    // Klik luar = tutup dropdown
+    document.addEventListener('click', function (e) {
+      if (!wrapper.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+  });
+}
+
 
 
         function cancelCloseShift() {
@@ -3239,6 +3330,7 @@ setInterval(() => {
 
 </body>
 </html>
+
 
 
 
