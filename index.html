@@ -534,12 +534,19 @@ updateSyncIndicator();
 }
 
 async function checkRealConnection() {
+
+  // LEVEL 1: cek koneksi browser dulu
+  if (!navigator.onLine) return false;
+
   try {
+
     const controller = new AbortController();
-    setTimeout(() => controller.abort(), 4000);
+
+    // beri waktu lebih panjang
+    setTimeout(() => controller.abort(), 8000);
 
     const fd = new FormData();
-    fd.append('action', 'ping'); // backend bebas abaikan
+    fd.append('action', 'ping');
 
     const res = await fetch(API_BASE, {
       method: 'POST',
@@ -548,16 +555,24 @@ async function checkRealConnection() {
       signal: controller.signal
     });
 
-    return res.ok;
+    // jika backend gagal tapi internet ada → tetap online
+    return true;
+
   } catch {
-    return false;
+
+    // fallback: jika navigator masih online → tetap dianggap online
+    return navigator.onLine;
+
   }
 }
 
 
-
 // 🔥 SATU-SATUNYA PEMANGGIL
 window.addEventListener("online", processQueue);
+
+// update indikator koneksi
+window.addEventListener("online", updateSyncIndicator);
+window.addEventListener("offline", updateSyncIndicator);
 
 async function updateSyncIndicator() {
   const el = document.getElementById('syncStatus');
@@ -3489,3 +3504,4 @@ setInterval(() => {
 
 </body>
 </html>
+
