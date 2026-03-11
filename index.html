@@ -575,40 +575,47 @@ window.addEventListener("online", updateSyncIndicator);
 window.addEventListener("offline", updateSyncIndicator);
 
 async function updateSyncIndicator() {
+
   const el = document.getElementById('syncStatus');
   if (!el) return;
 
-  const online = await checkRealConnection();
+  // 1️⃣ WIFI PUTUS
+  if (!navigator.onLine) {
 
-  if (!online) {
     el.innerHTML = `
       <span class="w-2 h-2 bg-red-500 rounded-full"></span>
       <span>Offline</span>
     `;
+
     el.className =
       'flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full font-bold';
+
     return;
   }
 
+  // 2️⃣ SEDANG SYNC QUEUE
   if (isSyncing) {
+
     el.innerHTML = `
-      <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none" opacity="0.3"/>
-        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4" fill="none"/>
-      </svg>
-      <span>Menyinkronkan</span>
+      <span class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+      <span>Sinkronisasi...</span>
     `;
+
     el.className =
-      'flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold';
+      'flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-bold';
+
     return;
   }
 
+  // 3️⃣ ONLINE NORMAL
   el.innerHTML = `
     <span class="w-2 h-2 bg-green-500 rounded-full"></span>
     <span>Online</span>
   `;
+
   el.className =
     'flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold';
+
 }
 
 
@@ -3504,4 +3511,5 @@ setInterval(() => {
 
 </body>
 </html>
+
 
