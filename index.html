@@ -13,6 +13,28 @@
 
 
   <style>
+
+   @keyframes logoPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-logo-pulse {
+  animation: logoPulse 2s ease-in-out infinite;
+}
+   
 /* =========================
    🔥 ADAPTIVE HOME ZOOM
    ========================= */
@@ -175,9 +197,9 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         
-        .gradient-primary {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-        }
+   .gradient-primary {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
         
         .glass-effect {
             background: rgba(255, 255, 255, 0.95);
@@ -272,6 +294,33 @@
 let isSyncing = false;        
 let db;
 
+function restoreOpenShift() {
+
+  if (!shiftData) return false;
+
+  // SHIFT 1
+  if (shiftData.shift1 && shiftData.shift1.status === "open") {
+
+    currentShift = "shift1";
+    currentCashier = shiftData.shift1.cashier;
+    currentView = "shift1";   // 🔥 penting
+
+    return true;
+  }
+
+  // SHIFT 2
+  if (shiftData.shift2 && shiftData.shift2.status === "open") {
+
+    currentShift = "shift2";
+    currentCashier = shiftData.shift2.cashier;
+    currentView = "shift2";   // 🔥 penting
+
+    return true;
+  }
+
+  return false;
+}
+   
 function normalizeExpenses() {
   expenses = expenses.map(e => {
     let raw = e.createdAt || e.timestamp;
@@ -352,6 +401,28 @@ function initLocalDB() {
   });
 }
 
+   const savedShift = localStorage.getItem('activeShift');
+
+if (savedShift) {
+  try {
+    const s = JSON.parse(savedShift);
+
+    shiftData[s.shift] = {
+      status: 'open',
+      cashier: s.cashier,
+      startCash: s.startCash,
+      openedAt: s.openedAt,
+      sessionId: s.sessionId
+    };
+
+    currentShift = s.shift;
+    currentCashier = s.cashier;
+    currentView = s.shift;
+
+  } catch(e) {
+    console.warn('restore shift gagal');
+  }
+}
    function getActiveCashiers() {
   // PRIORITAS 1: cache runtime
   if (Array.isArray(cashiers) && cashiers.length) {
@@ -559,34 +630,58 @@ updateSyncIndicator();
 let appReady = false;
 
    function showAppSkeleton() {
+
   const app = document.getElementById('app');
-  if (!app) return;
 
   app.innerHTML = `
-    <div class="min-h-full flex items-center justify-center">
-      <div class="text-center">
-        <div class="w-14 h-14 border-4 border-red-300 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="font-bold text-red-700">Memuat aplikasi…</p>
+    <div class="min-h-screen flex flex-col items-center justify-center gradient-primary">
+
+      <div class="flex flex-col items-center gap-6 animate-fade">
+
+        <img 
+          src="./logo pizzain apk.png"
+          alt="Logo"
+          class="w-40 drop-shadow-2xl animate-logo-pulse"
+        >
+
+        <div class="text-white font-bold text-lg tracking-wide">
+          Memuat aplikasi...
+        </div>
+
+        <div class="w-8 h-8 border-4 border-white/40 border-t-white rounded-full animate-spin"></div>
+
       </div>
+
     </div>
   `;
 }
 
 async function init() {
-  renderCurrentView();
+
+  showAppSkeleton();
+
   await initLocalDB();
 
   if (navigator.onLine) {
-    loadBackendData()
-      .then(() => renderCurrentView())
-      .catch(() => {
-        console.warn('⏳ Backend belum bisa diakses');
-      });
-  } else {
-    console.log('📴 Offline mode aktif');
-  }
-}
 
+    try {
+
+      // 1️⃣ kirim semua queue dulu
+      await processQueue();
+
+      // 2️⃣ ambil data terbaru dari backend
+      await loadBackendData();
+
+    } catch(e){
+      console.warn('init sync gagal');
+    }
+
+  }
+
+  // 3️⃣ baru render UI
+  renderCurrentView();
+
+}
 async function loadBackendData() {
   if (!navigator.onLine) return;
   const fd = new FormData();
@@ -608,13 +703,22 @@ async function loadBackendData() {
   }
 
   cashiers = json.data.cashiers || [];
-  shiftHistory = json.data.shiftHistory || [];
+  if (navigator.onLine && json.data.shiftHistory) {
+  shiftHistory = json.data.shiftHistory;
+}
 
-  // jangan overwrite shift yang sedang aktif
-  if (!currentShift) {
-    shiftData = json.data.shiftData || shiftData;
-  }
+if (navigator.onLine && json.data.shiftData) {
+  shiftData = json.data.shiftData;
+}
 
+   // 🔥 AUTO RESTORE SHIFT
+const restored = restoreOpenShift();
+
+if (restored) {
+  renderCurrentView();
+  return;
+}
+     
   renderCurrentView(); // update UI tanpa reload
 }
   } catch (err) {
@@ -622,24 +726,14 @@ async function loadBackendData() {
   }
 }
 
-   function getLastShift(date, shift) {
+   function getLastShift(shift) {
   return shiftHistory
-    .filter(s => {
-      const d = new Date(s.tanggal);
-      const localDate =
-        d.getFullYear() + '-' +
-        String(d.getMonth() + 1).padStart(2,'0') + '-' +
-        String(d.getDate()).padStart(2,'0');
-
-      return (
-        localDate === date &&
-        s.shift === shift &&
-        s.status === 'closed'
-      );
-    })
+    .filter(s =>
+      s.shift === shift &&
+      String(s.status).toLowerCase() === 'closed'
+    )
     .sort((a,b)=> new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
 }
-
 
 function renderCurrentView() {
   const app = document.getElementById('app');
@@ -656,6 +750,13 @@ function renderCurrentView() {
   // SHIFT
   // =====================
   if (currentView === 'shift1' || currentView === 'shift2') {
+
+  // 🔥 pastikan shiftHistory sudah ada
+  if (!shiftHistory.length && navigator.onLine) {
+    loadBackendData().then(() => renderCurrentView());
+    return;
+  }
+
   if (currentShift && shiftData[currentShift]) {
     app.innerHTML = renderShiftScreen();
 
@@ -707,10 +808,9 @@ requestAnimationFrame(() => {
     // ===============================
     // 🌐 ONLINE MODE → FETCH NORMAL
     // ===============================
-    Promise.all([
-      loadAllExpensesForAdmin(),
-      loadBackendData()
-    ])
+   Promise.all([
+  loadAllExpensesForAdmin()
+])
       .then(() => {
         normalizeExpenses();
         adminDataReady = true;
@@ -1047,6 +1147,15 @@ const shiftExpenses = expenses.filter(e =>
         }
 
         function renderShiftLogin() {
+         const today = new Date().toISOString().split('T')[0];
+
+const lastShift1 = shiftHistory
+  .filter(s =>
+    s.shift === 'shift1' &&
+    s.status === 'closed' &&
+    s.tanggal === today
+  )
+  .sort((a,b)=> new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
             const config = window.elementSdk?.config || defaultConfig;
             const shiftLabel = currentShift === 'shift1' ? (config.shift1_label || defaultConfig.shift1_label) : (config.shift2_label || defaultConfig.shift2_label);
             
@@ -1086,11 +1195,11 @@ const shiftExpenses = expenses.filter(e =>
                                 <input type="password" id="cashierPin" placeholder="Masukkan PIN Kasir" class="input-modern w-full rounded-xl px-4 py-3">
                             </div>
                             
-                            ${currentShift === 'shift2' && shiftData.shift1.endCash > 0 ? `
+                            ${currentShift === 'shift2' && getLastShift('shift1') ? `
                             <div class="gradient-primary rounded-2xl p-5 text-white">
                                 <p class="text-sm font-bold opacity-90 mb-1">Kas Akhir Shift 1</p>
-                                <p class="text-3xl font-black mb-3">Rp ${shiftData.shift1.endCash.toLocaleString('id-ID')}</p>
-                                <button onclick="useShift1EndCash()" class="w-full bg-white text-red-600 py-3 rounded-xl font-bold hover:bg-gray-50">
+                                <p class="text-3xl font-black mb-3">Rp ${getLastShift('shift1').endCash.toLocaleString('id-ID')}</p>
+                                <button onclick="useShift1EndCash(getLastShift('shift1').endCash)" class="w-full bg-white text-red-600 py-3 rounded-xl font-bold hover:bg-gray-50">
                                     Gunakan Kas Akhir Shift 1
                                 </button>
                             </div>
@@ -1510,7 +1619,7 @@ function renderAdminScreen() {
                                                   ${shift1Items.length > 0 ? `
 <div>
 ${(() => {
-  const s1 = getLastShift(dateKey, 'shift1');
+  const s1 = getLastShift('shift1');
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
@@ -1581,7 +1690,7 @@ ${(() => {
 ${shift2Items.length > 0 ? `
 <div>
 ${(() => {
-  const s2 = getLastShift(dateKey, 'shift2');
+  const s2 = getLastShift('shift2');
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-amber-300 border-red-300">
@@ -1925,7 +2034,7 @@ categoryExpenses.forEach(exp => {
                             
                             <div class="mb-6">
 ${(() => {
-  const s1 = getLastShift(startDate, 'shift1'); // startDate = tanggal laporan
+  const s1 = getLastShift('shift1'); // startDate = tanggal laporan
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
@@ -2001,7 +2110,7 @@ ${shift1Expenses.length === 0 ? `
 
 <div class="mb-6">
 ${(() => {
-  const s2 = getLastShift(startDate, 'shift2'); // startDate = tanggal laporan
+  const s2 = getLastShift('shift2'); // startDate = tanggal laporan
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-amber-300 border border-red-300">
@@ -2294,12 +2403,15 @@ shiftData.admin = {
             if (dialog) dialog.remove();
         }
 
-        function useShift1EndCash() {
-            const input = document.getElementById('startCash');
-            if (input) {
-                input.value = formatRupiah(shiftData.shift1.endCash.toString());
-            }
-        }
+        function useShift1EndCash(amount){
+
+  const input = document.getElementById('startCash');
+
+  if(!input) return;
+
+  input.value = amount.toLocaleString('id-ID');
+
+}
 
         function formatCurrencyInput(input) {
             const value = input.value.replace(/\D/g, '');
@@ -2360,7 +2472,15 @@ async function loginShift() {
       openedAt: safeISODate(new Date()),
       sessionId // 🔑 SIMPAN SESSION
     };
-
+   
+localStorage.setItem('activeShift', JSON.stringify({
+  shift,
+  cashier: cashierName,
+  startCash,
+  openedAt: safeISODate(new Date()),
+  sessionId
+}));
+   
     currentShift = shift;
     currentCashier = cashierName;
     currentView = shift;
@@ -2588,21 +2708,36 @@ async function addExpense() {
     createdAt:  safeISODate(new Date()),
   };
 
-  // =========================
-  // 1️⃣ UI-FIRST (OPTIMISTIC)
-  // =========================
-  expenses.push(expense);
+// =========================
+// 1️⃣ UI-FIRST (OPTIMISTIC)
+// =========================
+expenses.push(expense);
+
+// 🔄 update UI tanpa merusak admin state
+if (currentView === 'admin') {
+  normalizeExpenses();
+
+  const app = document.getElementById('app');
+  app.innerHTML = renderAdminScreen();
+
+  requestAnimationFrame(() => {
+    createChart?.();
+  });
+
+} else {
   renderCurrentView();
+}
 
-  // reset form
-  document.getElementById('expenseName').value = '';
-  document.getElementById('expenseAmount').value = '';
-  document.getElementById('expenseCategory').value = '';
+// reset form
+document.getElementById('expenseName').value = '';
+document.getElementById('expenseAmount').value = '';
+document.getElementById('expenseCategory').value = '';
 
-  // =========================
-  // 2️⃣ SELALU MASUK QUEUE
-  // =========================
-  await saveToQueue({
+
+// =========================
+// 2️⃣ SELALU MASUK QUEUE
+// =========================
+await saveToQueue({
   id: 'addExpense-' + expenseId,
   payload: {
     action: 'addExpense',
@@ -2804,11 +2939,24 @@ async function finalizeCloseShift(endCash) {
   // 1️⃣ update state lokal (UI-FIRST)
   // ================================
   shiftData[currentShift].status = 'closed';
-  shiftData[currentShift].endCash = endCash;
-  shiftData[currentShift].closedAt = closedAt;
+shiftData[currentShift].endCash = endCash;
+shiftData[currentShift].closedAt = closedAt;
+
+// 🔥 TAMBAHAN: update shiftHistory lokal
+shiftHistory.push({
+  tanggal: new Date().toISOString().split('T')[0],
+  shift: currentShift,
+  cashier: currentCashier || shiftData[currentShift].cashier,
+  startCash: shiftData[currentShift].startCash,
+  endCash: endCash,
+  status: 'closed',
+  openedAt: shiftData[currentShift].openedAt || null,
+  closedAt: closedAt,
+  sessionId: shiftData[currentShift].sessionId
+});
 
   const closedShift = currentShift;
-
+localStorage.removeItem('activeShift');
   // 🔥 MATIKAN SHIFT AKTIF
   currentShift = null;
   currentView = 'home';
@@ -3341,126 +3489,3 @@ setInterval(() => {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
