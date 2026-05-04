@@ -293,6 +293,8 @@
    let adminDataReady = false;
 let isSyncing = false;        
 let db;
+   let shiftWarningShown = false;
+let activeShiftDetected = false;
 
 function restoreOpenShift() {
 
@@ -701,9 +703,101 @@ async function init() {
   }
 
   // 3️⃣ baru render UI
-  renderCurrentView();
+renderCurrentView();
 
+// 🔥 TAMBAHKAN DI SINI
+const activeShift = getActiveShift();
+
+if (activeShift && !shiftWarningShown) {
+  setTimeout(() => {
+    showShiftWarning(activeShift);
+  }, 300);
 }
+}
+
+function getActiveShift() {
+  if (shiftData?.shift1?.status === 'open') return 'shift1';
+  if (shiftData?.shift2?.status === 'open') return 'shift2';
+  return null;
+}
+
+   function showShiftWarning(shift) {
+
+  shiftWarningShown = true;
+
+  const shiftInfo = shiftData[shift];
+
+  const modal = document.createElement('div');
+  modal.id = 'shiftWarningModal';
+
+  modal.innerHTML = `
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+
+      <div class="glass-effect card-modern rounded-3xl p-8 w-full max-w-md animate-slide-in text-center">
+
+        <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
+          ⚠️
+        </div>
+
+        <h2 class="text-2xl font-black text-gray-800 mb-2">
+          Shift Sedang Berjalan
+        </h2>
+
+        <p class="text-gray-600 font-semibold mb-6">
+          ${shift === 'shift1' ? 'Shift 1' : 'Shift 2'} sedang aktif<br>
+          Kasir: ${shiftInfo?.cashier || '-'}
+        </p>
+
+        <div class="flex flex-col gap-3">
+
+          <button
+            onclick="continueActiveShift('${shift}')"
+            class="gradient-primary text-white py-4 rounded-xl font-bold text-lg shadow-lg"
+          >
+            Lanjutkan Shift
+          </button>
+
+          <button
+            onclick="loginAdminFromWarning()"
+            class="bg-white border-2 border-gray-200 text-gray-700 py-4 rounded-xl font-bold text-lg"
+          >
+            Login Admin
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+   function closeShiftWarning() {
+  const el = document.getElementById('shiftWarningModal');
+  if (el) el.remove();
+}
+   
+   function continueActiveShift(shift) {
+
+  closeShiftWarning();
+
+  currentShift = shift;
+  currentView = shift;
+
+  renderCurrentView();
+}
+
+   function loginAdminFromWarning() {
+
+  closeShiftWarning();
+
+  // 🔥 langsung pakai flow existing
+  showAdminPinDialog();
+}
+
+   
 async function loadBackendData() {
   if (!navigator.onLine) return;
   const fd = new FormData();
@@ -736,10 +830,9 @@ if (navigator.onLine && json.data.shiftData) {
    // 🔥 AUTO RESTORE SHIFT
 const restored = restoreOpenShift();
 
-if (restored) {
-  renderCurrentView();
-  return;
-}
+// 🔥 JANGAN AUTO MASUK SHIFT
+// kita hanya tandai saja
+let activeShiftDetected = restored;
      
   renderCurrentView(); // update UI tanpa reload
 }
