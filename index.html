@@ -257,9 +257,7 @@
             animation: slideIn 0.4s ease-out forwards;
         }
     </style>
-  
   <style>@view-transition { navigation: auto; }</style>
-
  </head>
  <body class="h-full bg-red-600/50 overflow-auto">
   <div id="app" class="min-h-full"></div>
@@ -665,7 +663,7 @@ let appReady = false;
       <div class="flex flex-col items-center gap-6 animate-fade">
 
         <img 
-          src="./Logo Aplikasi.png"
+          src="./logo pizzain apk.png"
           alt="Logo"
           class="w-40 drop-shadow-2xl animate-logo-pulse"
         >
@@ -705,7 +703,7 @@ async function init() {
   }
 
   // 3️⃣ baru render UI
-  renderCurrentView();
+renderCurrentView();
 
 // 🔥 TAMBAHKAN DI SINI
 const activeShift = getActiveShift();
@@ -717,7 +715,7 @@ if (activeShift && !shiftWarningShown) {
 }
 }
 
-      function getActiveShift() {
+function getActiveShift() {
   if (shiftData?.shift1?.status === 'open') return 'shift1';
   if (shiftData?.shift2?.status === 'open') return 'shift2';
   return null;
@@ -780,7 +778,7 @@ if (activeShift && !shiftWarningShown) {
   const el = document.getElementById('shiftWarningModal');
   if (el) el.remove();
 }
-
+   
    function continueActiveShift(shift) {
 
   closeShiftWarning();
@@ -798,6 +796,7 @@ if (activeShift && !shiftWarningShown) {
   // 🔥 langsung pakai flow existing
   showAdminPinDialog();
 }
+
    
 async function loadBackendData() {
   if (!navigator.onLine) return;
@@ -842,7 +841,6 @@ let activeShiftDetected = restored;
   }
 }
 
-  
    function getLastShift(shift) {
   return shiftHistory
     .filter(s =>
@@ -990,8 +988,7 @@ const shift2Count = shift2Expenses.length;
             return `
                <div class="min-h-full flex justify-center p-10">
                     <div class="w-full max-w-4xl animate-slide-in home-adaptive-zoom">
-                       <div class="card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" 
-     style="background:#1d4ed8;">
+                        <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
                             <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
                             <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
                             <div class="relative">
@@ -1010,7 +1007,7 @@ const shift2Count = shift2Expenses.length;
                                         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                         </svg>
-                                        <p class="text-base text-white font-bold">Fresin Indonesia</p>
+                                        <p class="text-base text-white font-bold">Pizzain Indonesia</p>
                                     </div>
                                     <div id="syncStatus"
      class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
@@ -1146,69 +1143,38 @@ const shiftExpenses = expenses.filter(e =>
 
             
             return `
-<div class="min-h-full p-6">
-  <div class="max-w-6xl mx-auto">
+                <div class="min-h-full p-6">
+                    <div class="max-w-6xl mx-auto">
+                        <div class="gradient-primary card-modern rounded-3xl p-6 mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center gap-4">
+                                    <h2 class="text-3xl font-black text-white">${shiftLabel}</h2>
+                                    <span class="badge-modern bg-white bg-opacity-20 text-white border border-white border-opacity-30">
+                                        👤 ${currentCashier || shiftInfo.cashier}
+                                    </span>
+                                    <span class="badge-modern bg-white bg-opacity-20 text-white border border-white border-opacity-30">
+                                        🕐 ${shiftInfo.openedAt 
+    ? new Date(shiftInfo.openedAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) 
+    : '--:--'}
 
-    <div class="card-modern rounded-3xl p-6 mb-6" style="background:#1e40af;">
-
-      <div class="flex justify-between items-center mb-4">
-
-        <div class="flex items-center gap-4">
-
-          <!-- JUDUL (TETAP PUTIH) -->
-          <h2 class="text-3xl font-black text-white">
-            ${shiftLabel}
-          </h2>
-
-          <!-- NAMA KASIR (GANTI WARNA SAJA) -->
-          <span class="badge-modern bg-blue-600 text-white border border-blue-500">
-            👤 ${currentCashier || shiftInfo.cashier}
-          </span>
-
-          <!-- JAM (GANTI WARNA SAJA) -->
-          <span class="badge-modern bg-blue-600 text-white border border-blue-500">
-            🕐 ${
-              shiftInfo.openedAt 
-              ? new Date(shiftInfo.openedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                }) 
-              : '--:--'
-            }
-          </span>
-
-        </div>
-
-        <!-- BUTTON (GANTI WARNA SAJA) -->
-        <button 
-          onclick="closeShift()" 
-          class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
-          Tutup Shift
-        </button>
-
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-
-        <!-- KAS AWAL -->
-        <div class="rounded-xl p-6 text-white text-center" style="background:#1e3a8a;">
-          <p class="text-sm md:text-base font-bold mb-2">💰 Kas Awal</p>
-          <p class="text-2xl md:text-3xl lg:text-4xl font-black">
-            Rp ${shiftInfo.startCash.toLocaleString('id-ID')}
-          </p>
-        </div>
-
-        <!-- PENGELUARAN -->
-        <div class="rounded-xl p-6 text-white text-center" style="background:#1e3a8a;">
-          <p class="text-sm md:text-base font-bold mb-2">📊 Pengeluaran</p>
-          <p class="text-2xl md:text-3xl lg:text-4xl font-black">
-            Rp ${totalExpense.toLocaleString('id-ID')}
-          </p>
-        </div>
-
-      </div>
-
-    </div>
+                                    </span>
+                                </div>
+                                <button onclick="closeShift()" class="bg-white text-red-600 hover:bg-gray-100 px-6 py-3 rounded-xl font-bold shadow-lg transition-all">
+                                    Tutup Shift
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-red-700 rounded-xl p-6 text-white text-center">
+                                    <p class="text-sm md:text-base font-bold mb-2">💰 Kas Awal</p>
+                                    <p class="text-2xl md:text-3xl lg:text-4xl font-black">Rp ${shiftInfo.startCash.toLocaleString('id-ID')}</p>
+                                </div>
+                                <div class="bg-red-700 rounded-xl p-6 text-white text-center">
+                                    <p class="text-sm md:text-base font-bold mb-2">📊 Pengeluaran</p>
+                                    <p class="text-2xl md:text-3xl lg:text-4xl font-black">Rp ${totalExpense.toLocaleString('id-ID')}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">➕ Tambah Pengeluaran</h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -1768,7 +1734,7 @@ function renderAdminScreen() {
                                                   ${shift1Items.length > 0 ? `
 <div>
 ${(() => {
-  const s1 = getLastShift('shift1');
+  const s1 = getShiftByDate('shift1', startDate, endDate);
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
@@ -1839,7 +1805,7 @@ ${(() => {
 ${shift2Items.length > 0 ? `
 <div>
 ${(() => {
-  const s2 = getLastShift('shift2');
+  const s2 = getShiftByDate('shift2', startDate, endDate);
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-amber-300 border-red-300">
@@ -2183,7 +2149,7 @@ categoryExpenses.forEach(exp => {
                             
                             <div class="mb-6">
 ${(() => {
-  const s1 = getLastShift('shift1'); // startDate = tanggal laporan
+  const s1 = getShiftByDate('shift1', startDate, endDate);
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
@@ -2259,7 +2225,7 @@ ${shift1Expenses.length === 0 ? `
 
 <div class="mb-6">
 ${(() => {
-  const s2 = getLastShift('shift2'); // startDate = tanggal laporan
+  const s2 = getShiftByDate('shift2', startDate, endDate);
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-amber-300 border border-red-300">
@@ -2526,7 +2492,7 @@ shiftData.admin = {
         <button
   id="adminLoginBtn"
   onclick="loginAdmin()"
-  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 font-bold"
+  class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl py-3 font-bold"
 >
   Masuk
 </button>
@@ -3313,6 +3279,21 @@ function logoutAdmin() {
   }
 }
 
+   function getShiftByDate(shiftName, startDate, endDate) {
+  if (!shiftHistory || !shiftHistory.length) return null;
+
+  return shiftHistory
+    .filter(s => {
+      if (s.shift !== shiftName) return false;
+
+      const date = (s.closedAt || '').split('T')[0];
+      if (!date) return false;
+
+      return date >= startDate && date <= endDate;
+    })
+    .sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
+}
+   
 function toggleChartData(type) {
   chartVisibleData[type] = !chartVisibleData[type];
 
@@ -3638,3 +3619,4 @@ setInterval(() => {
 
 </body>
 </html>
+
