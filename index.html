@@ -257,7 +257,34 @@
             animation: slideIn 0.4s ease-out forwards;
         }
     </style>
+  
   <style>@view-transition { navigation: auto; }</style>
+
+  <style>
+
+/* FIX MODAL OVERLAY */
+html, body {
+  min-height: 100%;
+}
+
+/* supaya modal tidak ketimpa render */
+#app,
+.min-h-screen,
+.h-screen {
+  position: relative;
+}
+
+/* pastikan popup muncul paling atas */
+.fixed.inset-0 {
+  z-index: 9999 !important;
+}
+
+/* aktifkan blur backdrop */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+}
+
+</style>
  </head>
  <body class="h-full bg-red-600/50 overflow-auto">
   <div id="app" class="min-h-full"></div>
