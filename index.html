@@ -1731,7 +1731,7 @@ function renderAdminScreen() {
                                             </button>
                                             <div id="detail-date-${dateKey}" class="collapsible-content">
                                                 <div class="mt-3 space-y-4">
-                                                  ${shift1Items.length > 0 ? `
+                                                  ${true ? `
 <div>
 ${(() => {
   const s1 = getShiftByDate('shift1', startDate, endDate);
@@ -1767,6 +1767,12 @@ ${(() => {
 })()}
 
     <div class="space-y-2">
+
+      ${shift1Items.length === 0 ? `
+        <div class="text-sm text-gray-500 italic px-2 py-2">
+          Tidak ada pengeluaran
+        </div>
+      ` : ''}
       ${shift1Items.map(exp => `
         <div class="bg-white rounded-lg px-3 py-2 border border-gray-200">
   <div class="flex items-start justify-between gap-3">
@@ -1802,7 +1808,7 @@ ${(() => {
     </div>
 </div>
 ` : ''}
-${shift2Items.length > 0 ? `
+${true ? `
 <div>
 ${(() => {
   const s2 = getShiftByDate('shift2', startDate, endDate);
@@ -1839,7 +1845,14 @@ ${(() => {
 
 
     <div class="space-y-2">
-      ${shift2Items.map(exp => `
+
+  ${shift2Items.length === 0 ? `
+    <div class="text-sm text-gray-500 italic px-2 py-2">
+      Tidak ada pengeluaran
+    </div>
+  ` : ''}
+
+  ${shift2Items.map(exp => `
         <div class="bg-white rounded-lg px-3 py-2 border border-gray-200">
   <div class="flex items-start justify-between gap-3">
 
