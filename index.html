@@ -960,157 +960,281 @@ requestAnimationFrame(() => {
             const shift1Label = config.shift1_label || defaultConfig.shift1_label;
             const shift2Label = config.shift2_label || defaultConfig.shift2_label;
             const adminLabel = config.admin_label || defaultConfig.admin_label;
-            
-           const today = safeISODate(new Date())?.split('T')[0];
 
-const shift1Expenses = expenses.filter(e =>
-  e.shift === 'shift1' &&
-  e.timestamp &&
-  e.timestamp.startsWith(today)
-);
+            const today = safeISODate(new Date())?.split('T')[0];
 
-const shift2Expenses = expenses.filter(e =>
-  e.shift === 'shift2' &&
-  e.timestamp &&
-  e.timestamp.startsWith(today)
-);
+            const shift1Expenses = expenses.filter(e =>
+              e.shift === 'shift1' &&
+              e.timestamp &&
+              e.timestamp.startsWith(today)
+            );
 
-const shift1Count = shift1Expenses.length;
-const shift2Count = shift2Expenses.length;
+            const shift2Expenses = expenses.filter(e =>
+              e.shift === 'shift2' &&
+              e.timestamp &&
+              e.timestamp.startsWith(today)
+            );
 
-            
+            const shift1Count = shift1Expenses.length;
+            const shift2Count = shift2Expenses.length;
+
             const shift1Status = shiftData.shift1.status;
             const shift2Status = shiftData.shift2.status;
-            
+
             const shift1Closed = shift1Status === 'closed';
             const shift2Closed = shift2Status === 'closed';
-            
-            return `
-               <div class="min-h-full flex justify-center p-10">
-                    <div class="w-full max-w-4xl animate-slide-in home-adaptive-zoom">
-                        <div class="glass-effect card-modern rounded-3xl p-6 mb-6 relative overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
-                            <div class="absolute top-0 right-0 w-96 h-96 bg-red-700 opacity-20 rounded-full -mr-48 -mt-48"></div>
-                            <div class="absolute bottom-0 left-0 w-64 h-64 bg-red-900 opacity-10 rounded-full -ml-32 -mb-32"></div>
-                            <div class="relative">
-                                <div class="flex items-center justify-center gap-4 mb-4">
-                                    <svg class="w-12 h-12 text-white flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    <div class="text-center">
-                                        <h1 class="text-4xl md:text-5xl font-black text-white drop-shadow-lg">
-                                            ${appTitle}
-                                        </h1>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-center gap-3 flex-wrap">
-                                    <div class="inline-flex items-center gap-2 bg-white bg-opacity-20 px-4 py-2 rounded-full backdrop-blur-sm border border-white border-opacity-30">
-                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                        </svg>
-                                        <p class="text-base text-white font-bold">Pizzain Indonesia</p>
-                                    </div>
-                                    <div id="syncStatus"
-     class="flex items-center gap-2 text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
-  <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-  <span>Online</span>
-</div>
 
-                                    <div class="text-white text-sm font-semibold bg-white bg-opacity-10 px-4 py-2 rounded-full backdrop-blur-sm">
-                                        ${new Date().toLocaleDateString('id-ID', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}
-                                    </div>
-                                </div>
-                            </div>
+            const currentDate = new Date().toLocaleDateString('id-ID', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric'
+            });
+
+            const currentTime = new Date().toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+
+            const statusBadge = (status, closed) => {
+              if (closed) {
+                return `
+                  <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 text-slate-600 px-4 py-2 text-sm font-black border border-slate-200">
+                    <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                    Ditutup
+                  </span>
+                `;
+              }
+
+              if (status === 'open') {
+                return `
+                  <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-700 px-4 py-2 text-sm font-black border border-emerald-200">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Aktif
+                  </span>
+                `;
+              }
+
+              return `
+                <span class="inline-flex items-center gap-2 rounded-full bg-red-100 text-red-700 px-4 py-2 text-sm font-black border border-red-200">
+                  <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                  Tersedia
+                </span>
+              `;
+            };
+
+            return `
+              <div class="min-h-screen w-full bg-orange-50/40 overflow-auto">
+
+                <!-- HEADER -->
+                <section 
+                  class="relative overflow-hidden text-white"
+                  style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 46%, #7f1d1d 100%);"
+                >
+                  <div class="absolute inset-0 opacity-[0.12]" style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.9) 1px, transparent 0); background-size: 28px 28px;"></div>
+                  <div class="absolute -left-24 -top-24 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+                  <div class="absolute right-10 -top-28 w-96 h-96 bg-orange-200/12 rounded-full blur-3xl"></div>
+
+                  <div class="relative max-w-7xl mx-auto px-5 sm:px-7 lg:px-10 py-6 sm:py-7 lg:py-9">
+                    <div class="grid grid-cols-1 lg:grid-cols-[auto_1fr_auto] gap-5 lg:gap-8 items-center">
+
+                      <!-- LOGO + TITLE -->
+                      <div class="flex items-center gap-4 sm:gap-5 min-w-0">
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.65rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-2xl flex items-center justify-center shrink-0 overflow-hidden">
+                          <img 
+                            src="./logo pizzain apk.png" 
+                            alt="Logo Pizzain"
+                            class="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-xl"
+                            onerror="this.style.display='none'"
+                          >
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <button onclick="selectShift('shift1')" class="glass-effect card-modern rounded-3xl p-8 text-left group hover:shadow-2xl transition-all">
-                                <div class="flex items-start justify-between mb-6">
-                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                        </svg>
-                                    </div>
-                                    ${shift1Closed ? `
-                                        <span class="badge-modern bg-gray-200 text-gray-700">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                                            </svg>
-                                            Ditutup
-                                        </span>
-                                    ` : `
-                                        <span class="badge-modern bg-green-100 text-green-700">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            ${shift1Status === 'open' ? 'Aktif' : 'Tersedia'}
-                                        </span>
-                                    `}
-                                </div>
-                                <h3 class="text-3xl font-black text-gray-800 mb-2">${shift1Label}</h3>
-                                <p class="text-base text-gray-500 mb-6 font-medium">13.00 - 18.30 WIB</p>
-                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-                                    <span class="text-sm font-bold text-gray-600">Transaksi</span>
-                                    <span class="text-2xl font-black text-red-600">${shift1Count}</span>
-                                </div>
-                            </button>
-                            
-                            <button onclick="selectShift('shift2')" class="glass-effect card-modern rounded-3xl p-8 text-left group">
-                                <div class="flex items-start justify-between mb-6">
-                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                                        </svg>
-                                    </div>
-                                    ${shift2Closed ? `
-                                        <span class="badge-modern bg-gray-200 text-gray-700">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                                            </svg>
-                                            Ditutup
-                                        </span>
-                                    ` : `
-                                        <span class="badge-modern bg-green-100 text-green-700">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                            </svg>
-                                            ${shift2Status === 'open' ? 'Aktif' : 'Tersedia'}
-                                        </span>
-                                    `}
-                                </div>
-                                <h3 class="text-3xl font-black text-gray-800 mb-2">${shift2Label}</h3>
-                                <p class="text-base text-gray-500 mb-6 font-medium">18.30 - 23.00 WIB</p>
-                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-                                    <span class="text-sm font-bold text-gray-600">Transaksi</span>
-                                    <span class="text-2xl font-black text-amber-600">${shift2Count}</span>
-                                </div>
-                            </button>
-                            
-                            <button onclick="showAdminPinDialog()" class="glass-effect card-modern rounded-3xl p-8 text-left group">
-                                <div class="flex items-start justify-between mb-6">
-                                    <div class="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                        </svg>
-                                    </div>
-                                    <span class="badge-modern bg-blue-100 text-blue-700">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
-                                        </svg>
-                                        PIN
-                                    </span>
-                                </div>
-                                <h3 class="text-3xl font-black text-gray-800 mb-2">${adminLabel}</h3>
-                                <p class="text-base text-gray-500 mb-6 font-medium">Laporan & Statistik</p>
-                                <div class="flex items-center justify-between pt-4 border-t-2 border-gray-100">
-                                    <span class="text-sm font-bold text-gray-600">Akses</span>
-                                    <span class="text-base font-black text-red-600">Admin</span>
-                                </div>
-                            </button>
+
+                        <div class="min-w-0">
+                          <div class="inline-flex items-center rounded-full border border-white/25 bg-white/12 px-4 py-1.5 text-xs sm:text-sm font-black uppercase tracking-[0.24em] text-red-50 mb-3">
+                            Pizzain Indonesia
+                          </div>
+                          <h1 class="text-4xl sm:text-5xl lg:text-[3.4rem] xl:text-[3.75rem] font-black leading-none tracking-tight break-words">
+                            ${appTitle}
+                          </h1>
                         </div>
+                      </div>
+
+                      <!-- ONLINE STATUS -->
+                      <div class="flex justify-start lg:justify-center">
+                        <div
+                          id="syncStatus"
+                          class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 text-base sm:text-lg font-black px-6 py-3 rounded-full border border-emerald-100 shadow-xl"
+                        >
+                          <span class="w-3 h-3 bg-emerald-500 rounded-full"></span>
+                          <span>Online</span>
+                        </div>
+                      </div>
+
+                      <!-- DATE + ADMIN -->
+                      <div class="flex items-center gap-4 justify-between lg:justify-end">
+                        <div class="rounded-[1.35rem] bg-white/10 backdrop-blur-xl border border-white/18 px-5 py-4 min-w-[235px] shadow-xl">
+                          <div class="flex items-center gap-3 text-white/95">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>
+                            </svg>
+                            <span class="text-sm sm:text-base font-black">${currentDate}</span>
+                          </div>
+
+                          <div class="h-px bg-white/18 my-3"></div>
+
+                          <div class="flex items-center gap-3 text-white/95">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
+                            </svg>
+                            <span class="text-sm sm:text-base font-black">${currentTime} WIB</span>
+                          </div>
+                        </div>
+
+                        <button
+                          onclick="showAdminPinDialog()"
+                          title="${adminLabel}"
+                          aria-label="${adminLabel}"
+                          class="w-14 h-14 sm:w-16 sm:h-16 rounded-[1.35rem] border border-white/25 bg-white/10 text-white shadow-xl backdrop-blur-xl flex items-center justify-center transition-all hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-white/18 shrink-0"
+                        >
+                          <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 10-8 0v4m-2 0h12a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2z"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                </div>
+                  </div>
+                </section>
+
+                <!-- CONTENT -->
+                <section class="relative px-5 sm:px-7 lg:px-10 py-10 sm:py-14 lg:py-20">
+                  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div class="absolute -top-24 left-1/4 w-80 h-80 bg-red-100/55 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-100/60 rounded-full blur-3xl"></div>
+                  </div>
+
+                  <div class="relative max-w-7xl mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+
+                      <!-- SHIFT 1 -->
+                      <button
+                        onclick="selectShift('shift1')"
+                        class="group relative overflow-hidden bg-white border border-red-100 rounded-[2rem] sm:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-6 sm:p-7 lg:p-8 text-left min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
+                      >
+                        <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-red-400 to-red-700"></div>
+                        <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-red-50 rounded-full blur-xl"></div>
+
+                        <div class="relative grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-6 items-center h-full">
+                          <div class="flex justify-center sm:justify-start">
+                            <div class="relative w-44 h-44 sm:w-52 sm:h-52 rounded-full bg-gradient-to-br from-orange-50 to-red-100/70 border border-red-50 flex items-center justify-center overflow-hidden">
+                              <div class="absolute -bottom-4 -left-3 w-24 h-10 bg-white rounded-full opacity-90"></div>
+                              <div class="absolute bottom-5 right-4 w-24 h-10 bg-white rounded-full opacity-95"></div>
+                              <div class="relative w-20 h-20 rounded-full bg-amber-400 shadow-[0_18px_45px_-18px_rgba(245,158,11,.75)]"></div>
+                              <div class="absolute w-32 h-32 rounded-full border-[8px] border-amber-300/60 border-dashed"></div>
+                            </div>
+                          </div>
+
+                          <div class="min-w-0">
+                            <div class="flex items-start justify-between gap-3 mb-5">
+                              <div>
+                                <h3 class="text-3xl sm:text-[2.1rem] font-black text-slate-900 leading-tight">
+                                  ${shift1Label}
+                                </h3>
+                                <div class="flex items-center gap-3 mt-4 text-slate-500">
+                                  <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
+                                  </svg>
+                                  <span class="text-lg font-bold">13.00 – 18.30 WIB</span>
+                                </div>
+                              </div>
+                              <div class="hidden xl:block">${statusBadge(shift1Status, shift1Closed)}</div>
+                            </div>
+
+                            <div class="h-px bg-slate-200 mb-6"></div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                              <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-red-600">
+                                  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 012 2v16l-5-3-5 3V5a2 2 0 012-2z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h6"/>
+                                  </svg>
+                                </div>
+                                <div>
+                                  <p class="text-sm sm:text-base font-bold text-slate-500">Transaksi Hari Ini</p>
+                                  <p class="text-4xl font-black text-red-600 leading-none mt-1">${shift1Count}</p>
+                                </div>
+                              </div>
+
+                              <div class="xl:hidden">${statusBadge(shift1Status, shift1Closed)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+
+                      <!-- SHIFT 2 -->
+                      <button
+                        onclick="selectShift('shift2')"
+                        class="group relative overflow-hidden bg-white border border-amber-100 rounded-[2rem] sm:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-6 sm:p-7 lg:p-8 text-left min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
+                      >
+                        <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-amber-400 to-red-600"></div>
+                        <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-amber-50 rounded-full blur-xl"></div>
+
+                        <div class="relative grid grid-cols-1 sm:grid-cols-[240px_1fr] gap-6 items-center h-full">
+                          <div class="flex justify-center sm:justify-start">
+                            <div class="relative w-44 h-44 sm:w-52 sm:h-52 rounded-full bg-gradient-to-br from-red-50 to-amber-100/70 border border-amber-50 flex items-center justify-center overflow-hidden">
+                              <div class="absolute -bottom-3 -left-4 w-24 h-10 bg-white rounded-full opacity-90"></div>
+                              <div class="absolute bottom-7 right-3 w-24 h-10 bg-white rounded-full opacity-90"></div>
+                              <div class="relative w-24 h-24 rounded-full bg-red-600 shadow-[0_18px_45px_-18px_rgba(220,38,38,.75)]"></div>
+                              <div class="absolute translate-x-5 -translate-y-3 w-24 h-24 rounded-full bg-red-50"></div>
+                              <span class="absolute top-12 right-16 text-amber-300 text-xl">✦</span>
+                              <span class="absolute top-16 left-16 text-red-300 text-sm">✦</span>
+                            </div>
+                          </div>
+
+                          <div class="min-w-0">
+                            <div class="flex items-start justify-between gap-3 mb-5">
+                              <div>
+                                <h3 class="text-3xl sm:text-[2.1rem] font-black text-slate-900 leading-tight">
+                                  ${shift2Label}
+                                </h3>
+                                <div class="flex items-center gap-3 mt-4 text-slate-500">
+                                  <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
+                                  </svg>
+                                  <span class="text-lg font-bold">18.30 – 23.00 WIB</span>
+                                </div>
+                              </div>
+                              <div class="hidden xl:block">${statusBadge(shift2Status, shift2Closed)}</div>
+                            </div>
+
+                            <div class="h-px bg-slate-200 mb-6"></div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                              <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center text-red-600">
+                                  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 3h6a2 2 0 012 2v16l-5-3-5 3V5a2 2 0 012-2z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h6"/>
+                                  </svg>
+                                </div>
+                                <div>
+                                  <p class="text-sm sm:text-base font-bold text-slate-500">Transaksi Hari Ini</p>
+                                  <p class="text-4xl font-black text-red-600 leading-none mt-1">${shift2Count}</p>
+                                </div>
+                              </div>
+
+                              <div class="xl:hidden">${statusBadge(shift2Status, shift2Closed)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </div>
             `;
         }
+
 
 
         function renderShiftScreen() {
@@ -3632,4 +3756,3 @@ setInterval(() => {
 
 </body>
 </html>
-
