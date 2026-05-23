@@ -653,6 +653,78 @@ updateSyncIndicator();
   return d.toISOString();
 }
 
+
+function parseFlexibleDate(value) {
+  if (!value) return null;
+
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value;
+  }
+
+  const raw = String(value).trim();
+
+  // ISO: YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss
+  let m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) {
+    const d = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      Number(m[4] || 0),
+      Number(m[5] || 0),
+      Number(m[6] || 0)
+    );
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Format Google Sheet Indonesia: DD/MM/YYYY HH:mm:ss atau DD/MM/YY
+  m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) {
+    let year = Number(m[3]);
+    if (year < 100) year += 2000;
+
+    const d = new Date(
+      year,
+      Number(m[2]) - 1,
+      Number(m[1]),
+      Number(m[4] || 0),
+      Number(m[5] || 0),
+      Number(m[6] || 0)
+    );
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // DD-MM-YYYY HH:mm:ss atau DD-MM-YY
+  m = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) {
+    let year = Number(m[3]);
+    if (year < 100) year += 2000;
+
+    const d = new Date(
+      year,
+      Number(m[2]) - 1,
+      Number(m[1]),
+      Number(m[4] || 0),
+      Number(m[5] || 0),
+      Number(m[6] || 0)
+    );
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatShiftTime(value) {
+  const d = parseFlexibleDate(value);
+  if (!d) return '-';
+
+  return d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
    
 let appReady = false;
 
@@ -927,7 +999,8 @@ requestAnimationFrame(() => {
     // 🌐 ONLINE MODE → FETCH NORMAL
     // ===============================
    Promise.all([
-  loadAllExpensesForAdmin()
+  loadAllExpensesForAdmin(),
+  loadShiftHistoryForAdmin()
 ])
       .then(() => {
         normalizeExpenses();
@@ -1473,7 +1546,7 @@ const shiftExpenses = expenses.filter(e =>
                                     </span>
                                     <span class="badge-modern bg-white bg-opacity-20 text-white border border-white border-opacity-30">
                                         🕐 ${shiftInfo.openedAt 
-    ? new Date(shiftInfo.openedAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'}) 
+    ? formatShiftTime(shiftInfo.openedAt) 
     : '--:--'}
 
                                     </span>
@@ -1689,6 +1762,46 @@ const lastShift1 = shiftHistory
 
   } catch (err) {
     console.error('❌ Gagal load expenses admin', err);
+  }
+}
+
+
+// 🔁 Khusus Admin: refresh data shift/riwayat shift tanpa me-render ulang UI.
+// Penting untuk tanggal terakhir pada mode multi-days, karena laporan admin
+// sebelumnya hanya me-refresh expenses, sedangkan shiftHistory bisa masih cache lama.
+async function loadShiftHistoryForAdmin() {
+  if (!navigator.onLine) return;
+
+  try {
+    const fd = new FormData();
+    fd.append('action', 'getData');
+
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      body: fd,
+      cache: 'no-store'
+    });
+
+    const json = await res.json();
+    if (!json.success || !json.data) return;
+
+    if (Array.isArray(json.data.cashiers)) {
+      cashiers = json.data.cashiers;
+    }
+
+    if (Array.isArray(json.data.shiftHistory)) {
+      shiftHistory = json.data.shiftHistory;
+    }
+
+    if (json.data.shiftData) {
+      shiftData = {
+        ...shiftData,
+        ...json.data.shiftData
+      };
+    }
+
+  } catch (err) {
+    console.error('❌ Gagal refresh shift history admin', err);
   }
 }
 
@@ -2170,10 +2283,7 @@ ${(() => {
         <span class="text-sm font-semibold text-gray-600">
           👤 ${s1?.cashier || '-'} • 🕒 ${
             s1?.openedAt
-              ? new Date(s1.openedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
+              ? formatShiftTime(s1.openedAt)
               : '-'
           }
         </span>
@@ -2250,10 +2360,7 @@ ${(() => {
         <span class="text-sm font-semibold text-gray-600">
           👤 ${s2?.cashier || '-'} • 🕒 ${
             s2?.openedAt
-              ? new Date(s2.openedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
+              ? formatShiftTime(s2.openedAt)
               : '-'
           }
         </span>
@@ -2613,10 +2720,7 @@ ${(() => {
         <span class="text-sm font-semibold text-red-900/80">
           👤 ${s1?.cashier || '-'} • 🕒 ${
             s1?.openedAt
-              ? new Date(s1.openedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
+              ? formatShiftTime(s1.openedAt)
               : '-'
           }
         </span>
@@ -2692,10 +2796,7 @@ ${(() => {
         <span class="text-sm font-semibold text-amber-900/80">
           👤 ${s2?.cashier || '-'} • 🕒 ${
             s2?.openedAt
-              ? new Date(s2.openedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
+              ? formatShiftTime(s2.openedAt)
               : '-'
           }
         </span>
@@ -3712,7 +3813,7 @@ function logoutAdmin() {
 }
 
 
-     function applyFilters() {
+     async function applyFilters() {
   const startDate = document.getElementById('startDate').value;
   const endDate = document.getElementById('endDate').value;
   const search = document.getElementById('searchInput').value;
@@ -3725,6 +3826,12 @@ function logoutAdmin() {
   selectedPeriodStart = startDate;
   selectedPeriodEnd = endDate;
   searchQuery = search;
+
+  // 🔁 Refresh shift history juga, bukan hanya expenses.
+  // Ini membuat tanggal terakhir tetap terbaca walaupun datanya baru tersimpan.
+  if (navigator.onLine) {
+    await loadShiftHistoryForAdmin();
+  }
 
   showNotification('✅ Filter diterapkan!', 'success');
 
@@ -3739,43 +3846,102 @@ function logoutAdmin() {
   }
 }
 
-   function getShiftByDate(shiftName, startDate, endDate) {
-  if (!shiftHistory || !shiftHistory.length) return null;
+   function normalizeShiftDateKey(value) {
+  if (!value) return null;
 
-  const getDateKey = (s) => {
-    // Prioritas tanggal dari backend jika ada, karena ini biasanya sudah berbentuk YYYY-MM-DD
-    if (s.tanggal) {
-      const raw = String(s.tanggal).trim();
+  const raw = String(value).trim();
 
-      // YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss
-      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-        return raw.slice(0, 10);
+  // YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss
+  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(raw)) {
+    const parts = raw.slice(0, 10).split('-');
+    return `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+  }
+
+  // DD/MM/YYYY, DD/MM/YY, atau dengan jam di belakangnya
+  let m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) {
+    let year = Number(m[3]);
+    if (year < 100) year += 2000;
+    return `${year}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  }
+
+  // DD-MM-YYYY, DD-MM-YY, atau dengan jam di belakangnya
+  m = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})/);
+  if (m) {
+    let year = Number(m[3]);
+    if (year < 100) year += 2000;
+    return `${year}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  }
+
+  const d = parseFlexibleDate(raw);
+  return d
+    ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    : null;
+}
+
+function getShiftDateKey(s) {
+  if (!s) return null;
+
+  // Prioritas: tanggal dari backend, lalu waktu tutup, lalu waktu buka.
+  return (
+    normalizeShiftDateKey(s.tanggal) ||
+    normalizeShiftDateKey(s.Tanggal) ||
+    normalizeShiftDateKey(s.date) ||
+    normalizeShiftDateKey(s.Date) ||
+    normalizeShiftDateKey(s.closedAt) ||
+    normalizeShiftDateKey(s.openedAt)
+  );
+}
+
+function getShiftByDate(shiftName, startDate, endDate) {
+  const candidates = [];
+
+  // 1️⃣ Data shift yang sudah masuk riwayat / sheet history.
+  if (Array.isArray(shiftHistory)) {
+    shiftHistory.forEach(s => {
+      if (s && s.shift === shiftName) {
+        candidates.push({ ...s, __source: 'history' });
       }
+    });
+  }
 
-      // DD/MM/YYYY jika suatu saat backend mengirim format lokal
-      const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (m) {
-        return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
-      }
-    }
+  // 2️⃣ Data shift hari terakhir yang masih aktif / belum masuk history.
+  // Ini penting untuk tanggal terakhir pada filter multi-days.
+  const liveShift = shiftData?.[shiftName];
+  if (
+    liveShift &&
+    liveShift.status &&
+    liveShift.status !== 'available' &&
+    (liveShift.openedAt || liveShift.closedAt || liveShift.cashier || liveShift.sessionId)
+  ) {
+    candidates.push({
+      ...liveShift,
+      shift: shiftName,
+      __source: 'shiftData'
+    });
+  }
 
-    const iso = safeISODate(s.closedAt || s.openedAt);
-    return iso ? iso.split('T')[0] : null;
-  };
-
-  return shiftHistory
+  return candidates
     .filter(s => {
-      if (s.shift !== shiftName) return false;
-
-      const date = getDateKey(s);
+      const date = getShiftDateKey(s);
       if (!date) return false;
 
       return date >= startDate && date <= endDate;
     })
-    .sort((a, b) =>
-      new Date(b.closedAt || b.openedAt || 0) -
-      new Date(a.closedAt || a.openedAt || 0)
-    )[0] || null;
+    .sort((a, b) => {
+      const db = parseFlexibleDate(b.closedAt || b.openedAt);
+      const da = parseFlexibleDate(a.closedAt || a.openedAt);
+      const tb = db ? db.getTime() : 0;
+      const ta = da ? da.getTime() : 0;
+
+      // Jika waktunya sama, utamakan data history karena biasanya lebih lengkap.
+      if (tb === ta) {
+        if (a.__source === 'history' && b.__source !== 'history') return -1;
+        if (b.__source === 'history' && a.__source !== 'history') return 1;
+      }
+
+      return tb - ta;
+    })[0] || null;
 }
    
 function toggleChartData(type) {
