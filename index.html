@@ -1020,22 +1020,40 @@ requestAnimationFrame(() => {
 
               return `
                 <span class="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2.5 py-1.5 text-[11px] sm:text-sm font-black border border-red-200 whitespace-nowrap w-fit">
-                  <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                  Tersedia
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    Tersedia
                 </span>
-              `;
+                `;
             };
 
             return `
               <style>
+                .pizzain-mobile-landscape { display: none; }
+
                 @media (orientation: landscape) and (max-width: 1023px) {
                   .pizzain-home-header-mobile {
                     padding-top: 1rem !important;
                     padding-bottom: 1rem !important;
                   }
 
-                  .pizzain-mobile-title {
+                  .pizzain-mobile-portrait {
+                    display: none !important;
+                  }
+
+                  .pizzain-mobile-landscape {
+                    display: grid !important;
+                    grid-template-columns: auto 1fr auto;
+                    gap: 1rem;
+                    align-items: center;
+                  }
+
+                  .pizzain-landscape-title {
                     font-size: 2rem !important;
+                    line-height: 1 !important;
+                  }
+
+                  .pizzain-landscape-datecard {
+                    min-width: 310px !important;
                   }
 
                   .pizzain-shift-grid {
@@ -1120,9 +1138,8 @@ requestAnimationFrame(() => {
 
                   <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-5 pb-6 sm:pt-6 sm:pb-7 lg:py-8 pizzain-home-header-mobile">
 
-                    <!-- DESKTOP / LANDSCAPE BESAR HEADER -->
+                    <!-- DESKTOP / LANDSCAPE BESAR -->
                     <div class="hidden lg:grid grid-cols-[1fr_auto] gap-8 items-center">
-
                       <div class="flex items-center gap-5 min-w-0">
                         <div class="w-24 h-24 rounded-[1.65rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-2xl flex items-center justify-center shrink-0 overflow-hidden">
                           <img 
@@ -1186,8 +1203,8 @@ requestAnimationFrame(() => {
                       </div>
                     </div>
 
-                    <!-- MOBILE / TABLET HEADER -->
-                    <div class="lg:hidden">
+                    <!-- MOBILE / PORTRAIT -->
+                    <div class="pizzain-mobile-portrait lg:hidden">
                       <div class="grid grid-cols-[auto_1fr] gap-3 items-center">
                         <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-xl flex items-center justify-center shrink-0 overflow-hidden mt-2">
                           <img 
@@ -1213,7 +1230,7 @@ requestAnimationFrame(() => {
                             </div>
                           </div>
 
-                          <h1 class="pizzain-mobile-title text-[1.85rem] min-[390px]:text-[2.05rem] sm:text-[2.45rem] font-black leading-none tracking-tight whitespace-nowrap">
+                          <h1 class="text-[1.85rem] min-[390px]:text-[2.05rem] sm:text-[2.45rem] font-black leading-none tracking-tight whitespace-nowrap">
                             ${appTitle}
                           </h1>
                         </div>
@@ -1232,6 +1249,58 @@ requestAnimationFrame(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
                           </svg>
                           <span class="text-xs sm:text-sm font-black">${currentTime} WIB</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- MOBILE / LANDSCAPE -->
+                    <div class="pizzain-mobile-landscape lg:hidden">
+                      <div class="w-16 h-16 rounded-[1.25rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-xl flex items-center justify-center shrink-0 overflow-hidden">
+                        <img 
+                          src="./logo pizzain apk.png" 
+                          alt="Logo Pizzain"
+                          class="w-11 h-11 object-contain drop-shadow-xl"
+                          onerror="this.style.display='none'"
+                        >
+                      </div>
+
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2 mb-2 overflow-visible">
+                          <div class="inline-flex items-center rounded-full border border-white/25 bg-white/12 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 whitespace-nowrap shrink-0">
+                            Pizzain Indonesia
+                          </div>
+
+                          <div
+                            data-sync-status
+                            class="inline-flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-700 text-sm font-black px-3 py-1.5 rounded-full border border-emerald-100 shadow-lg shrink-0 whitespace-nowrap"
+                          >
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                            <span>Online</span>
+                          </div>
+                        </div>
+
+                        <h1 class="pizzain-landscape-title text-[2.15rem] font-black leading-none tracking-tight whitespace-nowrap">
+                          ${appTitle}
+                        </h1>
+                      </div>
+
+                      <div class="flex items-center justify-end gap-3">
+                        <div class="pizzain-landscape-datecard rounded-[1.35rem] bg-white/10 backdrop-blur-xl border border-white/18 px-5 py-4 shadow-xl">
+                          <div class="flex items-center gap-3 text-white/95">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>
+                            </svg>
+                            <span class="text-base font-black">${currentDate}</span>
+                          </div>
+
+                          <div class="h-px bg-white/18 my-3"></div>
+
+                          <div class="flex items-center gap-3 text-white/95">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
+                            </svg>
+                            <span class="text-base font-black">${currentTime} WIB</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1260,8 +1329,6 @@ requestAnimationFrame(() => {
 
                   <div class="relative max-w-7xl mx-auto">
                     <div class="pizzain-shift-grid grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-8">
-
-                      <!-- SHIFT 1 -->
                       <button
                         onclick="selectShift('shift1')"
                         class="pizzain-shift-card group relative overflow-hidden bg-white border border-red-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
@@ -1282,11 +1349,7 @@ requestAnimationFrame(() => {
                           <div class="min-w-0">
                             <div class="mb-3 sm:mb-5">
                               <div class="mb-1.5 sm:mb-2">${statusBadge(shift1Status, shift1Closed)}</div>
-
-                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">
-                                ${shift1Label}
-                              </h3>
-
+                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">${shift1Label}</h3>
                               <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 text-slate-500">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
@@ -1313,7 +1376,6 @@ requestAnimationFrame(() => {
                         </div>
                       </button>
 
-                      <!-- SHIFT 2 -->
                       <button
                         onclick="selectShift('shift2')"
                         class="pizzain-shift-card group relative overflow-hidden bg-white border border-amber-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
@@ -1336,11 +1398,7 @@ requestAnimationFrame(() => {
                           <div class="min-w-0">
                             <div class="mb-3 sm:mb-5">
                               <div class="mb-1.5 sm:mb-2">${statusBadge(shift2Status, shift2Closed)}</div>
-
-                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">
-                                ${shift2Label}
-                              </h3>
-
+                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">${shift2Label}</h3>
                               <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 text-slate-500">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
