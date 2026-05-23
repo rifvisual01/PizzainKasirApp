@@ -2157,7 +2157,7 @@ function renderAdminScreen() {
                                                   ${true ? `
 <div>
 ${(() => {
-  const s1 = getShiftByDate('shift1', startDate, endDate);
+  const s1 = getShiftByDate('shift1', dateKey, dateKey);
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-red-300 border border-red-300">
@@ -2237,7 +2237,7 @@ ${(() => {
 ${true ? `
 <div>
 ${(() => {
-  const s2 = getShiftByDate('shift2', startDate, endDate);
+  const s2 = getShiftByDate('shift2', dateKey, dateKey);
 
   return `
     <div class="rounded-xl p-4 mb-4 bg-amber-300 border-red-300">
@@ -3742,16 +3742,40 @@ function logoutAdmin() {
    function getShiftByDate(shiftName, startDate, endDate) {
   if (!shiftHistory || !shiftHistory.length) return null;
 
+  const getDateKey = (s) => {
+    // Prioritas tanggal dari backend jika ada, karena ini biasanya sudah berbentuk YYYY-MM-DD
+    if (s.tanggal) {
+      const raw = String(s.tanggal).trim();
+
+      // YYYY-MM-DD atau YYYY-MM-DDTHH:mm:ss
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        return raw.slice(0, 10);
+      }
+
+      // DD/MM/YYYY jika suatu saat backend mengirim format lokal
+      const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) {
+        return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+      }
+    }
+
+    const iso = safeISODate(s.closedAt || s.openedAt);
+    return iso ? iso.split('T')[0] : null;
+  };
+
   return shiftHistory
     .filter(s => {
       if (s.shift !== shiftName) return false;
 
-      const date = (s.closedAt || '').split('T')[0];
+      const date = getDateKey(s);
       if (!date) return false;
 
       return date >= startDate && date <= endDate;
     })
-    .sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
+    .sort((a, b) =>
+      new Date(b.closedAt || b.openedAt || 0) -
+      new Date(a.closedAt || a.openedAt || 0)
+    )[0] || null;
 }
    
 function toggleChartData(type) {
