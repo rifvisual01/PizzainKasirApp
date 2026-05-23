@@ -1002,7 +1002,7 @@ requestAnimationFrame(() => {
             const statusBadge = (status, closed) => {
               if (closed) {
                 return `
-                  <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 text-slate-600 px-3 py-1.5 text-xs sm:text-sm font-black border border-slate-200 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2.5 py-1.5 text-[11px] sm:text-sm font-black border border-slate-200 whitespace-nowrap w-fit">
                     <span class="w-2 h-2 rounded-full bg-slate-400"></span>
                     Ditutup
                   </span>
@@ -1011,7 +1011,7 @@ requestAnimationFrame(() => {
 
               if (status === 'open') {
                 return `
-                  <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1.5 text-xs sm:text-sm font-black border border-emerald-200 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-2.5 py-1.5 text-[11px] sm:text-sm font-black border border-emerald-200 whitespace-nowrap w-fit">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     Aktif
                   </span>
@@ -1019,7 +1019,7 @@ requestAnimationFrame(() => {
               }
 
               return `
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-red-100 text-red-700 px-3 py-1.5 text-xs sm:text-sm font-black border border-red-200 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-2.5 py-1.5 text-[11px] sm:text-sm font-black border border-red-200 whitespace-nowrap w-fit">
                   <span class="w-2 h-2 rounded-full bg-red-500"></span>
                   Tersedia
                 </span>
@@ -1027,18 +1027,87 @@ requestAnimationFrame(() => {
             };
 
             return `
-              <div class="min-h-screen w-full bg-red-50/60 overflow-auto relative">
-                
-                <button
-                  onclick="showAdminPinDialog()"
-                  title="${adminLabel}"
-                  aria-label="${adminLabel}"
-                  class="lg:hidden fixed right-4 bottom-4 z-50 w-14 h-14 rounded-2xl border border-white/40 bg-red-500/90 text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,.35)] backdrop-blur-xl flex items-center justify-center transition-all hover:scale-[1.03]"
-                >
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 10-8 0v4m-2 0h12a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2z"/>
-                  </svg>
-                </button>
+              <style>
+                @media (orientation: landscape) and (max-width: 1023px) {
+                  .pizzain-home-header-mobile {
+                    padding-top: 1rem !important;
+                    padding-bottom: 1rem !important;
+                  }
+
+                  .pizzain-mobile-title {
+                    font-size: 2rem !important;
+                  }
+
+                  .pizzain-shift-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                  }
+
+                  .pizzain-shift-card {
+                    min-height: 158px !important;
+                    padding: 1rem !important;
+                  }
+
+                  .pizzain-shift-inner {
+                    grid-template-columns: 92px minmax(0, 1fr) !important;
+                    gap: 0.75rem !important;
+                  }
+
+                  .pizzain-shift-visual {
+                    width: 5.75rem !important;
+                    height: 5.75rem !important;
+                  }
+
+                  .pizzain-shift-sun {
+                    width: 2.6rem !important;
+                    height: 2.6rem !important;
+                  }
+
+                  .pizzain-shift-ring {
+                    width: 4.6rem !important;
+                    height: 4.6rem !important;
+                    border-width: 4px !important;
+                  }
+
+                  .pizzain-shift-moon {
+                    width: 3.2rem !important;
+                    height: 3.2rem !important;
+                  }
+
+                  .pizzain-shift-moon-cut {
+                    width: 3.2rem !important;
+                    height: 3.2rem !important;
+                  }
+
+                  .pizzain-shift-title {
+                    font-size: 1.25rem !important;
+                    line-height: 1.1 !important;
+                  }
+
+                  .pizzain-shift-time {
+                    font-size: 0.8rem !important;
+                  }
+
+                  .pizzain-shift-divider {
+                    margin-top: 0.6rem !important;
+                    margin-bottom: 0.6rem !important;
+                  }
+
+                  .pizzain-transaction-label {
+                    font-size: 0.7rem !important;
+                  }
+
+                  .pizzain-transaction-number {
+                    font-size: 1.75rem !important;
+                  }
+
+                  .pizzain-floating-admin {
+                    bottom: 1rem !important;
+                    right: 1rem !important;
+                  }
+                }
+              </style>
+
+              <div class="min-h-screen w-full bg-red-50/60 overflow-auto">
 
                 <!-- HEADER -->
                 <section 
@@ -1049,11 +1118,11 @@ requestAnimationFrame(() => {
                   <div class="absolute -left-24 -top-24 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
                   <div class="absolute right-8 -top-28 w-96 h-96 bg-orange-200/10 rounded-full blur-3xl"></div>
 
-                  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-5 pb-6 sm:pt-6 sm:pb-7 lg:py-8">
-                    
-                    <!-- DESKTOP / LANDSCAPE HEADER: pertahankan layout -->
+                  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-5 pb-6 sm:pt-6 sm:pb-7 lg:py-8 pizzain-home-header-mobile">
+
+                    <!-- DESKTOP / LANDSCAPE BESAR HEADER -->
                     <div class="hidden lg:grid grid-cols-[1fr_auto] gap-8 items-center">
-                      
+
                       <div class="flex items-center gap-5 min-w-0">
                         <div class="w-24 h-24 rounded-[1.65rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-2xl flex items-center justify-center shrink-0 overflow-hidden">
                           <img 
@@ -1117,21 +1186,21 @@ requestAnimationFrame(() => {
                       </div>
                     </div>
 
-                    <!-- MOBILE / PORTRAIT HEADER -->
+                    <!-- MOBILE / TABLET HEADER -->
                     <div class="lg:hidden">
-                      <div class="grid grid-cols-[auto_1fr] gap-3 items-start">
-                        <div class="w-16 h-16 sm:w-18 sm:h-18 rounded-[1.2rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-xl flex items-center justify-center shrink-0 overflow-hidden mt-2">
+                      <div class="grid grid-cols-[auto_1fr] gap-3 items-center">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-[1.25rem] bg-white/12 border border-white/25 backdrop-blur-xl shadow-xl flex items-center justify-center shrink-0 overflow-hidden mt-2">
                           <img 
                             src="./logo pizzain apk.png" 
                             alt="Logo Pizzain"
-                            class="w-11 h-11 sm:w-13 sm:h-13 object-contain drop-shadow-xl"
+                            class="w-11 h-11 sm:w-14 sm:h-14 object-contain drop-shadow-xl"
                             onerror="this.style.display='none'"
                           >
                         </div>
 
-                        <div class="min-w-0 pt-1">
-                          <div class="flex flex-wrap items-center gap-2 mb-2">
-                            <div class="inline-flex items-center rounded-full border border-white/25 bg-white/12 px-3 py-1.5 text-[10px] sm:text-xs font-black uppercase tracking-[0.14em] text-red-50 whitespace-nowrap">
+                        <div class="min-w-0">
+                          <div class="flex items-center gap-2 mb-1.5 overflow-visible">
+                            <div class="inline-flex items-center rounded-full border border-white/25 bg-white/12 px-2.5 py-1.5 text-[9px] min-[390px]:text-[10px] sm:text-xs font-black uppercase tracking-[0.12em] min-[390px]:tracking-[0.16em] text-red-50 whitespace-nowrap shrink-0">
                               Pizzain Indonesia
                             </div>
 
@@ -1144,31 +1213,43 @@ requestAnimationFrame(() => {
                             </div>
                           </div>
 
-                          <h1 class="text-[1.95rem] sm:text-[2.45rem] font-black leading-none tracking-tight text-left whitespace-nowrap">
+                          <h1 class="pizzain-mobile-title text-[1.85rem] min-[390px]:text-[2.05rem] sm:text-[2.45rem] font-black leading-none tracking-tight whitespace-nowrap">
                             ${appTitle}
                           </h1>
                         </div>
                       </div>
 
                       <div class="grid grid-cols-2 gap-3 max-w-xl mx-auto mt-4">
-                        <div class="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/18 px-3 py-3 shadow-xl flex items-center justify-center gap-2 min-w-0">
+                        <div class="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/18 px-3 py-3 shadow-xl flex items-center justify-center gap-2">
                           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>
                           </svg>
                           <span class="text-xs sm:text-sm font-black leading-tight truncate">${currentDate}</span>
                         </div>
 
-                        <div class="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/18 px-3 py-3 shadow-xl flex items-center justify-center gap-2 min-w-0">
+                        <div class="rounded-2xl bg-white/10 backdrop-blur-xl border border-white/18 px-3 py-3 shadow-xl flex items-center justify-center gap-2">
                           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
                           </svg>
-                          <span class="text-xs sm:text-sm font-black whitespace-nowrap">${currentTime} WIB</span>
+                          <span class="text-xs sm:text-sm font-black">${currentTime} WIB</span>
                         </div>
                       </div>
                     </div>
 
                   </div>
                 </section>
+
+                <!-- FLOATING ADMIN BUTTON MOBILE -->
+                <button
+                  onclick="showAdminPinDialog()"
+                  title="${adminLabel}"
+                  aria-label="${adminLabel}"
+                  class="pizzain-floating-admin lg:hidden fixed right-4 bottom-5 z-40 w-14 h-14 rounded-2xl border border-white/30 bg-red-700/90 text-white shadow-2xl backdrop-blur-xl flex items-center justify-center transition-all hover:scale-[1.03]"
+                >
+                  <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 10-8 0v4m-2 0h12a2 2 0 012 2v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5a2 2 0 012-2z"/>
+                  </svg>
+                </button>
 
                 <!-- CONTENT -->
                 <section class="relative px-4 sm:px-7 lg:px-10 py-5 sm:py-8 lg:py-20 pb-24 lg:pb-20">
@@ -1178,43 +1259,43 @@ requestAnimationFrame(() => {
                   </div>
 
                   <div class="relative max-w-7xl mx-auto">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-8">
-                      
+                    <div class="pizzain-shift-grid grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-8">
+
                       <!-- SHIFT 1 -->
                       <button
                         onclick="selectShift('shift1')"
-                        class="group relative overflow-hidden bg-white border border-red-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
+                        class="pizzain-shift-card group relative overflow-hidden bg-white border border-red-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
                       >
                         <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-amber-300 via-orange-500 to-red-700"></div>
                         <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-red-50 rounded-full blur-xl"></div>
 
-                        <div class="relative grid grid-cols-[110px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[240px_1fr] gap-4 sm:gap-6 items-center h-full">
+                        <div class="pizzain-shift-inner relative grid grid-cols-[120px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[240px_1fr] gap-4 sm:gap-6 items-center h-full">
                           <div class="flex justify-center sm:justify-start">
-                            <div class="relative w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-orange-50 to-red-100/70 border border-red-50 flex items-center justify-center overflow-hidden">
+                            <div class="pizzain-shift-visual relative w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-orange-50 to-red-100/70 border border-red-50 flex items-center justify-center overflow-hidden">
                               <div class="absolute -bottom-3 -left-3 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-90"></div>
                               <div class="absolute bottom-3 sm:bottom-5 right-2 sm:right-4 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-95"></div>
-                              <div class="relative w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-amber-400 shadow-[0_18px_45px_-18px_rgba(245,158,11,.75)]"></div>
-                              <div class="absolute w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full border-[5px] sm:border-[7px] lg:border-[8px] border-amber-300/60 border-dashed"></div>
+                              <div class="pizzain-shift-sun relative w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-amber-400 shadow-[0_18px_45px_-18px_rgba(245,158,11,.75)]"></div>
+                              <div class="pizzain-shift-ring absolute w-20 h-20 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full border-[5px] sm:border-[7px] lg:border-[8px] border-amber-300/60 border-dashed"></div>
                             </div>
                           </div>
 
                           <div class="min-w-0">
                             <div class="mb-3 sm:mb-5">
-                              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                <h3 class="text-[1.1rem] sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">
-                                  ${shift1Label}
-                                </h3>
-                                <div class="self-start">${statusBadge(shift1Status, shift1Closed)}</div>
-                              </div>
+                              <div class="mb-1.5 sm:mb-2">${statusBadge(shift1Status, shift1Closed)}</div>
+
+                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">
+                                ${shift1Label}
+                              </h3>
+
                               <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 text-slate-500">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
                                 </svg>
-                                <span class="text-[0.95rem] sm:text-lg font-bold whitespace-nowrap">13.00 – 18.30 WIB</span>
+                                <span class="pizzain-shift-time text-sm sm:text-lg font-bold whitespace-nowrap">13.00 – 18.30 WIB</span>
                               </div>
                             </div>
 
-                            <div class="h-px bg-slate-200 mb-3 sm:mb-6"></div>
+                            <div class="pizzain-shift-divider h-px bg-slate-200 mb-3 sm:mb-6"></div>
 
                             <div class="flex items-center gap-3 sm:gap-4">
                               <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-red-50 flex items-center justify-center text-red-600 shrink-0">
@@ -1224,8 +1305,8 @@ requestAnimationFrame(() => {
                                 </svg>
                               </div>
                               <div>
-                                <p class="text-xs sm:text-base font-bold text-slate-500">Transaksi Hari Ini</p>
-                                <p class="text-3xl sm:text-4xl font-black text-red-600 leading-none mt-0.5 sm:mt-1">${shift1Count}</p>
+                                <p class="pizzain-transaction-label text-xs sm:text-base font-bold text-slate-500">Transaksi Hari Ini</p>
+                                <p class="pizzain-transaction-number text-3xl sm:text-4xl font-black text-red-600 leading-none mt-0.5 sm:mt-1">${shift1Count}</p>
                               </div>
                             </div>
                           </div>
@@ -1235,18 +1316,18 @@ requestAnimationFrame(() => {
                       <!-- SHIFT 2 -->
                       <button
                         onclick="selectShift('shift2')"
-                        class="group relative overflow-hidden bg-white border border-amber-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
+                        class="pizzain-shift-card group relative overflow-hidden bg-white border border-amber-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
                       >
                         <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-amber-300 via-orange-500 to-red-700"></div>
                         <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-amber-50 rounded-full blur-xl"></div>
 
-                        <div class="relative grid grid-cols-[110px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[240px_1fr] gap-4 sm:gap-6 items-center h-full">
+                        <div class="pizzain-shift-inner relative grid grid-cols-[120px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[240px_1fr] gap-4 sm:gap-6 items-center h-full">
                           <div class="flex justify-center sm:justify-start">
-                            <div class="relative w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-red-50 to-amber-100/70 border border-amber-50 flex items-center justify-center overflow-hidden">
+                            <div class="pizzain-shift-visual relative w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-red-50 to-amber-100/70 border border-amber-50 flex items-center justify-center overflow-hidden">
                               <div class="absolute -bottom-3 -left-4 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-90"></div>
                               <div class="absolute bottom-3 sm:bottom-7 right-2 sm:right-3 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-90"></div>
-                              <div class="relative w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-red-600 shadow-[0_18px_45px_-18px_rgba(220,38,38,.75)]"></div>
-                              <div class="absolute translate-x-3 sm:translate-x-5 -translate-y-2 sm:-translate-y-3 w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-red-50"></div>
+                              <div class="pizzain-shift-moon relative w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-red-600 shadow-[0_18px_45px_-18px_rgba(220,38,38,.75)]"></div>
+                              <div class="pizzain-shift-moon-cut absolute translate-x-3 sm:translate-x-5 -translate-y-2 sm:-translate-y-3 w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-red-50"></div>
                               <span class="absolute top-7 sm:top-12 right-8 sm:right-16 text-amber-300 text-sm sm:text-xl">✦</span>
                               <span class="absolute top-9 sm:top-16 left-8 sm:left-16 text-red-300 text-xs sm:text-sm">✦</span>
                             </div>
@@ -1254,21 +1335,21 @@ requestAnimationFrame(() => {
 
                           <div class="min-w-0">
                             <div class="mb-3 sm:mb-5">
-                              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                <h3 class="text-[1.1rem] sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">
-                                  ${shift2Label}
-                                </h3>
-                                <div class="self-start">${statusBadge(shift2Status, shift2Closed)}</div>
-                              </div>
+                              <div class="mb-1.5 sm:mb-2">${statusBadge(shift2Status, shift2Closed)}</div>
+
+                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">
+                                ${shift2Label}
+                              </h3>
+
                               <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 text-slate-500">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
                                 </svg>
-                                <span class="text-[0.95rem] sm:text-lg font-bold whitespace-nowrap">18.30 – 23.00 WIB</span>
+                                <span class="pizzain-shift-time text-sm sm:text-lg font-bold whitespace-nowrap">18.30 – 23.00 WIB</span>
                               </div>
                             </div>
 
-                            <div class="h-px bg-slate-200 mb-3 sm:mb-6"></div>
+                            <div class="pizzain-shift-divider h-px bg-slate-200 mb-3 sm:mb-6"></div>
 
                             <div class="flex items-center gap-3 sm:gap-4">
                               <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center text-red-600 shrink-0">
@@ -1278,8 +1359,8 @@ requestAnimationFrame(() => {
                                 </svg>
                               </div>
                               <div>
-                                <p class="text-xs sm:text-base font-bold text-slate-500">Transaksi Hari Ini</p>
-                                <p class="text-3xl sm:text-4xl font-black text-red-600 leading-none mt-0.5 sm:mt-1">${shift2Count}</p>
+                                <p class="pizzain-transaction-label text-xs sm:text-base font-bold text-slate-500">Transaksi Hari Ini</p>
+                                <p class="pizzain-transaction-number text-3xl sm:text-4xl font-black text-red-600 leading-none mt-0.5 sm:mt-1">${shift2Count}</p>
                               </div>
                             </div>
                           </div>
