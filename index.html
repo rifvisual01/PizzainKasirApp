@@ -460,6 +460,12 @@ function getUserByPin(name, pin) {
   ) || null;
 }
 
+async function refreshCashiersForAuth() {
+  return Array.isArray(window.LOCAL_CASHIERS)
+    ? window.LOCAL_CASHIERS.filter(user => user.active !== false)
+    : getActiveCashiers();
+}
+
 function saveToQueue(data) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(["queue"], "readwrite");
@@ -665,16 +671,14 @@ function normalizeShiftDataForToday() {
 async function loadSupabaseData() {
   if (!isSupabaseConfigured() || !navigator.onLine) return false;
 
-  const [expensesRes, shiftsRes, usersRes] = await Promise.all([
+  const [expensesRes, shiftsRes] = await Promise.all([
     supabaseRequest('expenses?select=*&deleted_at=is.null&order=created_at.desc', { method: 'GET' }),
-    supabaseRequest('shift_history?select=*&order=opened_at.desc', { method: 'GET' }),
-    supabaseRequest('cashiers?select=*&active=eq.true&order=name.asc', { method: 'GET' })
+    supabaseRequest('shift_history?select=*&order=opened_at.desc', { method: 'GET' })
   ]);
 
-  const [expenseRows, shiftRows, userRows] = await Promise.all([
+  const [expenseRows, shiftRows] = await Promise.all([
     expensesRes.json(),
-    shiftsRes.json(),
-    usersRes.json()
+    shiftsRes.json()
   ]);
 
   if (currentView !== 'admin' && currentView !== 'manager') {
@@ -683,15 +687,6 @@ async function loadSupabaseData() {
 
   shiftHistory = Array.isArray(shiftRows) ? shiftRows.map(mapSupabaseShift) : [];
   applyShiftDataFromHistory(shiftHistory);
-
-  if (Array.isArray(userRows) && userRows.length) {
-    cashiers = userRows.map(user => ({
-      name: user.name,
-      pin: user.pin,
-      role: user.role,
-      active: user.active !== false
-    }));
-  }
 
   await loadBoothDataFromSupabase();
   return true;
@@ -1291,7 +1286,8 @@ function closeBoothVariantAdminDialog() {
 
 function unlockBoothVariantAdmin() {
   const pin = document.getElementById('boothVariantAdminPin')?.value;
-  const admin = getActiveCashiers().find(u =>
+  refreshCashiersForAuth().then(list => {
+  const admin = list.find(u =>
     u.role === 'admin' &&
     String(u.pin) === String(pin)
   );
@@ -1305,6 +1301,9 @@ function unlockBoothVariantAdmin() {
   closeBoothVariantAdminDialog();
   showNotification('Mode pengaturan Booth aktif', 'success');
   renderCurrentView();
+  }).catch(() => {
+    showNotification('Gagal memuat data PIN terbaru', 'error');
+  });
 }
 
 function lockBoothVariantAdmin() {
@@ -1533,7 +1532,9 @@ async function loadBackendData() {
     expenses = json.data.expenses || [];
   }
 
-  cashiers = json.data.cashiers || [];
+  cashiers = Array.isArray(window.LOCAL_CASHIERS)
+    ? window.LOCAL_CASHIERS.filter(user => user.active !== false)
+    : (json.data.cashiers || []);
   pizzaVariants = json.data.pizzaVariants || pizzaVariants;
   boothReports = json.data.boothReports || boothReports;
   persistBoothData();
@@ -4112,7 +4113,16 @@ async function loginAdmin() {
   // ===============================
   // ⚡ 1️⃣ VALIDASI LOKAL DULU
   // ===============================
-  const user = getActiveCashiers().find(u => String(u.pin) === String(pin));
+  let authCashiers;
+  try {
+    authCashiers = await refreshCashiersForAuth();
+  } catch (err) {
+    resetBtn();
+    showNotification('Gagal memuat data PIN terbaru', 'error');
+    return;
+  }
+
+  const user = authCashiers.find(u => String(u.pin) === String(pin));
   const isAdmin = user?.role === 'admin';
   const isManagerView = user && String(user.name || '').toLowerCase() === 'izza';
 
