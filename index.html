@@ -8,6 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
  const API_BASE = "https://script.google.com/macros/s/AKfycbyMrKtQT_hzr7wSodOurIJpsuwmfSCUJsyCMXxo4YAFSRh8RRGXQZdc-4VNqF9xuPH1Kw/exec";
+ const SUPABASE_URL = "https://qipqhopjbwjquschrggt.supabase.co";
+ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpcHFob3BqYndqcXVzY2hyZ2d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjQ1MDYsImV4cCI6MjA5NzQ0MDUwNn0._LAfxDUc7JDb8SfGjL-XwoeC2ECbrJvDoEKx4_iTuH0";
 </script>
   <script src="./kasir-data.js"></script>
 
@@ -267,11 +269,15 @@
             app_title: "Pengeluaran Kasir",
             shift1_label: "Kasir Shift 1",
             shift2_label: "Kasir Shift 2",
-            admin_label: "Laporan Admin"
+            admin_label: "Akses Laporan"
         };
    
        ///Variabel Global///
         const CATEGORIES = ["Bahan Baku", "Operasional", "Staff"];
+        const BOOTH_EXPENSE_CATEGORY = "Operasional";
+        const DEFAULT_PIZZA_VARIANTS = [
+            { id: "slice-original", name: "Original Slice", salePrice: 0, costPrice: 0, active: true }
+        ];
 
         let currentView = 'home';
    let cashiers = [];
@@ -280,6 +286,8 @@
    let isConnectedToBackend = false;
         let expenses = [];
    let shiftHistory = [];
+   let boothReports = [];
+   let pizzaVariants = [];
         let shiftData = {
             shift1: { status: 'available', startCash: 0, endCash: 0, cashier: null },
             shift2: { status: 'available', startCash: 0, endCash: 0, cashier: null }
@@ -303,8 +311,6 @@ function restoreOpenShift() {
   // SHIFT 1
   if (shiftData.shift1 && shiftData.shift1.status === "open") {
 
-    currentShift = "shift1";
-    currentCashier = shiftData.shift1.cashier;
     currentView = "shift1";   // 🔥 penting
 
     return true;
@@ -313,8 +319,6 @@ function restoreOpenShift() {
   // SHIFT 2
   if (shiftData.shift2 && shiftData.shift2.status === "open") {
 
-    currentShift = "shift2";
-    currentCashier = shiftData.shift2.cashier;
     currentView = "shift2";   // 🔥 penting
 
     return true;
@@ -419,7 +423,7 @@ if (savedShift) {
 
     currentShift = s.shift;
     currentCashier = s.cashier;
-    currentView = s.shift;
+    currentView = 'home';
 
   } catch(e) {
     console.warn('restore shift gagal');
@@ -468,6 +472,339 @@ function saveToQueue(data) {
   });
 }
 
+function isSupabaseConfigured() {
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+}
+
+async function supabaseRequest(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    throw new Error(`Supabase request failed: ${res.status}`);
+  }
+
+  return res;
+}
+
+async function syncBoothPayloadToSupabase(payload) {
+  if (!isSupabaseConfigured()) return false;
+
+  if (payload.action === 'savePizzaVariants') {
+    const variants = JSON.parse(payload.variants || '[]').map(variant => ({
+      id: variant.id,
+      name: variant.name,
+      sale_price: Number(variant.salePrice) || 0,
+      cost_price: Number(variant.costPrice) || 0,
+      active: variant.active !== false,
+      updated_at: new Date().toISOString()
+    }));
+
+    if (variants.length) {
+      await supabaseRequest('pizza_variants', {
+        method: 'POST',
+        headers: { Prefer: 'resolution=merge-duplicates' },
+        body: JSON.stringify(variants)
+      });
+    }
+
+    return true;
+  }
+
+  if (payload.action === 'saveBoothReport') {
+    const report = JSON.parse(payload.report || '{}');
+    await supabaseRequest('booth_reports', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        id: report.id,
+        report_date: report.date,
+        cash_start: Number(report.cashStart) || 0,
+        qris_total: Number(report.qrisTotal) || 0,
+        cash_end: Number(report.cashEnd) || 0,
+        sales: report.sales || [],
+        expenses: report.expenses || [],
+        created_at: report.createdAt || new Date().toISOString(),
+        updated_at: report.updatedAt || new Date().toISOString()
+      })
+    });
+
+    return true;
+  }
+
+  return false;
+}
+
+async function loadBoothDataFromSupabase() {
+  if (!isSupabaseConfigured() || !navigator.onLine) return;
+
+  const [variantRes, reportRes] = await Promise.all([
+    supabaseRequest('pizza_variants?select=*&order=name.asc', { method: 'GET' }),
+    supabaseRequest('booth_reports?select=*&order=report_date.desc', { method: 'GET' })
+  ]);
+
+  const [variants, reports] = await Promise.all([
+    variantRes.json(),
+    reportRes.json()
+  ]);
+
+  if (Array.isArray(variants) && variants.length) {
+    pizzaVariants = variants.map(variant => ({
+      id: variant.id,
+      name: variant.name,
+      salePrice: Number(variant.sale_price) || 0,
+      costPrice: Number(variant.cost_price) || 0,
+      active: variant.active !== false
+    }));
+  }
+
+  if (Array.isArray(reports)) {
+    boothReports = reports.map(report => ({
+      id: report.id,
+      date: report.report_date,
+      cashStart: Number(report.cash_start) || 0,
+      qrisTotal: Number(report.qris_total) || 0,
+      cashEnd: Number(report.cash_end) || 0,
+      sales: report.sales || [],
+      expenses: report.expenses || [],
+      createdAt: report.created_at,
+      updatedAt: report.updated_at
+    }));
+  }
+
+  persistBoothData();
+}
+
+function mapSupabaseExpense(row) {
+  return {
+    id: row.id,
+    shift: row.shift,
+    sessionId: row.session_id,
+    cashier: row.cashier,
+    expense_name: row.expense_name,
+    category: row.category,
+    amount: Number(row.amount) || 0,
+    createdAt: row.created_at,
+    timestamp: row.created_at
+  };
+}
+
+function mapSupabaseShift(row) {
+  return {
+    id: row.id,
+    tanggal: row.tanggal,
+    shift: row.shift,
+    cashier: row.cashier,
+    startCash: Number(row.start_cash) || 0,
+    endCash: Number(row.end_cash) || 0,
+    status: row.status,
+    openedAt: row.opened_at,
+    closedAt: row.closed_at,
+    sessionId: row.session_id
+  };
+}
+
+function applyShiftDataFromHistory(rows) {
+  shiftData = {
+    shift1: { status: 'available', startCash: 0, endCash: 0, cashier: null },
+    shift2: { status: 'available', startCash: 0, endCash: 0, cashier: null }
+  };
+
+  const todayKey = getLocalDateKey(new Date());
+
+  ['shift1', 'shift2'].forEach(shiftName => {
+    const latest = rows
+      .filter(row => row.shift === shiftName && getShiftRecordDateKey(row) === todayKey)
+      .sort((a, b) => new Date(b.openedAt || b.closedAt || 0) - new Date(a.openedAt || a.closedAt || 0))[0];
+
+    if (!latest) return;
+
+    shiftData[shiftName] = {
+      status: latest.status || 'available',
+      cashier: latest.cashier || null,
+      startCash: Number(latest.startCash) || 0,
+      endCash: Number(latest.endCash) || 0,
+      openedAt: latest.openedAt || null,
+      closedAt: latest.closedAt || null,
+      sessionId: latest.sessionId || latest.id || null
+    };
+  });
+}
+
+function getShiftRecordDateKey(row) {
+  return row?.tanggal || getLocalDateKey(row?.openedAt || row?.closedAt);
+}
+
+function normalizeShiftDataForToday() {
+  const todayKey = getLocalDateKey(new Date());
+
+  ['shift1', 'shift2'].forEach(shiftName => {
+    const record = shiftData?.[shiftName];
+    const dateKey = getShiftRecordDateKey(record || {});
+
+    if (!record || record.status === 'available') return;
+
+    if (dateKey !== todayKey) {
+      shiftData[shiftName] = {
+        status: 'available',
+        startCash: 0,
+        endCash: 0,
+        cashier: null
+      };
+    }
+  });
+}
+
+async function loadSupabaseData() {
+  if (!isSupabaseConfigured() || !navigator.onLine) return false;
+
+  const [expensesRes, shiftsRes, usersRes] = await Promise.all([
+    supabaseRequest('expenses?select=*&deleted_at=is.null&order=created_at.desc', { method: 'GET' }),
+    supabaseRequest('shift_history?select=*&order=opened_at.desc', { method: 'GET' }),
+    supabaseRequest('cashiers?select=*&active=eq.true&order=name.asc', { method: 'GET' })
+  ]);
+
+  const [expenseRows, shiftRows, userRows] = await Promise.all([
+    expensesRes.json(),
+    shiftsRes.json(),
+    usersRes.json()
+  ]);
+
+  if (currentView !== 'admin' && currentView !== 'manager') {
+    expenses = Array.isArray(expenseRows) ? expenseRows.map(mapSupabaseExpense) : [];
+  }
+
+  shiftHistory = Array.isArray(shiftRows) ? shiftRows.map(mapSupabaseShift) : [];
+  applyShiftDataFromHistory(shiftHistory);
+
+  if (Array.isArray(userRows) && userRows.length) {
+    cashiers = userRows.map(user => ({
+      name: user.name,
+      pin: user.pin,
+      role: user.role,
+      active: user.active !== false
+    }));
+  }
+
+  await loadBoothDataFromSupabase();
+  return true;
+}
+
+async function syncLegacyPayloadToSupabase(payload) {
+  if (!isSupabaseConfigured()) return false;
+
+  if (payload.action === 'loginAdmin') {
+    return true;
+  }
+
+  if (payload.action === 'loginShift') {
+    await supabaseRequest('shift_history', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        id: payload.sessionId,
+        shift: payload.shift,
+        tanggal: getLocalDateKey(new Date()),
+        cashier: payload.cashier,
+        start_cash: Number(payload.startCash) || 0,
+        end_cash: 0,
+        status: 'open',
+        opened_at: new Date().toISOString(),
+        session_id: payload.sessionId,
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    return true;
+  }
+
+  if (payload.action === 'addExpense') {
+    await supabaseRequest('expenses', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({
+        id: payload.id,
+        shift: payload.shift,
+        session_id: payload.sessionId,
+        cashier: payload.cashier,
+        expense_name: payload.expense_name,
+        category: payload.category,
+        amount: Number(payload.amount) || 0,
+        created_at: payload.createdAt || payload.timestamp || new Date().toISOString(),
+        deleted_at: null
+      })
+    });
+
+    return true;
+  }
+
+  if (payload.action === 'deleteExpense') {
+    await supabaseRequest(`expenses?id=eq.${encodeURIComponent(payload.id)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ deleted_at: new Date().toISOString() })
+    });
+
+    return true;
+  }
+
+  if (payload.action === 'closeShift') {
+    await supabaseRequest(`shift_history?session_id=eq.${encodeURIComponent(payload.sessionId)}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        end_cash: Number(payload.endCash) || 0,
+        status: 'closed',
+        closed_at: payload.closedAt || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    return true;
+  }
+
+  return false;
+}
+
+async function sendQueuedPayload(payload) {
+  const boothActions = ['savePizzaVariants', 'saveBoothReport'];
+
+  try {
+    const handledBySupabase = await syncBoothPayloadToSupabase(payload);
+    if (handledBySupabase) return;
+  } catch (err) {
+    console.warn('Supabase booth sync failed', err);
+    if (boothActions.includes(payload.action)) {
+      throw err;
+    }
+  }
+
+  try {
+    const handledLegacyBySupabase = await syncLegacyPayloadToSupabase(payload);
+    if (handledLegacyBySupabase) return;
+  } catch (err) {
+    console.warn('Supabase legacy sync failed, fallback Apps Script', err);
+  }
+
+  const fd = new FormData();
+  Object.entries(payload).forEach(([k, v]) => {
+    fd.append(k, v);
+  });
+  fd.append('__sync', '1');
+
+  await fetch(API_BASE, {
+    method: 'POST',
+    body: fd
+  });
+}
+
 
 async function processQueue() {
   if (!navigator.onLine) return;
@@ -501,16 +838,7 @@ updateSyncIndicator();
 
     for (const item of items) {
       try {
-        const fd = new FormData();
-        Object.entries(item.payload).forEach(([k, v]) => {
-          fd.append(k, v);
-        });
-        fd.append('__sync', '1');
-
-        await fetch(API_BASE, {
-          method: 'POST',
-          body: fd
-        });
+        await sendQueuedPayload(item.payload);
 
         // hapus setelah terkirim
         await new Promise((resolve, reject) => {
@@ -653,6 +981,370 @@ updateSyncIndicator();
   return d.toISOString();
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function loadLocalBoothData() {
+  try {
+    const savedVariants = JSON.parse(localStorage.getItem('pizzaVariants') || 'null');
+    pizzaVariants = Array.isArray(savedVariants) && savedVariants.length
+      ? savedVariants
+      : DEFAULT_PIZZA_VARIANTS;
+  } catch {
+    pizzaVariants = DEFAULT_PIZZA_VARIANTS;
+  }
+
+  try {
+    const savedReports = JSON.parse(localStorage.getItem('boothReports') || '[]');
+    boothReports = Array.isArray(savedReports) ? savedReports : [];
+  } catch {
+    boothReports = [];
+  }
+}
+
+function persistBoothData() {
+  localStorage.setItem('pizzaVariants', JSON.stringify(pizzaVariants));
+  localStorage.setItem('boothReports', JSON.stringify(boothReports));
+}
+
+function getActivePizzaVariants() {
+  return (pizzaVariants || []).filter(v => v && v.active !== false);
+}
+
+function getBoothReportByDate(dateKey) {
+  return (boothReports || []).find(r => r.date === dateKey) || null;
+}
+
+function calculateBoothReport(report) {
+  const sales = Array.isArray(report?.sales) ? report.sales : [];
+  const reportExpenses = Array.isArray(report?.expenses) ? report.expenses : [];
+
+  const totalSlice = sales.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+  const totalRevenue = sales.reduce((sum, item) => {
+    return sum + ((Number(item.qty) || 0) * (Number(item.salePrice) || 0));
+  }, 0);
+  const totalCost = sales.reduce((sum, item) => {
+    return sum + ((Number(item.qty) || 0) * (Number(item.costPrice) || 0));
+  }, 0);
+  const totalExpense = reportExpenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const grossProfit = totalRevenue - totalCost;
+  const netProfit = grossProfit - totalExpense;
+  const cashCheckTotal =
+    (Number(report?.cashEnd) || 0) +
+    totalExpense +
+    (Number(report?.qrisTotal) || 0) -
+    (Number(report?.cashStart) || 0);
+  const cashDifference = cashCheckTotal - totalRevenue;
+  const cashMatches = cashDifference === 0;
+
+  return {
+    totalSlice,
+    totalRevenue,
+    totalCost,
+    totalExpense,
+    grossProfit,
+    netProfit,
+    cashCheckTotal,
+    cashDifference,
+    cashMatches
+  };
+}
+
+function getBoothReportsByPeriod(startDate, endDate) {
+  return (boothReports || []).filter(report => {
+    if (!report?.date) return false;
+    return report.date >= startDate && report.date <= endDate;
+  });
+}
+
+function getBoothPeriodSummary(startDate, endDate) {
+  return getBoothReportsByPeriod(startDate, endDate).reduce((summary, report) => {
+    const totals = calculateBoothReport(report);
+    summary.totalSlice += totals.totalSlice;
+    summary.totalRevenue += totals.totalRevenue;
+    summary.totalCost += totals.totalCost;
+    summary.totalExpense += totals.totalExpense;
+    summary.netProfit += totals.netProfit;
+    return summary;
+  }, { totalSlice: 0, totalRevenue: 0, totalCost: 0, totalExpense: 0, netProfit: 0 });
+}
+
+function buildBoothReportFromForm(existingReport = null) {
+  const date = document.getElementById('boothDate')?.value || safeISODate(new Date())?.split('T')[0];
+  const sales = getActivePizzaVariants().map(variant => ({
+    variantId: variant.id,
+    name: variant.name,
+    qty: parseInt(document.getElementById(`boothQty-${variant.id}`)?.value || '0', 10) || 0,
+    salePrice: Number(variant.salePrice) || 0,
+    costPrice: Number(variant.costPrice) || 0
+  }));
+
+  const existingExpenses = Array.isArray(existingReport?.expenses) ? existingReport.expenses : [];
+  const expensesForReport = [...existingExpenses];
+  const expenseRows = Array.from(document.querySelectorAll('[data-booth-expense-row]'));
+
+  expenseRows.forEach((row, index) => {
+    const expenseName = row.querySelector('[data-booth-expense-name]')?.value.trim();
+    const expenseAmount = parseRupiah(row.querySelector('[data-booth-expense-amount]')?.value || '');
+
+    if (expenseName && expenseAmount > 0) {
+      expensesForReport.push({
+        id: 'booth-exp-' + Date.now() + '-' + index,
+        name: expenseName,
+        category: BOOTH_EXPENSE_CATEGORY,
+        amount: expenseAmount,
+        createdAt: safeISODate(new Date())
+      });
+    }
+  });
+
+  return {
+    id: existingReport?.id || 'booth-' + date,
+    date,
+    cashStart: parseRupiah(document.getElementById('boothCashStart')?.value || ''),
+    qrisTotal: parseRupiah(document.getElementById('boothQrisTotal')?.value || ''),
+    cashEnd: parseRupiah(document.getElementById('boothCashEnd')?.value || ''),
+    sales,
+    expenses: expensesForReport,
+    createdAt: existingReport?.createdAt || safeISODate(new Date()),
+    updatedAt: safeISODate(new Date())
+  };
+}
+
+async function saveBoothReport() {
+  const date = document.getElementById('boothDate')?.value;
+  if (!date) {
+    showNotification('Tanggal Booth wajib diisi', 'warning');
+    return;
+  }
+
+  const existingReport = getBoothReportByDate(date);
+  const isAdminEdit = window.__boothAdminEdit === true;
+
+  if (existingReport && !isAdminEdit) {
+    showNotification('Laporan Booth hari ini hanya bisa diedit admin', 'warning');
+    return;
+  }
+
+  const report = buildBoothReportFromForm(existingReport);
+  const hasSales = report.sales.some(item => item.qty > 0);
+
+  if (!hasSales && report.qrisTotal <= 0 && report.cashStart <= 0 && report.cashEnd <= 0 && !report.expenses.length) {
+    showNotification('Isi minimal satu data Booth', 'warning');
+    return;
+  }
+
+  boothReports = boothReports.filter(r => r.date !== report.date);
+  boothReports.push(report);
+  boothReports.sort((a, b) => new Date(b.date) - new Date(a.date));
+  persistBoothData();
+
+  await saveToQueue({
+    id: 'saveBoothReport-' + report.date + '-' + Date.now(),
+    payload: {
+      action: 'saveBoothReport',
+      report: JSON.stringify(report)
+    }
+  });
+
+  if (navigator.onLine) {
+    processQueue();
+  }
+
+  window.__boothAdminEdit = false;
+  showNotification('Laporan Booth disimpan', 'success');
+  currentView = 'home';
+  renderCurrentView();
+}
+
+function selectBooth() {
+  window.__boothAdminEdit = false;
+  window.__boothVariantAdmin = false;
+  currentShift = null;
+  currentView = 'booth';
+  renderCurrentView();
+}
+
+function editBoothReportFromAdmin(dateKey) {
+  window.__boothAdminEdit = true;
+  window.__boothEditDate = dateKey;
+  window.__boothVariantAdmin = false;
+  currentShift = null;
+  currentView = 'booth';
+  renderCurrentView();
+}
+
+async function savePizzaVariantsFromAdmin() {
+  if (!window.__boothVariantAdmin) {
+    showBoothVariantAdminDialog();
+    return;
+  }
+
+  const rows = Array.from(document.querySelectorAll('[data-variant-row]'));
+  const nextVariants = rows.map((row, index) => {
+    const existingId = row.getAttribute('data-variant-row') || '';
+    const name = row.querySelector('[data-variant-name]')?.value.trim();
+    return {
+      id: existingId || 'variant-' + Date.now() + '-' + index,
+      name,
+      salePrice: parseRupiah(row.querySelector('[data-variant-sale]')?.value || ''),
+      costPrice: parseRupiah(row.querySelector('[data-variant-cost]')?.value || ''),
+      active: row.querySelector('[data-variant-active]')?.checked !== false
+    };
+  }).filter(v => v.name);
+
+  if (!nextVariants.length) {
+    showNotification('Minimal satu varian aktif', 'warning');
+    return;
+  }
+
+  pizzaVariants = nextVariants;
+  persistBoothData();
+
+  await saveToQueue({
+    id: 'savePizzaVariants-' + Date.now(),
+    payload: {
+      action: 'savePizzaVariants',
+      variants: JSON.stringify(pizzaVariants)
+    }
+  });
+
+  if (navigator.onLine) {
+    processQueue();
+  }
+
+  showNotification('Varian pizza disimpan', 'success');
+  adminDataReady = true;
+  renderCurrentView();
+}
+
+function addPizzaVariantRow() {
+  if (!window.__boothVariantAdmin) {
+    showBoothVariantAdminDialog();
+    return;
+  }
+
+  const container = document.getElementById('pizzaVariantRows');
+  if (!container) return;
+  const id = 'variant-' + Date.now();
+  const index = container.querySelectorAll('[data-variant-row]').length;
+  container.insertAdjacentHTML('beforeend', renderPizzaVariantRow({
+    id,
+    name: '',
+    salePrice: 0,
+    costPrice: 0,
+    active: true
+  }, index));
+}
+
+function showBoothVariantAdminDialog() {
+  document.getElementById('boothVariantAdminDialog')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'boothVariantAdminDialog';
+  modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+  modal.onclick = closeBoothVariantAdminDialog;
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl" onclick="event.stopPropagation()">
+      <h3 class="text-2xl font-black mb-2 text-center">PIN Admin</h3>
+      <p class="text-center text-gray-500 mb-6">Masukkan PIN admin untuk mengatur varian Booth</p>
+
+      <input
+        id="boothVariantAdminPin"
+        type="password"
+        placeholder="Masukkan PIN"
+        class="input-modern w-full rounded-xl px-4 py-3 mb-6 text-center text-xl"
+      />
+
+      <div class="flex gap-3">
+        <button onclick="closeBoothVariantAdminDialog()" class="flex-1 bg-gray-200 hover:bg-gray-300 rounded-xl py-3 font-bold">
+          Batal
+        </button>
+        <button onclick="unlockBoothVariantAdmin()" class="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl py-3 font-bold">
+          Masuk
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  setTimeout(() => {
+    const input = document.getElementById('boothVariantAdminPin');
+    input?.focus();
+    input?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') unlockBoothVariantAdmin();
+    });
+  }, 50);
+}
+
+function closeBoothVariantAdminDialog() {
+  document.getElementById('boothVariantAdminDialog')?.remove();
+}
+
+function unlockBoothVariantAdmin() {
+  const pin = document.getElementById('boothVariantAdminPin')?.value;
+  const admin = getActiveCashiers().find(u =>
+    u.role === 'admin' &&
+    String(u.pin) === String(pin)
+  );
+
+  if (!admin) {
+    showNotification('PIN admin salah', 'error');
+    return;
+  }
+
+  window.__boothVariantAdmin = true;
+  closeBoothVariantAdminDialog();
+  showNotification('Mode pengaturan Booth aktif', 'success');
+  renderCurrentView();
+}
+
+function lockBoothVariantAdmin() {
+  window.__boothVariantAdmin = false;
+  renderCurrentView();
+}
+
+function addBoothExpenseRow() {
+  const container = document.getElementById('boothExpenseRows');
+  if (!container) return;
+
+  container.insertAdjacentHTML('beforeend', renderBoothExpenseInputRow());
+}
+
+function removeBoothExpenseRow(button) {
+  const row = button?.closest('[data-booth-expense-row]');
+  if (!row) return;
+
+  const container = document.getElementById('boothExpenseRows');
+  if (container && container.querySelectorAll('[data-booth-expense-row]').length <= 1) {
+    row.querySelector('[data-booth-expense-name]').value = '';
+    row.querySelector('[data-booth-expense-amount]').value = '';
+    return;
+  }
+
+  row.remove();
+}
+
+function renderBoothExpenseInputRow() {
+  return `
+    <div data-booth-expense-row class="grid grid-cols-[1fr_140px_44px] gap-2 items-center">
+      <input data-booth-expense-name type="text" placeholder="Nama" class="input-modern w-full rounded-xl px-4 py-3 text-sm">
+      <input data-booth-expense-amount type="text" placeholder="Nominal" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl px-4 py-3 text-sm">
+      <button type="button" onclick="removeBoothExpenseRow(this)" class="w-11 h-11 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600 font-black flex items-center justify-center">
+        x
+      </button>
+    </div>
+  `;
+}
+
    
 let appReady = false;
 
@@ -687,6 +1379,8 @@ async function init() {
 
   showAppSkeleton();
 
+  loadLocalBoothData();
+
   await initLocalDB();
 
   if (navigator.onLine) {
@@ -698,6 +1392,7 @@ async function init() {
 
       // 2️⃣ ambil data terbaru dari backend
       await loadBackendData();
+      await loadBoothDataFromSupabase();
 
     } catch(e){
       console.warn('init sync gagal');
@@ -706,10 +1401,13 @@ async function init() {
   }
 
   // 3️⃣ baru render UI
+currentView = 'home';
+currentShift = null;
+currentCashier = null;
 renderCurrentView();
 
 // 🔥 TAMBAHKAN DI SINI
-const activeShift = getActiveShift();
+const activeShift = null;
 
 if (activeShift && !shiftWarningShown) {
   setTimeout(() => {
@@ -803,6 +1501,20 @@ function getActiveShift() {
    
 async function loadBackendData() {
   if (!navigator.onLine) return;
+
+  try {
+    const loadedFromSupabase = await loadSupabaseData();
+    if (loadedFromSupabase) {
+      currentView = 'home';
+      currentShift = null;
+      currentCashier = null;
+      renderCurrentView();
+      return;
+    }
+  } catch (err) {
+    console.warn('Supabase load failed, fallback Apps Script', err);
+  }
+
   const fd = new FormData();
   fd.append('action', 'getData');
 
@@ -817,17 +1529,22 @@ async function loadBackendData() {
     if (json.success) {
 
   // 🔒 JANGAN TIMPA expenses SAAT MODE ADMIN
-  if (currentView !== 'admin') {
+  if (currentView !== 'admin' && currentView !== 'manager') {
     expenses = json.data.expenses || [];
   }
 
   cashiers = json.data.cashiers || [];
+  pizzaVariants = json.data.pizzaVariants || pizzaVariants;
+  boothReports = json.data.boothReports || boothReports;
+  persistBoothData();
+
   if (navigator.onLine && json.data.shiftHistory) {
   shiftHistory = json.data.shiftHistory;
 }
 
 if (navigator.onLine && json.data.shiftData) {
   shiftData = json.data.shiftData;
+  normalizeShiftDataForToday();
 }
 
    // 🔥 AUTO RESTORE SHIFT
@@ -836,6 +1553,9 @@ const restored = restoreOpenShift();
 // 🔥 JANGAN AUTO MASUK SHIFT
 // kita hanya tandai saja
 let activeShiftDetected = restored;
+currentView = 'home';
+currentShift = null;
+currentCashier = null;
      
   renderCurrentView(); // update UI tanpa reload
 }
@@ -845,10 +1565,12 @@ let activeShiftDetected = restored;
 }
 
    function getLastShift(shift) {
+  const todayKey = getLocalDateKey(new Date());
   return shiftHistory
     .filter(s =>
       s.shift === shift &&
-      String(s.status).toLowerCase() === 'closed'
+      String(s.status).toLowerCase() === 'closed' &&
+      getShiftRecordDateKey(s) === todayKey
     )
     .sort((a,b)=> new Date(b.closedAt) - new Date(a.closedAt))[0] || null;
 }
@@ -861,6 +1583,36 @@ function renderCurrentView() {
   // =====================
   if (currentView === 'home') {
     app.innerHTML = renderHomeScreen();
+    return;
+  }
+
+  // =====================
+  // BOOTH
+  // =====================
+  if (currentView === 'booth') {
+    app.innerHTML = renderBoothScreen();
+    return;
+  }
+
+  // =====================
+  // MANAGER VIEW ONLY
+  // =====================
+  if (currentView === 'manager') {
+    app.innerHTML = renderManagerScreen();
+
+    if (!adminDataReady && navigator.onLine) {
+      loadAllExpensesForAdmin()
+        .then(() => {
+          normalizeExpenses();
+          adminDataReady = true;
+          app.innerHTML = renderManagerScreen();
+        })
+        .catch(() => {
+          normalizeExpenses();
+          adminDataReady = true;
+        });
+    }
+
     return;
   }
 
@@ -964,7 +1716,7 @@ requestAnimationFrame(() => {
             const shift2Label = config.shift2_label || defaultConfig.shift2_label;
             const adminLabel = config.admin_label || defaultConfig.admin_label;
 
-            const today = safeISODate(new Date())?.split('T')[0];
+            const today = getLocalDateKey(new Date());
 
             const shift1Expenses = expenses.filter(e =>
               e.shift === 'shift1' &&
@@ -980,6 +1732,8 @@ requestAnimationFrame(() => {
 
             const shift1Count = shift1Expenses.length;
             const shift2Count = shift2Expenses.length;
+            const boothTodayReport = getBoothReportByDate(today);
+            const boothTodayTotals = calculateBoothReport(boothTodayReport || {});
 
             const shift1Status = shiftData.shift1.status;
             const shift2Status = shiftData.shift2.status;
@@ -1328,7 +2082,7 @@ requestAnimationFrame(() => {
                   </div>
 
                   <div class="relative max-w-7xl mx-auto">
-                    <div class="pizzain-shift-grid grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 lg:gap-8">
+                    <div class="pizzain-shift-grid grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6 lg:gap-8">
                       <button
                         onclick="selectShift('shift1')"
                         class="pizzain-shift-card group relative overflow-hidden bg-white border border-red-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-8 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
@@ -1336,9 +2090,9 @@ requestAnimationFrame(() => {
                         <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-amber-300 via-orange-500 to-red-700"></div>
                         <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-red-50 rounded-full blur-xl"></div>
 
-                        <div class="pizzain-shift-inner relative grid grid-cols-[120px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[240px_1fr] gap-4 sm:gap-6 items-center h-full">
+                        <div class="pizzain-shift-inner relative grid grid-cols-[120px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[140px_minmax(0,1fr)] gap-4 sm:gap-6 lg:gap-4 items-center h-full">
                           <div class="flex justify-center sm:justify-start">
-                            <div class="pizzain-shift-visual relative w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-orange-50 to-red-100/70 border border-red-50 flex items-center justify-center overflow-hidden">
+                            <div class="pizzain-shift-visual relative w-24 h-24 sm:w-40 sm:h-40 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-orange-50 to-red-100/70 border border-red-50 flex items-center justify-center overflow-hidden">
                               <div class="absolute -bottom-3 -left-3 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-90"></div>
                               <div class="absolute bottom-3 sm:bottom-5 right-2 sm:right-4 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-95"></div>
                               <div class="pizzain-shift-sun relative w-11 h-11 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-full bg-amber-400 shadow-[0_18px_45px_-18px_rgba(245,158,11,.75)]"></div>
@@ -1349,7 +2103,7 @@ requestAnimationFrame(() => {
                           <div class="min-w-0">
                             <div class="mb-3 sm:mb-5">
                               <div class="mb-1.5 sm:mb-2">${statusBadge(shift1Status, shift1Closed)}</div>
-                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">${shift1Label}</h3>
+                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[1.65rem] xl:text-[1.9rem] font-black text-slate-900 leading-tight break-words">${shift1Label}</h3>
                               <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 text-slate-500">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
@@ -1383,9 +2137,9 @@ requestAnimationFrame(() => {
                         <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-amber-300 via-orange-500 to-red-700"></div>
                         <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-amber-50 rounded-full blur-xl"></div>
 
-                        <div class="pizzain-shift-inner relative grid grid-cols-[120px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[240px_1fr] gap-4 sm:gap-6 items-center h-full">
+                        <div class="pizzain-shift-inner relative grid grid-cols-[120px_1fr] sm:grid-cols-[180px_1fr] lg:grid-cols-[140px_minmax(0,1fr)] gap-4 sm:gap-6 lg:gap-4 items-center h-full">
                           <div class="flex justify-center sm:justify-start">
-                            <div class="pizzain-shift-visual relative w-24 h-24 sm:w-40 sm:h-40 lg:w-52 lg:h-52 rounded-full bg-gradient-to-br from-red-50 to-amber-100/70 border border-amber-50 flex items-center justify-center overflow-hidden">
+                            <div class="pizzain-shift-visual relative w-24 h-24 sm:w-40 sm:h-40 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-red-50 to-amber-100/70 border border-amber-50 flex items-center justify-center overflow-hidden">
                               <div class="absolute -bottom-3 -left-4 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-90"></div>
                               <div class="absolute bottom-3 sm:bottom-7 right-2 sm:right-3 w-16 sm:w-24 h-7 sm:h-10 bg-white rounded-full opacity-90"></div>
                               <div class="pizzain-shift-moon relative w-14 h-14 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-red-600 shadow-[0_18px_45px_-18px_rgba(220,38,38,.75)]"></div>
@@ -1398,7 +2152,7 @@ requestAnimationFrame(() => {
                           <div class="min-w-0">
                             <div class="mb-3 sm:mb-5">
                               <div class="mb-1.5 sm:mb-2">${statusBadge(shift2Status, shift2Closed)}</div>
-                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[2.1rem] font-black text-slate-900 leading-tight whitespace-nowrap">${shift2Label}</h3>
+                              <h3 class="pizzain-shift-title text-xl sm:text-3xl lg:text-[1.65rem] xl:text-[1.9rem] font-black text-slate-900 leading-tight break-words">${shift2Label}</h3>
                               <div class="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-4 text-slate-500">
                                 <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"/>
@@ -1424,6 +2178,52 @@ requestAnimationFrame(() => {
                           </div>
                         </div>
                       </button>
+
+                      <button
+                        onclick="selectBooth()"
+                        class="pizzain-shift-card group relative overflow-hidden bg-white border border-blue-100 rounded-[1.7rem] lg:rounded-[2.25rem] shadow-[0_24px_70px_-34px_rgba(15,23,42,.45)] p-4 sm:p-6 lg:p-7 text-left min-h-[164px] sm:min-h-[230px] lg:min-h-[300px] transition-all hover:-translate-y-1 hover:shadow-[0_34px_80px_-34px_rgba(15,23,42,.5)]"
+                      >
+                        <div class="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-blue-400 via-red-500 to-amber-400"></div>
+                        <div class="absolute -left-10 -bottom-10 w-44 h-44 bg-blue-50 rounded-full blur-xl"></div>
+
+                        <div class="relative h-full flex flex-col justify-between gap-5">
+                          <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0">
+                              <span class="inline-flex items-center gap-1 rounded-full bg-blue-100 text-blue-700 px-2.5 py-1.5 text-[11px] sm:text-sm font-black border border-blue-200 whitespace-nowrap w-fit mb-3">
+                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                ${boothTodayReport ? 'Tercatat' : 'Input Harian'}
+                              </span>
+                              <h3 class="text-2xl sm:text-3xl lg:text-[1.9rem] xl:text-[2.15rem] font-black text-slate-900 leading-tight">Booth</h3>
+                              <div class="flex items-center gap-2 mt-3 text-slate-500">
+                                <svg class="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M5 7v12h14V7M8 7V5h8v2"/>
+                                </svg>
+                                <span class="text-sm sm:text-base font-bold leading-snug">Laporan penjualan slice</span>
+                              </div>
+                            </div>
+
+                            <div class="relative w-20 h-20 sm:w-24 sm:h-24 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-blue-50 to-red-100/70 border border-blue-50 flex items-center justify-center overflow-hidden shrink-0">
+                              <div class="absolute bottom-3 left-3 right-3 h-6 bg-white rounded-full opacity-90"></div>
+                              <div class="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-amber-300 shadow-[0_18px_45px_-18px_rgba(245,158,11,.75)]"></div>
+                              <div class="absolute w-12 h-12 sm:w-14 sm:h-14 rounded-full border-[5px] border-red-500/70 border-dashed"></div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div class="h-px bg-slate-200 mb-4"></div>
+                            <div class="grid grid-cols-2 gap-3">
+                              <div class="rounded-2xl bg-blue-50 p-4">
+                                <p class="text-xs font-black text-slate-500 mb-1">Slice Hari Ini</p>
+                                <p class="text-3xl font-black text-red-600 leading-none">${boothTodayTotals.totalSlice}</p>
+                              </div>
+                              <div class="rounded-2xl bg-red-50 p-4">
+                                <p class="text-xs font-black text-slate-500 mb-1">Pengeluaran</p>
+                                <p class="text-lg font-black text-red-600 leading-tight">Rp ${boothTodayTotals.totalExpense.toLocaleString('id-ID')}</p>
+                              </div>
+                           </div>
+                          </div>
+                        </div>
+                      </button>
                     </div>
                   </div>
                 </section>
@@ -1431,6 +2231,224 @@ requestAnimationFrame(() => {
             `;
         }
 
+
+        function renderBoothScreen() {
+          const today = safeISODate(new Date())?.split('T')[0];
+          const editDate = window.__boothAdminEdit ? (window.__boothEditDate || today) : today;
+          const existingReport = getBoothReportByDate(editDate);
+          const isAdminEdit = window.__boothAdminEdit === true;
+          const isLocked = !!existingReport && !isAdminEdit;
+          const report = existingReport || {
+            date: editDate,
+            cashStart: 0,
+            qrisTotal: 0,
+            cashEnd: 0,
+            sales: [],
+            expenses: []
+          };
+          const totals = calculateBoothReport(report);
+          const salesByVariant = {};
+          (report.sales || []).forEach(item => {
+            salesByVariant[item.variantId] = item.qty;
+          });
+
+          return `
+            <div class="min-h-full p-6">
+              <div class="max-w-6xl mx-auto">
+                <button onclick="backToHome()" class="mb-5 text-sm font-black text-red-700 hover:text-red-800">Kembali</button>
+
+                <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 class="text-2xl font-black text-gray-800">Booth Pizzain Slice</h3>
+                      <p class="text-sm font-semibold text-gray-500 mt-1">Input laporan harian Booth</p>
+                    </div>
+                    ${window.__boothVariantAdmin ? `
+                      <div class="flex gap-2 sm:gap-3">
+                        <button onclick="addPizzaVariantRow()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-black shadow-lg">
+                          Tambah +
+                        </button>
+                        <button onclick="lockBoothVariantAdmin()" title="Kunci pengaturan" aria-label="Kunci pengaturan" class="w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-black flex items-center justify-center">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 10-8 0v4M6 11h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    ` : `
+                      <button onclick="showBoothVariantAdminDialog()" title="Buka pengaturan admin" aria-label="Buka pengaturan admin" class="w-12 h-12 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black shadow-lg flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 10-8 0v4M6 11h12a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2z"/>
+                        </svg>
+                      </button>
+                    `}
+                  </div>
+
+                  ${window.__boothVariantAdmin ? `
+                    <div id="pizzaVariantRows" class="space-y-3 mb-5 mt-6">
+                      ${(pizzaVariants.length ? pizzaVariants : DEFAULT_PIZZA_VARIANTS).map(renderPizzaVariantRow).join('')}
+                    </div>
+                    <button onclick="savePizzaVariantsFromAdmin()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+                      Simpan Varian Pizza
+                    </button>
+                  ` : ``}
+                </div>
+
+                ${isLocked ? `
+                  <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                    <h3 class="text-2xl font-black text-gray-800 mb-6">Laporan Booth Hari Ini</h3>
+                    ${renderBoothReportDetail(report, false)}
+                  </div>
+                ` : `
+                  <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                    <h3 class="text-2xl font-black text-gray-800 mb-6">Data Kas Booth</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div><label class="block text-sm font-bold text-gray-700 mb-2">Tanggal</label><input type="date" id="boothDate" value="${report.date}" ${isAdminEdit ? '' : 'readonly'} class="input-modern w-full rounded-xl px-4 py-3"></div>
+                      <div><label class="block text-sm font-bold text-gray-700 mb-2">Kas Awal</label><input type="text" id="boothCashStart" value="${formatRupiah(report.cashStart)}" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl px-4 py-3"></div>
+                      <div><label class="block text-sm font-bold text-gray-700 mb-2">Total QRIS</label><input type="text" id="boothQrisTotal" value="${formatRupiah(report.qrisTotal)}" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl px-4 py-3"></div>
+                      <div><label class="block text-sm font-bold text-gray-700 mb-2">Kas Akhir</label><input type="text" id="boothCashEnd" value="${formatRupiah(report.cashEnd)}" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl px-4 py-3"></div>
+                    </div>
+                  </div>
+
+                  <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                    <div class="flex items-center justify-between gap-3 mb-5">
+                      <h3 class="text-2xl font-black text-gray-800">Pengeluaran Booth</h3>
+                      <button type="button" onclick="addBoothExpenseRow()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-black shadow-lg flex items-center justify-center">
+                        Tambah +
+                      </button>
+                    </div>
+                    ${report.expenses?.length ? `<div class="space-y-2 mb-5">${report.expenses.map(exp => `
+                      <div class="bg-white rounded-lg px-3 py-2 border border-gray-200 flex items-center justify-between gap-3">
+                        <div><p class="text-sm font-black text-gray-800">${escapeHtml(exp.name)}</p><p class="text-xs font-semibold text-gray-500">${BOOTH_EXPENSE_CATEGORY}</p></div>
+                        <p class="text-sm font-black text-blue-600 whitespace-nowrap">Rp ${(Number(exp.amount) || 0).toLocaleString('id-ID')}</p>
+                      </div>
+                    `).join('')}</div>` : ''}
+                    <div id="boothExpenseRows" class="space-y-2">
+                      ${renderBoothExpenseInputRow()}
+                    </div>
+                  </div>
+
+                  <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
+                    <h3 class="text-2xl font-black text-gray-800 mb-6">Pizza Slice Terjual</h3>
+                    <div class="space-y-3">
+                      ${getActivePizzaVariants().map(variant => `
+                        <div class="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-4">
+                          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-200 to-red-100 border border-amber-100 flex items-center justify-center shrink-0">
+                            <div class="w-7 h-7 rounded-full bg-amber-300 border-4 border-red-400 border-dashed"></div>
+                          </div>
+                          <div class="min-w-0 flex-1">
+                            <p class="font-black text-gray-800 leading-tight">${escapeHtml(variant.name)}</p>
+                            <p class="text-xs font-semibold text-gray-500 mt-0.5">Rp ${(Number(variant.salePrice) || 0).toLocaleString('id-ID')} / slice</p>
+                          </div>
+                          <div class="flex items-center gap-2 shrink-0">
+                            <input type="number" min="0" id="boothQty-${variant.id}" value="${salesByVariant[variant.id] || 0}" class="input-modern w-24 rounded-xl px-3 py-3 text-center text-lg" placeholder="0">
+                            <span class="hidden sm:inline text-xs font-black text-gray-400">slice</span>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+
+                  <button onclick="saveBoothReport()" class="gradient-primary text-white w-full py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">Simpan Laporan Booth</button>
+                `}
+              </div>
+            </div>
+          `;
+        }
+
+        function renderBoothReportDetail(report, showEditButton = false) {
+          if (!report) {
+            return `<p class="text-center text-gray-400 py-6 font-semibold">Belum ada laporan Booth</p>`;
+          }
+
+          const totals = calculateBoothReport(report);
+          const activeSales = (report.sales || []).filter(item => item.qty > 0);
+          const cashGuardLabel = totals.cashMatches
+            ? 'Uang sesuai'
+            : `Selisih Rp ${Math.abs(totals.cashDifference).toLocaleString('id-ID')}`;
+          const cashGuardClass = totals.cashMatches
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+            : 'bg-red-50 text-red-700 border-red-100';
+          return `
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-4">
+                <div class="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+                  <div class="mb-3 flex items-center justify-between">
+                    <h4 class="text-sm font-bold text-gray-800">Data Kas</h4>
+                    <span class="rounded-full border px-3 py-1 text-xs font-semibold ${cashGuardClass}">${cashGuardLabel}</span>
+                  </div>
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="rounded-xl bg-blue-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-blue-700">Awal</p>
+                      <p class="mt-1 text-sm font-semibold text-gray-800">Rp ${(Number(report.cashStart) || 0).toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-blue-700">QRIS</p>
+                      <p class="mt-1 text-sm font-semibold text-gray-800">Rp ${(Number(report.qrisTotal) || 0).toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-blue-700">Akhir</p>
+                      <p class="mt-1 text-sm font-semibold text-gray-800">Rp ${(Number(report.cashEnd) || 0).toLocaleString('id-ID')}</p>
+                    </div>
+                  </div>
+                  <p class="mt-3 text-xs font-medium text-gray-500">
+                    Akhir + keluar + QRIS - awal = Rp ${totals.cashCheckTotal.toLocaleString('id-ID')}
+                  </p>
+                </div>
+
+                <div class="rounded-2xl border border-red-100 bg-white p-4 shadow-sm">
+                  <h4 class="mb-3 text-sm font-bold text-gray-800">Ringkasan Penjualan</h4>
+                  <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <div class="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-gray-500">Slice</p>
+                      <p class="mt-1 text-sm font-semibold text-gray-800">${totals.totalSlice}</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-gray-500">Omzet</p>
+                      <p class="mt-1 text-sm font-semibold text-red-600">Rp ${totals.totalRevenue.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-gray-500">Modal</p>
+                      <p class="mt-1 text-sm font-semibold text-gray-800">Rp ${totals.totalCost.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                      <p class="text-[11px] font-semibold text-gray-500">Keluar</p>
+                      <p class="mt-1 text-sm font-semibold text-gray-800">Rp ${totals.totalExpense.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div class="rounded-xl bg-red-600 px-3 py-3 text-white">
+                      <p class="text-[11px] font-semibold opacity-80">Laba</p>
+                      <p class="mt-1 text-sm font-semibold">Rp ${totals.netProfit.toLocaleString('id-ID')}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div class="mb-3 flex items-center justify-between">
+                  <h4 class="text-sm font-bold text-gray-800">Breakdown Varian</h4>
+                  <p class="text-xs font-bold text-gray-400">${activeSales.length} varian terjual</p>
+                </div>
+                <div class="divide-y divide-gray-100">
+                  ${activeSales.map(item => `
+                    <div class="grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2.5">
+                      <p class="min-w-0 truncate text-sm font-semibold text-gray-800">${escapeHtml(item.name)}</p>
+                      <p class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">${Number(item.qty) || 0} slice</p>
+                      <p class="text-sm font-semibold text-blue-600 whitespace-nowrap">Rp ${((Number(item.qty) || 0) * (Number(item.salePrice) || 0)).toLocaleString('id-ID')}</p>
+                    </div>
+                  `).join('') || `<p class="py-3 text-sm text-gray-400 font-semibold">Belum ada slice tercatat</p>`}
+                </div>
+              </div>
+
+              ${(report.expenses || []).length ? `<div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"><h4 class="mb-2 text-sm font-bold text-gray-800">Pengeluaran Booth</h4><div class="divide-y divide-gray-100">${report.expenses.map(exp => `
+                <div class="flex items-center justify-between gap-3 py-2">
+                  <p class="min-w-0 truncate text-sm font-semibold text-gray-800">${escapeHtml(exp.name)}</p>
+                  <p class="text-sm font-semibold text-blue-600 whitespace-nowrap">Rp ${(Number(exp.amount) || 0).toLocaleString('id-ID')}</p>
+                </div>
+              `).join('')}</div></div>` : ''}
+
+              ${showEditButton ? `<button onclick="editBoothReportFromAdmin('${report.date}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-lg">Edit Laporan Booth</button>` : ''}
+            </div>
+          `;
+        }
 
         function renderShiftScreen() {
          normalizeExpenses();
@@ -1671,6 +2689,13 @@ const lastShift1 = shiftHistory
    async function loadAllExpensesForAdmin() {
   if (!navigator.onLine) return;
   try {
+    if (isSupabaseConfigured()) {
+      const res = await supabaseRequest('expenses?select=*&deleted_at=is.null&order=created_at.desc', { method: 'GET' });
+      const rows = await res.json();
+      expenses = Array.isArray(rows) ? rows.map(mapSupabaseExpense) : [];
+      return;
+    }
+
     const fd = new FormData();
     fd.append('action', 'getAllExpenses');
 
@@ -1800,6 +2825,260 @@ async function confirmAdminDeleteExpense(id) {
   await deleteExpense(id);
 }
 
+function renderPizzaVariantRow(variant, index = 0) {
+  const isActive = variant.active !== false;
+  return `
+    <div data-variant-row="${variant.id || ''}" class="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-red-200 hover:shadow-md">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-sm font-black text-red-600">
+            ${index + 1}
+          </div>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-black text-gray-800">${escapeHtml(variant.name || 'Varian baru')}</p>
+            <p class="text-xs font-bold text-gray-400">${isActive ? 'Aktif dijual' : 'Tidak aktif'}</p>
+          </div>
+        </div>
+        <label class="relative inline-flex cursor-pointer items-center">
+          <input data-variant-active type="checkbox" ${isActive ? 'checked' : ''} class="peer sr-only">
+          <span class="h-7 w-12 rounded-full bg-gray-200 transition peer-checked:bg-red-600"></span>
+          <span class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
+        <div>
+          <label class="block text-xs font-black text-gray-500 mb-1">Nama</label>
+          <input data-variant-name type="text" value="${escapeHtml(variant.name || '')}" class="input-modern w-full rounded-xl px-4 py-3" placeholder="Meat Lovers">
+        </div>
+        <div>
+          <label class="block text-xs font-black text-gray-500 mb-1">Jual</label>
+          <input data-variant-sale type="text" value="${formatRupiah(variant.salePrice || 0)}" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl px-4 py-3">
+        </div>
+        <div>
+          <label class="block text-xs font-black text-gray-500 mb-1">Modal</label>
+          <input data-variant-cost type="text" value="${formatRupiah(variant.costPrice || 0)}" oninput="formatCurrencyInput(this)" class="input-modern w-full rounded-xl px-4 py-3">
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderBoothReportDropdown(report) {
+  const totals = calculateBoothReport(report);
+  const displayDate = new Date(report.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `
+    <details class="group rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm open:shadow-md">
+      <summary class="cursor-pointer list-none bg-slate-50 px-5 py-4 flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <h4 class="text-lg font-bold text-gray-900">${displayDate}</h4>
+          <p class="mt-1 text-xs font-medium text-gray-500">${totals.totalSlice} slice | Omzet Rp ${totals.totalRevenue.toLocaleString('id-ID')} | Pengeluaran Rp ${totals.totalExpense.toLocaleString('id-ID')}</p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <button onclick="event.preventDefault(); event.stopPropagation(); editBoothReportFromAdmin('${report.date}')" class="hidden sm:inline text-sm font-semibold text-blue-700 hover:text-blue-800">Edit</button>
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-gray-200 text-gray-500 transition group-open:rotate-180">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </span>
+        </div>
+      </summary>
+      <div class="border-t border-gray-200 bg-white p-5">
+        <button onclick="editBoothReportFromAdmin('${report.date}')" class="sm:hidden mb-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold shadow-lg">Edit</button>
+        ${renderBoothReportDetail(report, false)}
+      </div>
+    </details>
+  `;
+}
+
+function renderAdminBoothPanel(boothFilteredReports, boothSummary, isMultiDay) {
+  return `
+    <div class="glass-effect card-modern rounded-3xl p-8 mt-6">
+      <div class="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h3 class="text-2xl font-bold text-gray-800">Laporan Booth</h3>
+          <p class="text-sm font-semibold text-gray-500 mt-1">${isMultiDay ? 'Akumulasi periode terpilih' : 'Ringkasan hari ini'}</p>
+        </div>
+        ${!isMultiDay && boothFilteredReports[0] ? `
+          <button onclick="editBoothReportFromAdmin('${boothFilteredReports[0].date}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl font-semibold shadow-lg">
+            Edit
+          </button>
+        ` : ''}
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div class="bg-blue-50 rounded-xl border border-blue-100 p-4 text-center shadow-sm">
+          <p class="text-xs font-semibold text-blue-700 mb-1">Total Slice</p>
+          <p class="text-xl font-bold text-gray-900">${boothSummary.totalSlice}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
+          <p class="text-xs font-semibold text-gray-500 mb-1">Omzet</p>
+          <p class="text-base font-semibold text-red-600">Rp ${boothSummary.totalRevenue.toLocaleString('id-ID')}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
+          <p class="text-xs font-semibold text-gray-500 mb-1">Modal</p>
+          <p class="text-base font-semibold text-red-600">Rp ${boothSummary.totalCost.toLocaleString('id-ID')}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center shadow-sm">
+          <p class="text-xs font-semibold text-gray-500 mb-1">Pengeluaran</p>
+          <p class="text-base font-semibold text-red-600">Rp ${boothSummary.totalExpense.toLocaleString('id-ID')}</p>
+        </div>
+        <div class="bg-red-600 rounded-xl p-4 text-center text-white col-span-2 md:col-span-1 shadow-sm">
+          <p class="text-xs font-semibold opacity-80 mb-1">Laba Bersih</p>
+          <p class="text-base font-semibold">Rp ${boothSummary.netProfit.toLocaleString('id-ID')}</p>
+        </div>
+      </div>
+
+      ${boothFilteredReports.length ? `
+        <div class="space-y-3">
+          ${isMultiDay
+            ? boothFilteredReports.map(renderBoothReportDropdown).join('')
+            : boothFilteredReports.map(report => `
+              <div class="rounded-2xl border border-gray-200 p-5 bg-slate-50">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                  <h4 class="text-xl font-bold text-gray-900">${new Date(report.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h4>
+                  <button onclick="editBoothReportFromAdmin('${report.date}')" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Edit</button>
+                </div>
+                ${renderBoothReportDetail(report, false)}
+              </div>
+            `).join('')}
+        </div>
+      ` : `
+        <p class="text-center text-gray-400 py-6 font-semibold">Belum ada laporan Booth pada periode ini</p>
+      `}
+    </div>
+  `;
+}
+
+
+function getLocalDateKey(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return null;
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getYesterdayDateKey() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return getLocalDateKey(date);
+}
+
+function renderManagerExpenseItem(exp, tone = 'red') {
+  const time = exp.timestamp
+    ? new Date(exp.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    : '-';
+  const badgeClass = tone === 'amber'
+    ? 'bg-amber-100 text-amber-700'
+    : 'bg-red-100 text-red-700';
+  const amountClass = tone === 'amber' ? 'text-pink-600' : 'text-purple-600';
+
+  return `
+    <div class="bg-white rounded-lg px-3 py-2 border border-gray-200">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex flex-col gap-1 flex-1 min-w-0">
+          <div class="flex items-center gap-2 text-xs text-gray-500 font-semibold">
+            <span>${time}</span>
+            <span class="px-2 py-0.5 rounded-full ${badgeClass} text-[11px] font-bold">
+              ${escapeHtml(exp.category || '-')}
+            </span>
+          </div>
+          <p class="text-sm font-semibold text-gray-800 leading-snug break-words">
+            ${escapeHtml(exp.expense_name || '-')}
+          </p>
+        </div>
+        <p class="text-sm font-bold ${amountClass} whitespace-nowrap shrink-0">
+          Rp ${(Number(exp.amount) || 0).toLocaleString('id-ID')}
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+function renderManagerShiftSection({ title, tone, reportDate, items }) {
+  const shiftName = title === 'Shift 1' ? 'shift1' : 'shift2';
+  const shift = getShiftByDate(shiftName, reportDate, reportDate);
+  const total = items.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+  const bgClass = tone === 'amber' ? 'bg-amber-300 border-red-300' : 'bg-red-300 border-red-300';
+  const titleClass = tone === 'amber' ? 'text-amber-800' : 'text-red-800';
+  const metaClass = tone === 'amber' ? 'text-amber-900/80' : 'text-red-900/80';
+  const kasClass = tone === 'amber' ? 'text-amber-900' : 'text-red-900';
+  const openedAt = shift?.openedAt
+    ? new Date(shift.openedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    : '-';
+
+  return `
+    <div class="mb-6">
+      <div class="rounded-xl p-4 mb-4 ${bgClass} border">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xl font-black ${titleClass} tracking-tight">${title}</span>
+          <span class="text-sm font-semibold ${metaClass}">
+            ${escapeHtml(shift?.cashier || '-')} &bull; ${openedAt}
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-sm font-semibold ${kasClass}">
+          <span>Rp ${(Number(shift?.startCash) || 0).toLocaleString('id-ID')}</span>
+          <span>Rp ${(Number(shift?.endCash) || 0).toLocaleString('id-ID')}</span>
+        </div>
+      </div>
+
+      ${items.length === 0 ? `
+        <p class="text-center text-gray-400 py-6">Tidak ada pengeluaran</p>
+      ` : `
+        <div class="space-y-2">
+          ${items.map(exp => renderManagerExpenseItem(exp, tone)).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+function renderManagerScreen() {
+  normalizeExpenses();
+  const reportDate = getYesterdayDateKey();
+  const displayDate = reportDate
+    ? new Date(reportDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '-';
+
+  const yesterdayExpenses = expenses.filter(exp => {
+    const dateKey = getLocalDateKey(exp.createdAt || exp.timestamp);
+    return dateKey === reportDate && (exp.shift === 'shift1' || exp.shift === 'shift2');
+  });
+  const shift1Items = yesterdayExpenses.filter(exp => exp.shift === 'shift1');
+  const shift2Items = yesterdayExpenses.filter(exp => exp.shift === 'shift2');
+
+  return `
+    <div class="min-h-full p-6">
+      <div class="max-w-3xl mx-auto">
+        <button onclick="backToHome()" class="mb-5 text-sm font-black text-red-700 hover:text-red-800">Kembali</button>
+        <div class="glass-effect card-modern rounded-3xl p-8">
+          <div class="flex items-start justify-between gap-4 mb-7">
+            <div>
+              <h3 class="text-2xl font-black text-gray-800">Pengeluaran Harian</h3>
+              <p class="text-sm font-semibold text-gray-500 mt-1">${displayDate}</p>
+            </div>
+          </div>
+
+          ${renderManagerShiftSection({
+            title: 'Shift 1',
+            tone: 'red',
+            reportDate,
+            items: shift1Items
+          })}
+
+          ${renderManagerShiftSection({
+            title: 'Shift 2',
+            tone: 'amber',
+            reportDate,
+            items: shift2Items
+          })}
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 function renderAdminScreen() {
   const config = window.elementSdk?.config || defaultConfig;
@@ -1810,6 +3089,8 @@ function renderAdminScreen() {
 
   const isMultiDay = startDate !== endDate;
  const isTodayOnly = startDate === today && endDate === today;
+ const boothFilteredReports = getBoothReportsByPeriod(startDate, endDate);
+ const boothSummary = getBoothPeriodSummary(startDate, endDate);
 
 
   // ===============================
@@ -1913,7 +3194,6 @@ function renderAdminScreen() {
 
 </div>
 
-                        
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">➕ Pengeluaran Admin</h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -2808,6 +4088,7 @@ ${shift2Expenses.length === 0 ? `
                             </div>
                         </div>
                         `}
+                        ${renderAdminBoothPanel(boothFilteredReports, boothSummary, isMultiDay)}
                     </div>
                 </div>
             `;
@@ -2831,14 +4112,25 @@ async function loginAdmin() {
   // ===============================
   // ⚡ 1️⃣ VALIDASI LOKAL DULU
   // ===============================
-  const admin = getActiveCashiers().find(u =>
-    u.role === 'admin' &&
-    String(u.pin) === String(pin)
-  );
+  const user = getActiveCashiers().find(u => String(u.pin) === String(pin));
+  const isAdmin = user?.role === 'admin';
+  const isManagerView = user && String(user.name || '').toLowerCase() === 'izza';
 
-  if (!admin) {
+  if (!user || (!isAdmin && !isManagerView)) {
     resetBtn();
-    showNotification('PIN admin salah', 'error');
+    showNotification('PIN tidak memiliki akses laporan', 'error');
+    return;
+  }
+
+  if (isManagerView && !isAdmin) {
+    closeAdminPinDialog();
+    currentShift = null;
+    currentCashier = user.name;
+    currentView = 'manager';
+    adminDataReady = false;
+    renderCurrentView();
+    showNotification(`Selamat datang, ${user.name}`, 'success');
+    resetBtn();
     return;
   }
 
@@ -2863,11 +4155,11 @@ shiftData.admin = {
   currentView = 'admin';
   renderCurrentView();
 
-  showNotification(`Selamat datang, ${admin.name}`, 'success');
+  showNotification(`Selamat datang, ${user.name}`, 'success');
   resetBtn();
 
   // BACKEND FIRE & FORGET
-  if (navigator.onLine) {
+  if (navigator.onLine && !isSupabaseConfigured()) {
     const fd = new FormData();
     fd.append('action', 'loginAdmin');
     fd.append('pin', pin);
@@ -2886,6 +4178,9 @@ shiftData.admin = {
 
 
         function selectShift(shift) {
+            window.__boothAdminEdit = false;
+            window.__boothEditDate = null;
+            window.__boothVariantAdmin = false;
             if (shift === 'shift1' && shiftData.shift1.status === 'closed') {
                 showNotification('🔒 Shift 1 sudah ditutup!', 'warning');
                 return;
@@ -2904,6 +4199,9 @@ shiftData.admin = {
         }
 
         function backToHome() {
+            window.__boothAdminEdit = false;
+            window.__boothEditDate = null;
+            window.__boothVariantAdmin = false;
             currentView = 'home';
             currentShift = null;
             currentCashier = null;
@@ -2923,8 +4221,8 @@ shiftData.admin = {
     <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl"
          onclick="event.stopPropagation()">
 
-      <h3 class="text-2xl font-black mb-2 text-center">🔐 PIN Admin</h3>
-      <p class="text-center text-gray-500 mb-6">Masukkan PIN untuk akses admin</p>
+      <h3 class="text-2xl font-black mb-2 text-center">🔐 PIN Akses Laporan</h3>
+      <p class="text-center text-gray-500 mb-6">Masukkan PIN admin atau pemeriksa laporan</p>
 
       <input
         id="adminPin"
@@ -3095,6 +4393,36 @@ localStorage.setItem('activeShift', JSON.stringify({
   currentView = shift;
 
   renderCurrentView();
+
+  if (isSupabaseConfigured()) {
+    try {
+      await sendQueuedPayload({
+        action: 'loginShift',
+        shift,
+        cashier: cashierName,
+        pin,
+        startCash,
+        sessionId
+      });
+    } catch (err) {
+      await saveToQueue({
+        id: 'loginShift-' + Date.now(),
+        payload: {
+          action: 'loginShift',
+          shift,
+          cashier: cashierName,
+          pin,
+          startCash,
+          sessionId
+        }
+      });
+      showNotification('Offline, akan disinkronkan saat online', 'warning');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
+    return;
+  }
 
   // backend sinkron
   const fd = new FormData();
@@ -3511,7 +4839,7 @@ shiftData[currentShift].closedAt = closedAt;
 
 // 🔥 TAMBAHAN: update shiftHistory lokal
 shiftHistory.push({
-  tanggal: new Date().toISOString().split('T')[0],
+  tanggal: getLocalDateKey(new Date()),
   shift: currentShift,
   cashier: currentCashier || shiftData[currentShift].cashier,
   startCash: shiftData[currentShift].startCash,
@@ -3554,6 +4882,23 @@ localStorage.removeItem('activeShift');
       'Offline: shift ditutup dan akan disinkronkan',
       'warning'
     );
+    return;
+  }
+
+  if (isSupabaseConfigured()) {
+    try {
+      await sendQueuedPayload(payload);
+    } catch (err) {
+      await saveToQueue({
+        id: 'closeShift-' + Date.now(),
+        payload
+      });
+
+      showNotification(
+        'Offline, akan disinkronkan saat online',
+        'warning'
+      );
+    }
     return;
   }
 
@@ -3751,7 +5096,7 @@ function toggleChartData(type) {
 
   const button = document.getElementById(`chart-toggle-${type}`);
   if (chartVisibleData[type]) {
-    if (type === 'Belanja Bahan Baku')
+    if (type === 'Bahan Baku')
       button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-red-600 to-red-700 text-white';
     else if (type === 'Operasional')
       button.className = 'px-6 py-3 rounded-xl font-bold transition-all shadow-lg bg-gradient-to-r from-amber-600 to-amber-700 text-white';
@@ -3857,8 +5202,8 @@ function createChart() {
       borderWidth: 0,
       borderRadius: 8,
       borderSkipped: false,
-      bbackgroundColor:
-  cat === 'Belanja Bahan Baku'
+      backgroundColor:
+  cat === 'Bahan Baku'
     ? 'rgba(220, 38, 38, 0.85)'
     : cat === 'Operasional'
     ? 'rgba(245, 158, 11, 0.85)'
