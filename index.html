@@ -2949,8 +2949,8 @@ function renderAdminBoothPanel(boothFilteredReports, boothSummary, isMultiDay) {
           ${isMultiDay
             ? boothFilteredReports.map(renderBoothReportDropdown).join('')
             : boothFilteredReports.map(report => `
-              <div class="rounded-2xl border border-gray-200 p-5 bg-slate-50">
-                <div class="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <div class="flex items-center justify-between gap-3 mb-5">
                   <h4 class="text-xl font-bold text-gray-900">${new Date(report.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</h4>
                   <button onclick="editBoothReportFromAdmin('${report.date}')" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Edit</button>
                 </div>
