@@ -478,6 +478,16 @@ function saveToQueue(data) {
   });
 }
 
+function persistActiveShift(shift, cashier, startCash, openedAt, sessionId) {
+  localStorage.setItem('activeShift', JSON.stringify({
+    shift,
+    cashier,
+    startCash,
+    openedAt,
+    sessionId
+  }));
+}
+
 function isSupabaseConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
@@ -706,12 +716,12 @@ async function syncLegacyPayloadToSupabase(payload) {
       body: JSON.stringify({
         id: payload.sessionId,
         shift: payload.shift,
-        tanggal: getLocalDateKey(new Date()),
+        tanggal: payload.tanggal || getLocalDateKey(payload.openedAt || new Date()),
         cashier: payload.cashier,
         start_cash: Number(payload.startCash) || 0,
         end_cash: 0,
         status: 'open',
-        opened_at: new Date().toISOString(),
+        opened_at: payload.openedAt || new Date().toISOString(),
         session_id: payload.sessionId,
         updated_at: new Date().toISOString()
       })
@@ -751,13 +761,37 @@ async function syncLegacyPayloadToSupabase(payload) {
   }
 
   if (payload.action === 'closeShift') {
-    await supabaseRequest(`shift_history?session_id=eq.${encodeURIComponent(payload.sessionId)}`, {
-      method: 'PATCH',
-      headers: { Prefer: 'return=minimal' },
+    const hasShiftSnapshot = Boolean(payload.cashier || Number(payload.startCash) || payload.openedAt);
+
+    if (!hasShiftSnapshot) {
+      await supabaseRequest(`shift_history?session_id=eq.${encodeURIComponent(payload.sessionId)}`, {
+        method: 'PATCH',
+        headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          end_cash: Number(payload.endCash) || 0,
+          status: 'closed',
+          closed_at: payload.closedAt || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      return true;
+    }
+
+    await supabaseRequest('shift_history', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({
+        id: payload.sessionId,
+        shift: payload.shift,
+        tanggal: payload.tanggal || getLocalDateKey(payload.openedAt || payload.closedAt || new Date()),
+        cashier: payload.cashier || null,
+        start_cash: Number(payload.startCash) || 0,
         end_cash: Number(payload.endCash) || 0,
         status: 'closed',
+        opened_at: payload.openedAt || payload.closedAt || new Date().toISOString(),
         closed_at: payload.closedAt || new Date().toISOString(),
+        session_id: payload.sessionId,
         updated_at: new Date().toISOString()
       })
     });
@@ -3132,17 +3166,7 @@ function renderAdminScreen() {
   const shift1Expenses = filteredExpenses.filter(e => e.shift === 'shift1');
   const shift2Expenses = filteredExpenses.filter(e => e.shift === 'shift2');
 
-  // 🔑 ADMIN: HANYA INPUT HARI INI (BUKAN LAPORAN)
-  const adminExpenses = filteredExpenses.filter(e => {
-    if (e.shift !== 'admin') return false;
-
-    // ❌ jangan tampil di multi-day
-    if (isMultiDay) return false;
-
-    // ✅ hanya hari ini
-    const expDate = safeISODate(e.createdAt || e.timestamp)?.split('T')[0];
-    return expDate === today;
-  });
+  const adminExpenses = filteredExpenses.filter(e => e.shift === 'admin');
 
   // ===============================
   // TOTAL
@@ -3323,7 +3347,6 @@ function renderAdminScreen() {
 
 
                         
-                        ${!isMultiDay ? `
 <div class="px-4 md:px-6 mb-8">
   <div class="grid grid-cols-1 gap-6 text-center">
 
@@ -3358,7 +3381,7 @@ function renderAdminScreen() {
 </div>
 
 
-` : `
+${isMultiDay ? `
 
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
                             <h3 class="text-2xl font-black text-gray-800 mb-6">📊 Grafik Pengeluaran</h3>
@@ -3377,7 +3400,7 @@ function renderAdminScreen() {
                                 <canvas id="expenseChart"></canvas>
                             </div>
                         </div>
-                        `}
+                        ` : ''}
                         
                         ${isMultiDay ? `
                         <div class="glass-effect card-modern rounded-3xl p-8 mb-6">
@@ -4354,21 +4377,16 @@ async function loginShift() {
     }
 
     // UI-FIRST
+    const openedAt = safeISODate(new Date());
     shiftData[shift] = {
       status: 'open',
       cashier: cashierName,
       startCash,
-      openedAt: safeISODate(new Date()),
+      openedAt,
       sessionId // 🔑 SIMPAN SESSION
     };
    
-localStorage.setItem('activeShift', JSON.stringify({
-  shift,
-  cashier: cashierName,
-  startCash,
-  openedAt: safeISODate(new Date()),
-  sessionId
-}));
+persistActiveShift(shift, cashierName, startCash, openedAt, sessionId);
    
     currentShift = shift;
     currentCashier = cashierName;
@@ -4385,6 +4403,8 @@ localStorage.setItem('activeShift', JSON.stringify({
         cashier: cashierName,
         pin,
         startCash,
+        openedAt,
+        tanggal: getLocalDateKey(openedAt),
         sessionId // 🔑 KIRIM SESSION
       }
     });
@@ -4404,13 +4424,16 @@ localStorage.setItem('activeShift', JSON.stringify({
   // =====================================================
 
   // UI langsung pindah
+  const openedAt = safeISODate(new Date());
   shiftData[shift] = {
     status: 'open',
     cashier: cashierName,
     startCash,
-    openedAt: safeISODate(new Date()),
+    openedAt,
     sessionId // 🔑 SIMPAN SESSION
   };
+
+  persistActiveShift(shift, cashierName, startCash, openedAt, sessionId);
 
   currentShift = shift;
   currentCashier = cashierName;
@@ -4426,6 +4449,8 @@ localStorage.setItem('activeShift', JSON.stringify({
         cashier: cashierName,
         pin,
         startCash,
+        openedAt,
+        tanggal: getLocalDateKey(openedAt),
         sessionId
       });
     } catch (err) {
@@ -4437,6 +4462,8 @@ localStorage.setItem('activeShift', JSON.stringify({
           cashier: cashierName,
           pin,
           startCash,
+          openedAt,
+          tanggal: getLocalDateKey(openedAt),
           sessionId
         }
       });
@@ -4455,6 +4482,8 @@ localStorage.setItem('activeShift', JSON.stringify({
   fd.append('shift', shift);
   fd.append('cashier', cashierName);
   fd.append('startCash', startCash);
+  fd.append('openedAt', openedAt);
+  fd.append('tanggal', getLocalDateKey(openedAt));
   fd.append('sessionId', sessionId); // 🔑 KIRIM SESSION
   fd.append('__sync', '1');
 
@@ -4478,6 +4507,8 @@ localStorage.setItem('activeShift', JSON.stringify({
         cashier: cashierName,
         pin,
         startCash,
+        openedAt,
+        tanggal: getLocalDateKey(openedAt),
         sessionId // 🔑 KIRIM SESSION
       }
     });
@@ -4888,8 +4919,12 @@ localStorage.removeItem('activeShift');
   const payload = {
     action: 'closeShift',
     shift: closedShift,
+    cashier: currentCashier || shiftData[closedShift]?.cashier || null,
+    startCash: shiftData[closedShift]?.startCash || 0,
     endCash,
+    openedAt: shiftData[closedShift]?.openedAt || null,
     closedAt,
+    tanggal: getLocalDateKey(shiftData[closedShift]?.openedAt || closedAt),
     sessionId // 🔑 KUNCI UTAMA
   };
 
