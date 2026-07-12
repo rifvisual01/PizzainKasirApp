@@ -15,8 +15,8 @@ window.LOCAL_CASHIERS = [
   },
   
    {
-    name: 'Afdhal',
-    pin: '246810',
+    name: 'Sarah',
+    pin: '130419',
     role: 'kasir',
     active: true
   },
