@@ -1,8 +1,8 @@
 // kasir-data.js
 window.LOCAL_CASHIERS = [
   {
-    name: 'Tifani',
-    pin: '040523',
+    name: 'Arzha',
+    pin: '190405',
     role: 'kasir',
     active: true
   },
@@ -15,28 +15,15 @@ window.LOCAL_CASHIERS = [
   },
   
    {
-    name: 'Sarah',
-    pin: '130419',
+    name: 'Afdhal',
+    pin: '246810',
     role: 'kasir',
     active: true
   },
   {
     name: 'Admin',
-    pin: '0000',
+    pin: '9999',
     role: 'admin',
     active: true
-  },
-   {
-    name: 'Arzha',
-    pin: '190405',
-    role: 'kasir',
-    active: true
-  },
-   {
-    name: 'Afdhal',
-    pin: '246810',
-    role: 'kasir',
-    active: true
   }
-
 ];
